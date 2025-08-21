@@ -139,17 +139,17 @@ Full features when running locally:
 ### **Serect Endpoints**
 ```javascript
 // Latest movies
-https://phimapi.com/danh-sach/phim-moi-cap-nhat-v3
+https://Serect/danh-sach/phim-moi-cap-nhat-v3
 
 // By category
-https://phimapi.com/danh-sach/phim-bo
-https://phimapi.com/danh-sach/hoat-hinh
+https://Serect/danh-sach/phim-bo
+https://Serect/danh-sach/hoat-hinh
 
 // Search
-https://phimapi.com/tim-kiem?keyword=...
+https://Serect/tim-kiem?keyword=...
 
 // Movie details
-https://phimapi.com/phim/[slug]
+https://Serect/phim/[slug]
 ```
 
 ### **Data Structure**
@@ -185,7 +185,7 @@ https://phimapi.com/phim/[slug]
 ### **API Configuration**
 ```javascript
 const CONFIG = {
-  API_BASE: 'https://phimapi.com',
+  API_BASE: 'https://Serect',
   CACHE_DURATION: 30 * 60 * 1000,
   ITEMS_PER_PAGE: 24
 };
