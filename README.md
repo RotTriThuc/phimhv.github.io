@@ -1,12 +1,12 @@
 # 🎬 Web Xem Anime - KKPhim Integration
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-brightgreen)](https://rottriThuc.github.io/web-xem-anime/)
-[![API](https://img.shields.io/badge/API-KKPhim.vip-blue)](https://kkphim.vip/)
+[![API](https://img.shields.io/badge/API-Serect-blue)](Serect)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## 📖 Giới thiệu
 
-Website xem anime/phim trực tuyến được xây dựng với HTML, CSS, JavaScript thuần. Tích hợp API từ KKPhim.vip để cung cấp hơn **23,969 bộ phim** với tính năng tìm kiếm, lọc và xem phim mượt mà.
+Website xem anime/phim trực tuyến được xây dựng với HTML, CSS, JavaScript thuần. Tích hợp API từ Serect để cung cấp hơn **23,969 bộ phim** với tính năng tìm kiếm, lọc và xem phim mượt mà.
 
 ## ✨ Tính năng chính
 
@@ -18,7 +18,7 @@ Website xem anime/phim trực tuyến được xây dựng với HTML, CSS, Java
 - 🚀 **Single Page App** - Fast navigation
 
 ### 🎬 **Movie Features**
-- 📺 **23,969+ phim** từ KKPhim.vip
+- 📺 **23,969+ phim** từ Serect
 - 🎪 **Multiple categories** - Phim bộ, phim lẻ, hoạt hình, TV shows
 - 🌍 **Multi-country** - Phim Việt, Hàn, Trung, Âu Mỹ, Nhật...
 - 📅 **Year range** - From 2000 to 2026
@@ -136,20 +136,20 @@ Full features when running locally:
 
 ## 📊 API Integration
 
-### **KKPhim.vip Endpoints**
+### **Serect Endpoints**
 ```javascript
 // Latest movies
-https://phimapi.com/danh-sach/phim-moi-cap-nhat-v3
+https://Serect/danh-sach/phim-moi-cap-nhat-v3
 
 // By category
-https://phimapi.com/danh-sach/phim-bo
-https://phimapi.com/danh-sach/hoat-hinh
+https://Serect/danh-sach/phim-bo
+https://Serect/danh-sach/hoat-hinh
 
 // Search
-https://phimapi.com/tim-kiem?keyword=...
+https://Serect/tim-kiem?keyword=...
 
 // Movie details
-https://phimapi.com/phim/[slug]
+https://Serect/phim/[slug]
 ```
 
 ### **Data Structure**
@@ -185,7 +185,7 @@ https://phimapi.com/phim/[slug]
 ### **API Configuration**
 ```javascript
 const CONFIG = {
-  API_BASE: 'https://phimapi.com',
+  API_BASE: 'https://Serect',
   CACHE_DURATION: 30 * 60 * 1000,
   ITEMS_PER_PAGE: 24
 };
@@ -247,7 +247,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- 🎬 **KKPhim.vip** - Movie data API
+- 🎬 **Serect** - Movie data API
 - 🌐 **GitHub Pages** - Free hosting
 - 🎨 **CSS Grid & Flexbox** - Layout system
 - 📱 **Responsive Design** - Mobile-first approach

@@ -4,18 +4,20 @@
 // Real endpoints are protected in api-proxy.js
 
 function buildUrl(path, params = {}) {
-  // Use secure proxy endpoints instead of direct API calls
-  if (!window.secureAPI) {
-    throw new Error('Secure API proxy not initialized');
-  }
-  
-  // Proxy will handle URL building securely
-  return { path, params }; // Return data for proxy to handle
+  const base = 'https://phimapi.com';
+  const url = new URL(path, base);
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') {
+      url.searchParams.set(k, String(v));
+    }
+  });
+  return url.toString();
 }
 
 async function requestJson(url) {
-  // DEPRECATED: Direct requests are now handled by secure proxy
-  throw new Error('Direct API calls are disabled for security. Use secureAPI methods.');
+  const res = await fetch(url, { method: 'GET', mode: 'cors', credentials: 'omit' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 
 function normalizeImageUrl(u) {
@@ -176,40 +178,40 @@ function listGrid(movies, className = '') {
 /* Secure API Layer - Uses proxy for all requests */
 const Api = {
   async getLatest(page = 1) {
-    if (!window.secureAPI) throw new Error('Secure API not initialized');
-    return window.secureAPI.getLatestMovies({ page });
+    const url = buildUrl('/danh-sach/phim-moi-cap-nhat-v3', { page });
+    return requestJson(url);
   },
   async getMovie(slug) {
-    if (!window.secureAPI) throw new Error('Secure API not initialized');
-    return window.secureAPI.getMovieDetail(slug);
+    const url = buildUrl(`/phim/${slug}`);
+    return requestJson(url);
   },
   async search({ keyword, page = 1, sort_field, sort_type, sort_lang, category, country, year, limit }) {
-    if (!window.secureAPI) throw new Error('Secure API not initialized');
-    return window.secureAPI.searchMovies(keyword, { page, sort_field, sort_type, sort_lang, category, country, year, limit });
+    const url = buildUrl('/v1/api/tim-kiem', { keyword, page, sort_field, sort_type, sort_lang, category, country, year, limit });
+    return requestJson(url);
   },
   async listByType({ type_list, page = 1, sort_field, sort_type, sort_lang, category, country, year, limit = 24 }) {
-    if (!window.secureAPI) throw new Error('Secure API not initialized');
-    return window.secureAPI.secureRequest('/api/movies', { type_list, page, sort_field, sort_type, sort_lang, category, country, year, limit });
+    const url = buildUrl(`/v1/api/danh-sach/${type_list}`, { page, sort_field, sort_type, sort_lang, category, country, year, limit });
+    return requestJson(url);
   },
   async getCategories() {
-    if (!window.secureAPI) throw new Error('Secure API not initialized');
-    return window.secureAPI.getCategories();
+    const url = buildUrl('/the-loai');
+    return requestJson(url);
   },
   async getCountries() {
-    if (!window.secureAPI) throw new Error('Secure API not initialized');
-    return window.secureAPI.secureRequest('/api/countries');
+    const url = buildUrl('/quoc-gia');
+    return requestJson(url);
   },
   async listByCategory({ slug, page = 1, sort_field, sort_type, sort_lang, country, year, limit = 24 }) {
-    if (!window.secureAPI) throw new Error('Secure API not initialized');
-    return window.secureAPI.getMoviesByCategory(slug, { page, sort_field, sort_type, sort_lang, country, year, limit });
+    const url = buildUrl(`/v1/api/the-loai/${slug}`, { page, sort_field, sort_type, sort_lang, country, year, limit });
+    return requestJson(url);
   },
   async listByCountry({ slug, page = 1, sort_field, sort_type, sort_lang, category, year, limit = 24 }) {
-    if (!window.secureAPI) throw new Error('Secure API not initialized');
-    return window.secureAPI.secureRequest('/api/countries', { slug, page, sort_field, sort_type, sort_lang, category, year, limit });
+    const url = buildUrl(`/v1/api/quoc-gia/${slug}`, { page, sort_field, sort_type, sort_lang, category, year, limit });
+    return requestJson(url);
   },
   async listByYear({ year, page = 1, sort_field, sort_type, sort_lang, category, country, limit = 24 }) {
-    if (!window.secureAPI) throw new Error('Secure API not initialized');
-    return window.secureAPI.secureRequest('/api/years', { year, page, sort_field, sort_type, sort_lang, category, country, limit });
+    const url = buildUrl(`/v1/api/nam/${year}`, { page, sort_field, sort_type, sort_lang, category, country, limit });
+    return requestJson(url);
   }
 };
 

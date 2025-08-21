@@ -376,7 +376,7 @@ body {
 .player iframe, .player video { width: 100%; aspect-ratio: 16/9; border: 0; border-radius: 8px; }
 
 .footer { border-top: 1px solid var(--border); padding: 18px 0; color: var(--muted); }
-.footer a { color: var(--primary); text-decoration: none; }
+.footer a { color: var(--primary); text-decoration: none; } 
 
 .nav__link--special {
   background: linear-gradient(45deg, var(--primary), #ff6b6b);
