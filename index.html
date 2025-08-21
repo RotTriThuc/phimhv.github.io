@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f0f12">
+  <title>🎬 Web Xem Anime - KKPhim</title>
+  <meta name="description" content="Website xem anime/phim trực tuyến với hơn 23,969 bộ phim từ KKPhim.vip. Tìm kiếm, lọc và xem phim mượt mà.">
+  <meta name="keywords" content="xem phim, anime, KKPhim, phim bộ, phim lẻ, hoạt hình, vietsub">
+  <meta name="author" content="NGUYEN HOAI VU">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://rottriThuc.github.io/web-xem-anime/">
+  <meta property="og:title" content="🎬 Web Xem Anime - KKPhim">
+  <meta property="og:description" content="Website xem anime/phim trực tuyến với hơn 23,969 bộ phim từ KKPhim.vip">
+  
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://rottriThuc.github.io/web-xem-anime/">
+  <meta property="twitter:title" content="🎬 Web Xem Anime - KKPhim">
+  <meta property="twitter:description" content="Website xem anime/phim trực tuyến với hơn 23,969 bộ phim từ KKPhim.vip">
+  
+  <link rel="preconnect" href="https://phimapi.com">
+  <link rel="preconnect" href="https://phimimg.com">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2315151a'/%3E%3Ctext x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Segoe UI, Arial' font-size='34' fill='%23ffffff'%3E🎬%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./assets/styles.css">
+  <script src="github-pages-config.js"></script>
+</head>
+<body class="theme-dark">
+  <noscript>Vui lòng bật JavaScript để sử dụng website.</noscript>
+
+  <header class="header">
+    <div class="container header__inner">
+      <!-- Main header row -->
+      <div class="header__main">
+        <button class="brand" id="homeBtn" aria-label="Về trang chủ">
+          <span class="brand__icon">🎬</span>
+          <span class="brand__text">XemPhim</span>
+        </button>
+
+        <form id="searchForm" class="search" role="search" aria-label="Tìm kiếm phim">
+          <input id="searchInput" class="search__input" type="search" placeholder="Tìm kiếm phim..." autocomplete="off"/>
+          <button class="search__btn" type="submit" aria-label="Tìm kiếm">
+            <span>🔍</span>
+          </button>
+        </form>
+
+        <div class="header__actions">
+          <button id="themeToggle" class="theme-toggle" aria-label="Đổi giao diện">🌙</button>
+          <a href="#/the-loai" class="nav__link nav__link--primary">📋 Thể loại</a>
+        </div>
+      </div>
+
+      <!-- Quick nav row -->
+      <div class="header__nav">
+        <nav class="nav nav--quick">
+          <button class="nav__btn" data-quick="hoat-hinh">Hoạt hình</button>
+          <button class="nav__btn" data-quick="phim-bo">Phim bộ</button>
+          <button class="nav__btn" data-quick="phim-le">Phim lẻ</button>
+          <button class="nav__btn" data-quick="tv-shows">TV Shows</button>
+        </nav>
+        
+        <div class="filters">
+          <select id="countrySelect" class="select select--compact">
+            <option value="">Quốc gia</option>
+          </select>
+          <select id="yearSelect" class="select select--compact">
+            <option value="">Năm</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="app" class="container app" aria-live="polite"></main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Nguồn dữ liệu sử dụng từ <a href="https://kkphim.com/tai-lieu-api" target="_blank" rel="noopener noreferrer">KKPhim API</a>. Trang web chỉ tổng hợp dữ liệu công khai.</p>
+    </div>
+  </footer>
+
+  <script type="module" src="./assets/app.js"></script>
+</body>
+</html> 
