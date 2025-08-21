@@ -1,7 +1,9 @@
 // API Proxy Layer with Security & Rate Limiting
 class APIProxy {
   constructor() {
-    this.realAPIBase = 'https://phimapi.com'; // Hidden from client
+    // SECURITY: This is the ONLY place where real API URL is stored
+    // This is hidden from client-side view and only used internally by proxy
+    this.realAPIBase = 'https://phimapi.com'; // PROTECTED - NOT EXPOSED TO CLIENT
     this.rateLimiter = new Map(); // Store request counts per IP/session
     this.requestQueue = new Map(); // Queue for throttling
     

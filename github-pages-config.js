@@ -3,8 +3,8 @@ const GITHUB_PAGES_CONFIG = {
   // Chế độ API-only (không dùng local database)
   USE_LOCAL_DATA: false,
   
-  // API endpoints
-  API_BASE: 'https://phimapi.com',
+  // API endpoints - secured via proxy layer
+  API_BASE: '/api', // Proxy endpoints only
   
   // Cache trong localStorage thay vì file
   CACHE_PREFIX: 'kkphim_cache_',
