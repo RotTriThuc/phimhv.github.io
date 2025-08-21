@@ -24,7 +24,7 @@ const GITHUB_PAGES_CONFIG = {
 
 // Override API functions for GitHub Pages
 if (typeof window !== 'undefined' && window.location.hostname.includes('github.io')) {
-  console.log('🚀 Running on GitHub Pages mode');
+  console.info('🚀 Running on GitHub Pages mode');
   
   // Disable local file operations
   window.GITHUB_PAGES_MODE = true;
