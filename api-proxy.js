@@ -97,15 +97,38 @@ class APIProxy {
   buildSecureURL(endpoint, params) {
     // Map proxy endpoints to real endpoints
     const endpointMap = {
-      '/api/movies': '/danh-sach/phim-moi-cap-nhat',
-      '/api/search': '/tim-kiem',
+      '/api/movies': '/danh-sach/phim-moi-cap-nhat-v3',
+      '/api/search': '/v1/api/tim-kiem',
       '/api/categories': '/the-loai',
       '/api/countries': '/quoc-gia', 
-      '/api/years': '/nam',
+      '/api/years': '/v1/api/nam',
       '/api/movie': '/phim'
     };
     
-    const realEndpoint = endpointMap[endpoint] || endpoint;
+    let realEndpoint = endpointMap[endpoint] || endpoint;
+    
+    // Handle dynamic endpoints
+    if (params.type_list) {
+      realEndpoint = `/v1/api/danh-sach/${params.type_list}`;
+      delete params.type_list;
+    }
+    if (params.slug && endpoint === '/api/categories') {
+      realEndpoint = `/v1/api/the-loai/${params.slug}`;
+      delete params.slug;
+    }
+    if (params.slug && endpoint === '/api/countries') {
+      realEndpoint = `/v1/api/quoc-gia/${params.slug}`;
+      delete params.slug;
+    }
+    if (params.year && endpoint === '/api/years') {
+      realEndpoint = `/v1/api/nam/${params.year}`;
+      delete params.year;
+    }
+    if (params.slug && endpoint === '/api/movie') {
+      realEndpoint = `/phim/${params.slug}`;
+      delete params.slug;
+    }
+    
     const url = new URL(realEndpoint, this.realAPIBase);
     
     // Add parameters securely
