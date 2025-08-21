@@ -175,9 +175,10 @@ function listGrid(movies, className = '') {
   return grid;
 }
 
-/* Secure API Layer - Uses proxy for all requests */
+/* Direct API Layer - No proxy */
 const Api = {
   async getLatest(page = 1) {
+    console.log('🔥 Direct API call - getLatest');
     const url = buildUrl('/danh-sach/phim-moi-cap-nhat-v3', { page });
     return requestJson(url);
   },
@@ -190,6 +191,7 @@ const Api = {
     return requestJson(url);
   },
   async listByType({ type_list, page = 1, sort_field, sort_type, sort_lang, category, country, year, limit = 24 }) {
+    console.log('🔥 Direct API call - listByType:', type_list);
     const url = buildUrl(`/v1/api/danh-sach/${type_list}`, { page, sort_field, sort_type, sort_lang, category, country, year, limit });
     return requestJson(url);
   },
