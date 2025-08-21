@@ -1,3 +1,6 @@
 Test script push functionality
 Created: 21/08/2025
-Testing push-to-github.bat script 
+Testing push-to-github.bat script
+
+Update 1: Testing simple-push.bat script
+Time: 21/08/2025 - Second test 
