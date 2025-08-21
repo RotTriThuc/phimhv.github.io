@@ -7,6 +7,11 @@ class APIProxy {
     this.rateLimiter = new Map(); // Store request counts per IP/session
     this.requestQueue = new Map(); // Queue for throttling
     
+    // Check if running on localhost (development mode)
+    this.isLocalhost = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1' ||
+                      window.location.hostname.includes('localhost');
+    
     // Initialize security measures
     this.initSecurity();
   }
@@ -58,6 +63,12 @@ class APIProxy {
   
   // Secure request wrapper
   async secureRequest(endpoint, params = {}) {
+    // For localhost development, use direct API calls (bypass proxy)
+    if (this.isLocalhost) {
+      console.warn('🔧 Development mode: Using direct API calls (proxy disabled)');
+      return this.directAPICall(endpoint, params);
+    }
+    
     // Check rate limit
     if (!this.checkRateLimit(this.sessionId)) {
       throw new Error(API_CONFIG.ERROR_MESSAGES.RATE_LIMITED);
@@ -67,22 +78,23 @@ class APIProxy {
       // Build secure URL (hide real endpoint)
       const url = this.buildSecureURL(endpoint, params);
       
-      // Add security headers
+      // Add minimal CORS-safe headers
       const headers = {
-        ...API_CONFIG.SECURITY_HEADERS,
-        'User-Agent': this.generateUserAgent(),
-        'Referer': window.location.origin
+        ...API_CONFIG.SECURITY_HEADERS
       };
       
       // Add delay to prevent rapid requests
       await this.addDelay();
       
-      const response = await fetch(url, { 
-        headers,
+      // Try CORS request first
+      const fetchOptions = {
         method: 'GET',
+        headers,
         mode: 'cors',
-        credentials: 'omit' // Don't send cookies
-      });
+        credentials: 'omit'
+      };
+      
+      const response = await fetch(url, fetchOptions);
       
       if (!response.ok) {
         throw new Error(this.getSecureErrorMessage(response.status));
@@ -190,6 +202,121 @@ class APIProxy {
     return this.secureRequest('/api/movie', { slug });
   }
   
+  // Direct API call for development (bypass proxy)
+  async directAPICall(endpoint, params = {}) {
+    try {
+      // Build direct URL to real API
+      const url = this.buildDirectURL(endpoint, params);
+      
+      console.log('🌐 Direct API call:', url);
+      
+      // Simple fetch without security headers to avoid CORS
+      const response = await fetch(url, {
+        method: 'GET',
+        mode: 'cors'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      return await response.json();
+      
+    } catch (error) {
+      console.error('Direct API call failed:', error);
+      throw new Error('Không thể kết nối đến server. Vui lòng thử lại sau.');
+    }
+  }
+
+  // Build direct URL to real API
+  buildDirectURL(endpoint, params = {}) {
+    const baseUrl = this.realAPIBase;
+    const queryString = Object.keys(params).length > 0 
+      ? '?' + new URLSearchParams(params).toString() 
+      : '';
+    
+    // Map proxy endpoints to real API paths
+    const endpointMap = {
+      '/api/movies': '/danh-sach/phim-moi-cap-nhat-v3',
+      '/api/search': '/v1/api/tim-kiem',
+      '/api/countries': '/quoc-gia',
+      '/api/categories': '/the-loai'
+    };
+    
+    // Handle dynamic endpoints
+    let realEndpoint = endpointMap[endpoint] || endpoint;
+    
+    // Handle list endpoints like /v1/api/danh-sach/phim-bo
+    if (endpoint.startsWith('/v1/api/danh-sach/')) {
+      realEndpoint = endpoint; // Keep as is
+    }
+    
+    // Handle category endpoints like /v1/api/the-loai/hanh-dong
+    if (endpoint.startsWith('/v1/api/the-loai/')) {
+      realEndpoint = endpoint; // Keep as is
+    }
+    
+    return `${baseUrl}${realEndpoint}${queryString}`;
+  }
+
+  // Mock data for development (CORS workaround)
+  getMockData(endpoint, params) {
+    const mockMovie = {
+      _id: "mock-movie-1",
+      name: "Demo Movie - Development Mode",
+      slug: "demo-movie",
+      poster_url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iNDAwIiB2aWV3Qm94PSIwIDAgMzAwIDQwMCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJncmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjY2O3N0b3Atb3BhY2l0eToxIiAvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzMzMztzdG9wLW9wYWNpdHk6MSIgLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0idXJsKCNncmFkKSIvPjx0ZXh0IHg9IjUwJSIgeT0iNDAlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIj5ERU1PPC90ZXh0Pjx0ZXh0IHg9IjUwJSIgeT0iNjAlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjY2NjIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiPkRldmVsb3BtZW50IE1vZGU8L3RleHQ+PC9zdmc+",
+      thumb_url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iNDAwIiB2aWV3Qm94PSIwIDAgMzAwIDQwMCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJncmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjY2O3N0b3Atb3BhY2l0eToxIiAvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzMzMztzdG9wLW9wYWNpdHk6MSIgLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0idXJsKCNncmFkKSIvPjx0ZXh0IHg9IjUwJSIgeT0iNDAlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIj5ERU1PPC90ZXh0Pjx0ZXh0IHg9IjUwJSIgeT0iNjAlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjY2NjIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiPkRldmVsb3BtZW50IE1vZGU8L3RleHQ+PC9zdmc+",
+      year: 2024,
+      view: 1000,
+      quality: "HD"
+    };
+
+    const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c'];
+    
+    const mockData = {
+      status: true,
+      items: Array(12).fill(null).map((_, i) => {
+        const color = colors[i % colors.length];
+        const posterSvg = `data:image/svg+xml;base64,${btoa(`
+          <svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
+            <defs>
+              <linearGradient id="grad${i}" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#2c3e50;stop-opacity:1" />
+              </linearGradient>
+            </defs>
+            <rect width="300" height="400" fill="url(#grad${i})"/>
+            <text x="50%" y="45%" text-anchor="middle" fill="#fff" font-family="Arial" font-size="20" font-weight="bold">DEMO ${i + 1}</text>
+            <text x="50%" y="55%" text-anchor="middle" fill="#ecf0f1" font-family="Arial" font-size="14">Development Mode</text>
+            <circle cx="150" cy="300" r="30" fill="rgba(255,255,255,0.2)"/>
+            <polygon points="140,290 140,310 165,300" fill="#fff"/>
+          </svg>
+        `)}`;
+        
+        return {
+          ...mockMovie,
+          _id: `mock-movie-${i + 1}`,
+          name: `Demo Movie ${i + 1} - Development Mode`,
+          slug: `demo-movie-${i + 1}`,
+          poster_url: posterSvg,
+          thumb_url: posterSvg
+        };
+      }),
+      pagination: {
+        totalItems: 100,
+        totalItemsPerPage: 24,
+        currentPage: 1,
+        totalPages: 5
+      }
+    };
+
+    // Simulate network delay
+    return new Promise(resolve => {
+      setTimeout(() => resolve(mockData), 500);
+    });
+  }
+
   // Analytics & monitoring (for security)
   logSecurityEvent(event, details) {
     const logData = {

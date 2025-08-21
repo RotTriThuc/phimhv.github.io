@@ -21,12 +21,9 @@ const API_CONFIG = {
     BURST_LIMIT: 10
   },
   
-  // Security headers
+  // Security headers (CORS-safe)
   SECURITY_HEADERS: {
-    'X-API-Version': '1.0',
-    'X-Client-Type': 'web',
-    'Accept': 'application/json',
-    'Cache-Control': 'no-cache'
+    'Accept': 'application/json'
   },
   
   // Error messages (don't reveal internal info)

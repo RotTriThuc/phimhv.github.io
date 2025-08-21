@@ -1060,7 +1060,7 @@ async function renderAllCategories(root) {
 let isRouting = false;
 async function router() {
   if (isRouting) {
-    console.debug('Router already running, skipping...');
+    console.log('Router already running, skipping...');
     return;
   }
   isRouting = true;
@@ -1131,13 +1131,8 @@ async function router() {
   bindHeader();
   populateFilters();
   window.addEventListener('hashchange', router);
-  
-  // Khởi tạo router một lần duy nhất
-  if (document.readyState === 'loading') {
-    window.addEventListener('DOMContentLoaded', router);
-  } else {
-    router();
-  }
+  window.addEventListener('load', router);
+  router();
   
   // Khởi động notification system
   initNotificationSystem();
@@ -1163,10 +1158,7 @@ function createNotificationContainer() {
 async function checkForUpdates() {
   try {
     const response = await fetch('./data/latest-notification.json');
-    if (!response.ok) {
-      console.log('No notification updates available');
-      return;
-    }
+    if (!response.ok) return;
     
     const notification = await response.json();
     

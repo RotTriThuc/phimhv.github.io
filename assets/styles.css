@@ -222,7 +222,24 @@ body {
   width: 100%;
   aspect-ratio: 2/3;
   object-fit: cover;
-  background: #222;
+  background: linear-gradient(135deg, #333 0%, #222 100%);
+}
+
+.card__img:not([src]),
+.card__img[src=""],
+.card__img[src*="data:image/svg"] {
+  position: relative;
+}
+
+.card__img:not([src])::after,
+.card__img[src=""]::after {
+  content: "🎬";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 3rem;
+  opacity: 0.3;
 }
 .card__meta { padding: 10px; }
 .card__title {
