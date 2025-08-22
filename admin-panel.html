@@ -271,7 +271,13 @@
               break;
           }
 
-          const snapshot = await query.orderBy('timestamp', 'desc').limit(50).get();
+          let snapshot;
+          // Fix for reported comments: must orderBy 'reports' first when using inequality
+          if (type === 'reported') {
+            snapshot = await query.orderBy('reports', 'desc').orderBy('timestamp', 'desc').limit(50).get();
+          } else {
+            snapshot = await query.orderBy('timestamp', 'desc').limit(50).get();
+          }
           const comments = [];
           
           snapshot.forEach(doc => {

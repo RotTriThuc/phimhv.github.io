@@ -27,7 +27,10 @@ class MovieCommentSystem {
   // Khởi tạo Firebase
   async init() {
     try {
-      console.log('🔥 Initializing Movie Comment System...');
+      // Only log in development
+      if (window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1')) {
+        console.log('🔥 Initializing Movie Comment System...');
+      }
       
       // Validate config
       if (!this.validateConfig()) {
@@ -72,7 +75,10 @@ class MovieCommentSystem {
 
   // Load Firebase SDK - Using v8 compat for easier integration
   async loadFirebase() {
-    if (window.firebase) return;
+    if (window.firebase) {
+      console.log('🔄 Firebase already loaded, skipping...');
+      return;
+    }
     
     const scripts = [
       'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
@@ -144,7 +150,7 @@ class MovieCommentSystem {
     try {
       const docRef = await this.db.collection('movieComments').add(comment);
       this.cache.delete(movieSlug); // Clear cache
-      console.log('✅ Comment added:', docRef.id);
+      // Comment added successfully
       return docRef.id;
     } catch (error) {
       console.error('❌ Add comment failed:', error);
@@ -185,7 +191,7 @@ class MovieCommentSystem {
         time: Date.now()
       });
 
-      console.log(`📄 Loaded ${comments.length} comments for ${movieSlug}`);
+      // Comments loaded successfully
       return comments;
     } catch (error) {
       console.error('❌ Get comments failed:', error);
@@ -368,8 +374,8 @@ class MovieCommentSystem {
       
       this.showNotification('✅ Bình luận đã được gửi! Đang chờ admin duyệt.');
       
-      // Reload comments after 2 seconds
-      setTimeout(() => this.loadAndDisplayComments(movieSlug), 2000);
+      // Reload comments immediately for better UX  
+      this.loadAndDisplayComments(movieSlug);
     } catch (error) {
       this.showNotification('❌ ' + error.message);
     } finally {

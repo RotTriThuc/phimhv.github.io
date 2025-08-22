@@ -1374,8 +1374,10 @@ function initNotificationSystem() {
   createNotificationContainer();
   checkForUpdates();
   
-  // Kiểm tra cập nhật mỗi 2 phút
-  setInterval(checkForUpdates, 2 * 60 * 1000);
+  // Kiểm tra cập nhật mỗi 2 phút (chỉ local, không chạy trên production)
+  if (!window.location.hostname.includes('github.io') && window.location.hostname !== 'localhost') {
+    setInterval(checkForUpdates, 2 * 60 * 1000);
+  }
 }
 
 function createNotificationContainer() {
