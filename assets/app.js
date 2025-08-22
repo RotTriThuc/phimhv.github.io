@@ -750,6 +750,15 @@ async function renderDetail(root, slug) {
     root.appendChild(wrap);
     root.appendChild(eps);
     root.appendChild(desc);
+
+    // Add movie comments section
+    if (window.movieComments) {
+      try {
+        window.movieComments.renderCommentSection(root, slug);
+      } catch (error) {
+        console.warn('Could not load movie comments:', error);
+      }
+    }
   } catch (e) {
     console.error(e);
     root.innerHTML = '';
