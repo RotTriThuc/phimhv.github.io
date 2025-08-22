@@ -660,7 +660,7 @@ async function renderDetail(root, slug) {
     // Nút tiếp tục xem (nếu có progress)
     const progress = Storage.getMovieProgress(movie.slug);
     if (progress && episodes.length > 0) {
-      const continueBtn = createEl('button', 'btn btn--continue', `Tiếp tục: ${progress.episodeName || 'Tập đang xem'}`);
+      const continueBtn = createEl('button', 'btn btn--continue', `Đang xem: ${progress.episodeName || 'Tập đang xem'}`);
       continueBtn.addEventListener('click', () => {
         const q = new URLSearchParams({ server: String(progress.serverIndex || 0), ep: progress.episodeSlug || '1' });
         navigateTo(`#/xem/${movie.slug}?${q.toString()}`);
