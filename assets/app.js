@@ -59,11 +59,537 @@ function normalizeImageUrl(u) {
   return 'https://phimimg.com' + path;
 }
 
-// Simplified image URL processing
+// Advanced Image Processing with WebP support
 function processImageUrl(originalUrl) {
   if (!originalUrl) return '';
   return normalizeImageUrl(originalUrl);
 }
+
+// Progressive Image Loading System
+class ProgressiveImageLoader {
+  constructor() {
+    this.cache = new Map();
+    this.observer = null;
+    this.init();
+  }
+  
+  init() {
+    // Enhanced Intersection Observer for ultra-fast loading
+    if ('IntersectionObserver' in window) {
+      this.observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            this.loadImage(entry.target);
+            this.observer.unobserve(entry.target);
+          }
+        });
+      }, {
+        rootMargin: '100px', // Larger buffer for faster perceived loading
+        threshold: 0.1 // Start loading when 10% visible
+      });
+    }
+    
+    // Network-based optimization
+    this.detectNetworkSpeed();
+    
+    // Immediate visible area scan on scroll
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        this.batchLoadVisible();
+      }, 100);
+    }, { passive: true });
+  }
+  
+  // Detect network speed and adjust quality
+  detectNetworkSpeed() {
+    if ('connection' in navigator) {
+      const connection = navigator.connection;
+      this.networkType = connection.effectiveType;
+      
+      // Adjust quality based on network speed
+      if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
+        this.defaultQuality = 60; // Lower quality for slow networks
+      } else if (connection.effectiveType === '3g') {
+        this.defaultQuality = 70;
+      } else {
+        this.defaultQuality = 75; // Default for 4g+
+      }
+    } else {
+      this.defaultQuality = 75;
+    }
+  }
+  
+  // WebP support detection
+  supportsWebP() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+  }
+  
+  // Generate optimized image URL with ultra-fast CDNs
+  getOptimizedUrl(originalUrl, options = {}) {
+    if (!originalUrl) return '';
+    
+    const { width = 300, quality = 75, format = 'auto' } = options; // Lower quality for speed
+    const baseUrl = normalizeImageUrl(originalUrl);
+    
+    // Use WebP if supported and format is auto
+    const useWebP = format === 'auto' && this.supportsWebP();
+    const finalFormat = useWebP ? 'webp' : 'jpg';
+    
+    // Ultra-fast CDN options (sorted by speed)
+    const cdnOptions = [
+      // Cloudflare-based CDNs (fastest)
+      `https://wsrv.nl/?url=${encodeURIComponent(baseUrl)}&w=${width}&q=${quality}&output=${finalFormat}&af&il`,
+      `https://images.weserv.nl/?url=${encodeURIComponent(baseUrl)}&w=${width}&q=${quality}&output=${finalFormat}&af&il`,
+      
+      // Photon CDN (WordPress.com)
+      `https://i0.wp.com/${baseUrl.replace(/^https?:\/\//, '')}?w=${width}&quality=${quality}&strip=all`,
+      
+      // ImageProxy CDN
+      `https://imageproxy.ifunny.co/crop:x-20,resize:${width}x,quality:${quality}/${baseUrl}`,
+      
+      // Direct with cache-busting
+      `${baseUrl}?w=${width}&q=${quality}&t=${Date.now()}`,
+      
+      // Original as final fallback
+      baseUrl
+    ];
+    
+    return cdnOptions;
+  }
+  
+  // Create skeleton placeholder
+  createSkeleton() {
+    const skeleton = document.createElement('div');
+    skeleton.className = 'image-skeleton';
+    return skeleton;
+  }
+  
+  // Ultra-fast concurrent loading with enhanced error handling
+  async loadImage(imgElement) {
+    if (!imgElement || imgElement.dataset.loaded === 'true') return;
+    
+    const originalSrc = imgElement.dataset.src || imgElement.src;
+    if (!originalSrc) {
+      console.warn('🚨 No image source found for element:', imgElement);
+      return;
+    }
+    
+    // Ensure element is in DOM before processing
+    if (!imgElement.parentNode || !document.contains(imgElement)) {
+      console.warn('🚨 Image element not in DOM, skipping load');
+      return;
+    }
+    
+    // Start performance timer
+    const startTime = performanceMonitor.startTimer();
+    
+    // Check cache first
+    if (this.cache.has(originalSrc)) {
+      const cachedUrl = this.cache.get(originalSrc);
+      this.setImageSrc(imgElement, cachedUrl);
+      performanceMonitor.recordLoad(startTime, true);
+      return;
+    }
+    
+    // Show tiny blurred preview first (with delay to ensure DOM is ready)
+    setTimeout(() => {
+      this.setBlurredPreview(imgElement);
+    }, 10);
+    
+    // Get optimized URLs with adaptive quality
+    const urls = this.getOptimizedUrl(originalSrc, {
+      width: 300,
+      quality: this.defaultQuality || 75 // Network-adaptive quality
+    });
+    
+    // Race all CDNs concurrently (faster than sequential)
+    try {
+      const winnerUrl = await this.raceLoadImages(urls);
+      this.setImageSrc(imgElement, winnerUrl);
+      this.cache.set(originalSrc, winnerUrl);
+      performanceMonitor.recordLoad(startTime, true);
+    } catch (error) {
+      console.warn('🚨 All CDNs failed for:', originalSrc, error);
+      // Fallback to original if all fail
+      this.setImageSrc(imgElement, originalSrc);
+      performanceMonitor.recordLoad(startTime, false);
+    }
+    
+    imgElement.dataset.loaded = 'true';
+  }
+  
+  // Race multiple CDNs concurrently
+  async raceLoadImages(urls) {
+    return new Promise((resolve, reject) => {
+      let completed = 0;
+      let hasResolved = false;
+      
+      urls.forEach((url, index) => {
+        this.tryLoadImage(url)
+          .then(result => {
+            if (!hasResolved) {
+              hasResolved = true;
+              resolve(result);
+            }
+          })
+          .catch(() => {
+            completed++;
+            if (completed === urls.length && !hasResolved) {
+              reject(new Error('All CDNs failed'));
+            }
+          });
+      });
+    });
+  }
+  
+  // Set blurred micro-preview instantly with error handling
+  setBlurredPreview(imgElement) {
+    if (!imgElement || !imgElement.parentNode) {
+      console.warn('🚨 Cannot set blur preview: invalid element or no parent');
+      return;
+    }
+    
+    const container = imgElement.parentNode;
+    
+    // Check if container has position relative for absolute positioning
+    const containerStyle = window.getComputedStyle(container);
+    if (containerStyle.position === 'static') {
+      container.style.position = 'relative';
+    }
+    
+    const placeholder = document.createElement('div');
+    placeholder.className = 'image-blur-preview';
+    placeholder.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      opacity: 0.2;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+      z-index: 1;
+    `;
+    
+    try {
+      container.appendChild(placeholder);
+      
+      // Remove after image loads or timeout
+      setTimeout(() => {
+        if (placeholder.parentNode) {
+          placeholder.remove();
+        }
+      }, 3000);
+    } catch (error) {
+      console.warn('🚨 Failed to add blur preview:', error);
+    }
+  }
+  
+  // Promise-based image loading
+  tryLoadImage(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(url);
+      img.onerror = () => reject(new Error(`Failed to load: ${url}`));
+      img.src = url;
+    });
+  }
+  
+  // Set image source with fade-in effect and error handling
+  setImageSrc(imgElement, url) {
+    if (!imgElement || !url) {
+      console.warn('🚨 Invalid parameters for setImageSrc:', { imgElement, url });
+      return;
+    }
+    
+    try {
+      imgElement.src = url;
+      imgElement.style.transition = 'opacity 0.2s ease';
+      imgElement.style.opacity = '1';
+      
+      // Remove any blur preview
+      const container = imgElement.parentNode;
+      if (container) {
+        const blurPreview = container.querySelector('.image-blur-preview');
+        if (blurPreview) {
+          blurPreview.style.opacity = '0';
+          setTimeout(() => {
+            if (blurPreview.parentNode) {
+              blurPreview.remove();
+            }
+          }, 200);
+        }
+      }
+    } catch (error) {
+      console.warn('🚨 Failed to set image source:', error);
+    }
+  }
+  
+  // Observe element for lazy loading
+  observe(element) {
+    if (this.observer && element) {
+      this.observer.observe(element);
+    } else {
+      // Fallback for browsers without IntersectionObserver
+      this.loadImage(element);
+    }
+  }
+  
+  // Batch load critical images with immediate priority
+  preloadCritical(urls) {
+    // Immediate load first 4 visible items
+    const criticalUrls = urls.slice(0, 4);
+    
+    // Use fastest CDN for critical images
+    criticalUrls.forEach(async (url, index) => {
+      if (url) {
+        try {
+          const optimizedUrls = this.getOptimizedUrl(url, { width: 300, quality: 70 });
+          // Pre-warm cache with fastest CDN
+          await this.tryLoadImage(optimizedUrls[0]);
+          this.cache.set(url, optimizedUrls[0]);
+        } catch (error) {
+          // Silent fail for preload
+        }
+      }
+    });
+    
+    // Traditional link preload as backup
+    urls.slice(0, 6).forEach(url => {
+      if (url) {
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = this.getOptimizedUrl(url, { width: 300 })[0];
+        document.head.appendChild(link);
+      }
+    });
+  }
+  
+  // Batch load visible images concurrently
+  batchLoadVisible() {
+    const images = document.querySelectorAll('.card__img[data-src]:not([data-loaded="true"])');
+    const visibleImages = Array.from(images).filter(img => {
+      const rect = img.getBoundingClientRect();
+      return rect.top < window.innerHeight + 200; // 200px buffer
+    });
+    
+    // Load all visible images concurrently
+    visibleImages.forEach(img => this.loadImage(img));
+  }
+}
+
+// Global instance with fallback
+let imageLoader;
+try {
+  imageLoader = new ProgressiveImageLoader();
+} catch (error) {
+  console.error('🚨 Failed to initialize image loader:', error);
+  // Fallback simple image loader
+  imageLoader = {
+    loadImage: (img) => {
+      if (img && img.dataset.src) {
+        img.src = img.dataset.src;
+        img.style.opacity = '1';
+      }
+    },
+    observe: (img) => {
+      if (img && img.dataset.src) {
+        img.src = img.dataset.src;
+        img.style.opacity = '1';
+      }
+    },
+    preloadCritical: () => {}, // No-op
+    batchLoadVisible: () => {}  // No-op
+  };
+}
+
+// Performance Monitor for Image Loading
+class ImagePerformanceMonitor {
+  constructor() {
+    this.stats = {
+      totalImages: 0,
+      loadedImages: 0,
+      failedImages: 0,
+      averageLoadTime: 0,
+      totalLoadTime: 0
+    };
+    this.loadTimes = [];
+  }
+  
+  startTimer() {
+    return performance.now();
+  }
+  
+  recordLoad(startTime, success = true) {
+    const loadTime = performance.now() - startTime;
+    this.stats.totalImages++;
+    this.stats.totalLoadTime += loadTime;
+    this.loadTimes.push(loadTime);
+    
+    if (success) {
+      this.stats.loadedImages++;
+    } else {
+      this.stats.failedImages++;
+    }
+    
+    this.stats.averageLoadTime = this.stats.totalLoadTime / this.stats.totalImages;
+    
+    // Show notification on significant improvement
+    if (this.stats.loadedImages === 10 && this.stats.averageLoadTime < 800) {
+      this.showPerformanceNotification();
+    }
+  }
+  
+  showPerformanceNotification() {
+    const notification = createEl('div', 'perf-notification');
+    notification.innerHTML = `
+      <div class="perf-notification-content">
+        <div class="perf-notification-icon">⚡</div>
+        <div class="perf-notification-text">
+          <strong>Image Loading Optimized!</strong><br>
+          ${Math.round(this.stats.averageLoadTime)}ms average load time
+        </div>
+        <button class="perf-notification-close">×</button>
+      </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+    }, 4000);
+    
+    notification.querySelector('.perf-notification-close').addEventListener('click', () => {
+      notification.remove();
+    });
+  }
+  
+  getStats() {
+    return {
+      ...this.stats,
+      successRate: (this.stats.loadedImages / this.stats.totalImages * 100).toFixed(1)
+    };
+  }
+}
+
+// Initialize performance monitor with error handling
+let performanceMonitor;
+try {
+  performanceMonitor = new ImagePerformanceMonitor();
+} catch (error) {
+  console.warn('🚨 Failed to initialize performance monitor:', error);
+  // Fallback no-op monitor
+  performanceMonitor = {
+    startTimer: () => Date.now(),
+    recordLoad: () => {},
+    getStats: () => ({}),
+    showPerformanceNotification: () => {}
+  };
+}
+
+// Network Speed Indicator
+class NetworkSpeedIndicator {
+  constructor() {
+    this.indicator = null;
+    this.init();
+  }
+  
+  init() {
+    this.createIndicator();
+    this.updateNetworkStatus();
+    
+    // Update on network change
+    if ('connection' in navigator) {
+      navigator.connection.addEventListener('change', () => {
+        this.updateNetworkStatus();
+      });
+    }
+  }
+  
+  createIndicator() {
+    this.indicator = createEl('div', 'network-indicator');
+    this.indicator.innerHTML = `
+      <span class="network-indicator-icon">📡</span>
+      <span class="network-indicator-text">Checking...</span>
+    `;
+    document.body.appendChild(this.indicator);
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      if (this.indicator && this.indicator.parentNode) {
+        this.indicator.style.opacity = '0.7';
+        this.indicator.style.transform = 'scale(0.9)';
+      }
+    }, 5000);
+  }
+  
+  updateNetworkStatus() {
+    if (!this.indicator) return;
+    
+    let speed = 'unknown';
+    let icon = '📡';
+    let className = 'medium';
+    
+    if ('connection' in navigator) {
+      const connection = navigator.connection;
+      const effectiveType = connection.effectiveType;
+      
+      if (effectiveType === '4g') {
+        speed = '4G Fast';
+        icon = '🚀';
+        className = 'fast';
+      } else if (effectiveType === '3g') {
+        speed = '3G Medium';
+        icon = '📶';
+        className = 'medium';
+      } else if (effectiveType === '2g' || effectiveType === 'slow-2g') {
+        speed = '2G Slow';
+        icon = '🐌';
+        className = 'slow';
+      } else {
+        speed = 'WiFi';
+        icon = '📶';
+        className = 'fast';
+      }
+    } else {
+      speed = 'Good';
+      icon = '✅';
+      className = 'fast';
+    }
+    
+    this.indicator.className = `network-indicator ${className}`;
+    this.indicator.innerHTML = `
+      <span class="network-indicator-icon">${icon}</span>
+      <span class="network-indicator-text">${speed}</span>
+    `;
+  }
+}
+
+// Initialize network indicator with error handling
+let networkIndicator;
+try {
+  networkIndicator = new NetworkSpeedIndicator();
+} catch (error) {
+  console.warn('🚨 Failed to initialize network indicator:', error);
+  // Continue without network indicator
+}
+
+// System initialization status
+console.log('🎉 Image Loading System V2 Initialized Successfully!');
+console.log('📊 Components Status:', {
+  imageLoader: !!imageLoader,
+  performanceMonitor: !!performanceMonitor,
+  networkIndicator: !!networkIndicator
+});
 
 // LocalStorage Management for Saved Movies and Watch Progress
 const Storage = {
@@ -251,17 +777,45 @@ function movieCard(movie) {
   
   card.innerHTML = `
     ${badges.join('')}
-    <img class="card__img" loading="lazy" alt="${title}">
+    <div class="card__img-container">
+      <img class="card__img" alt="${title}" data-src="${poster}">
+    </div>
     <div class="card__meta">
       <h3 class="card__title">${title}</h3>
       <div class="card__sub">${year || ''}</div>
     </div>
   `;
+  
   const imgEl = card.querySelector('.card__img');
-  if (imgEl) {
-    const processedUrl = processImageUrl(poster);
+  if (imgEl && poster) {
     imgEl.referrerPolicy = 'no-referrer';
-    imgEl.src = processedUrl;
+    imgEl.loading = 'lazy'; // Native lazy loading as backup
+    imgEl.style.opacity = '0'; // Start hidden
+    
+    // Ensure DOM is fully ready before image loading
+    requestAnimationFrame(() => {
+      // Double-check element is still in DOM
+      if (!document.contains(imgEl)) {
+        console.warn('🚨 Image element removed from DOM before loading');
+        return;
+      }
+      
+      // Immediate load if likely to be visible
+      try {
+        const rect = card.getBoundingClientRect();
+        if (rect.top < window.innerHeight + 300) {
+          // Likely visible - load immediately
+          imageLoader.loadImage(imgEl);
+        } else {
+          // Use intersection observer for below-fold images
+          imageLoader.observe(imgEl);
+        }
+      } catch (error) {
+        console.warn('🚨 Error in image loading setup:', error);
+        // Fallback to intersection observer
+        imageLoader.observe(imgEl);
+      }
+    });
   }
   card.addEventListener('click', () => {
     if (slug) navigateTo(`#/phim/${slug}`);
@@ -274,12 +828,30 @@ function listGrid(movies, className = '') {
   const grid = createEl('div', 'grid');
   if (className) grid.className = className;
   
+  // Extract poster URLs for aggressive preloading
+  const posterUrls = safe.map(m => m.poster_url || m.thumb_url).filter(Boolean);
+  
+  // Immediate critical image preloading
+  imageLoader.preloadCritical(posterUrls);
+  
   // Use DocumentFragment for better performance
   const fragment = document.createDocumentFragment();
   for (const item of safe) {
     fragment.appendChild(movieCard(item));
   }
   grid.appendChild(fragment);
+  
+  // Immediate visible area detection after DOM is fully ready
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      try {
+        imageLoader.batchLoadVisible();
+      } catch (error) {
+        console.warn('🚨 Error in batch loading:', error);
+      }
+    }, 100);
+  });
+  
   return grid;
 }
 
@@ -618,15 +1190,15 @@ async function renderDetail(root, slug) {
 
     const posterUrl = movie.poster_url || movie.thumb_url;
     const poster = createEl('img', 'detail__poster');
-    poster.loading = 'lazy';
     poster.referrerPolicy = 'no-referrer';
-          poster.src = processImageUrl(posterUrl);
     poster.alt = movie.name || 'Poster';
-    poster.addEventListener('error', () => {
-      if (poster.dataset.fallbackApplied === '1') return;
-      poster.dataset.fallbackApplied = '1';
-      poster.src = normalizeImageUrl(posterUrl);
-    });
+    poster.dataset.src = posterUrl;
+    poster.style.opacity = '0'; // Start hidden
+    
+    // Create container for poster if needed
+    const posterContainer = createEl('div', 'detail__poster-container');
+    posterContainer.style.position = 'relative';
+    posterContainer.appendChild(poster);
 
     const meta = createEl('div', 'detail__meta');
     const title = createEl('h1', 'detail__title', movie.name || 'Không tên');
@@ -708,8 +1280,15 @@ async function renderDetail(root, slug) {
     metaWrap.appendChild(info);
     metaWrap.appendChild(actions);
 
-    wrap.appendChild(poster);
+    wrap.appendChild(posterContainer);
     wrap.appendChild(metaWrap);
+    
+    // Load poster after DOM is ready
+    requestAnimationFrame(() => {
+      if (posterUrl && document.contains(poster)) {
+        imageLoader.loadImage(poster);
+      }
+    });
 
     const eps = createEl('section', 'episodes');
     const tabs = createEl('div', 'server-tabs');
