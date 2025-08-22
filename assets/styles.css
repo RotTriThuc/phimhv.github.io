@@ -762,4 +762,142 @@ body {
   .notification__message {
     font-size: 12px;
   }
+}
+
+/* Saved Movies & Watch Progress Features */
+.card__badge--saved {
+  background: linear-gradient(45deg, #e74c3c, #c0392b) !important;
+  color: white !important;
+  top: 8px !important;
+  right: 8px !important;
+  left: auto !important;
+  font-size: 10px !important;
+  padding: 3px 6px !important;
+}
+
+.card__badge--progress {
+  background: linear-gradient(45deg, #f39c12, #e67e22) !important;
+  color: white !important;
+  top: 30px !important;
+  left: 8px !important;
+  font-size: 10px !important;
+  padding: 3px 6px !important;
+  max-width: calc(100% - 16px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn--save {
+  background: var(--bg-elev) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn--save:hover {
+  background: var(--primary) !important;
+  color: white !important;
+  border-color: var(--primary) !important;
+}
+
+.btn--save.btn--saved {
+  background: linear-gradient(45deg, #e74c3c, #c0392b) !important;
+  color: white !important;
+  border-color: #e74c3c !important;
+}
+
+.btn--save.btn--saved:hover {
+  background: linear-gradient(45deg, #c0392b, #a93226) !important;
+}
+
+.btn--continue {
+  background: linear-gradient(45deg, #f39c12, #e67e22) !important;
+  color: white !important;
+  border: none !important;
+  font-size: 13px !important;
+}
+
+.btn--continue:hover {
+  background: linear-gradient(45deg, #e67e22, #d35400) !important;
+}
+
+.btn--danger {
+  background: linear-gradient(45deg, #e74c3c, #c0392b) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.btn--danger:hover {
+  background: linear-gradient(45deg, #c0392b, #a93226) !important;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+}
+
+.empty-state h3 {
+  margin: 0 0 8px 0;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.empty-state p {
+  margin: 0 0 20px 0;
+  font-size: 14px;
+}
+
+/* Saved Movies Stats */
+.saved-stats {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.saved-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+/* Responsive cho saved movies */
+@media (max-width: 768px) {
+  .card__badge--progress {
+    font-size: 9px !important;
+    padding: 2px 4px !important;
+    max-width: calc(100% - 12px) !important;
+  }
+  
+  .saved-actions {
+    gap: 6px;
+  }
+  
+  .btn--continue {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .card__badge--saved {
+    font-size: 9px !important;
+    padding: 2px 4px !important;
+  }
+  
+  .detail__actions {
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+  
+  .detail__actions .btn {
+    width: 100% !important;
+    text-align: center !important;
+  }
 } 

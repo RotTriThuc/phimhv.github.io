@@ -14,10 +14,41 @@ function buildUrl(path, params = {}) {
   return url.toString();
 }
 
+// Simple cache for API responses
+const apiCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 async function requestJson(url) {
-  const res = await fetch(url, { method: 'GET', mode: 'cors', credentials: 'omit' });
+  // Check cache first
+  const cached = apiCache.get(url);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  
+  const res = await fetch(url, { 
+    method: 'GET', 
+    mode: 'cors', 
+    credentials: 'omit',
+    headers: { 'Accept': 'application/json' }
+  });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  
+  const data = await res.json();
+  
+  // Cache the response
+  apiCache.set(url, { data, timestamp: Date.now() });
+  
+  // Clean old cache entries periodically
+  if (apiCache.size > 50) {
+    const now = Date.now();
+    for (const [key, value] of apiCache.entries()) {
+      if (now - value.timestamp > CACHE_DURATION) {
+        apiCache.delete(key);
+      }
+    }
+  }
+  
+  return data;
 }
 
 function normalizeImageUrl(u) {
@@ -28,12 +59,84 @@ function normalizeImageUrl(u) {
   return 'https://phimimg.com' + path;
 }
 
-function imageProxy(originalUrl) {
+// Simplified image URL processing
+function processImageUrl(originalUrl) {
   if (!originalUrl) return '';
-  const absolute = normalizeImageUrl(originalUrl);
-  // Use direct URL since image proxy endpoint doesn't exist
-  return absolute;
+  return normalizeImageUrl(originalUrl);
 }
+
+// LocalStorage Management for Saved Movies and Watch Progress
+const Storage = {
+  // Lưu phim yêu thích
+  getSavedMovies() {
+    try {
+      return JSON.parse(localStorage.getItem('savedMovies') || '[]');
+    } catch {
+      return [];
+    }
+  },
+
+  saveMovie(movie) {
+    const saved = this.getSavedMovies();
+    const movieData = {
+      slug: movie.slug,
+      name: movie.name,
+      poster_url: movie.poster_url || movie.thumb_url,
+      year: movie.year,
+      lang: movie.lang,
+      savedAt: Date.now()
+    };
+    
+    // Kiểm tra đã lưu chưa
+    if (!saved.some(m => m.slug === movie.slug)) {
+      saved.unshift(movieData);
+      localStorage.setItem('savedMovies', JSON.stringify(saved));
+      return true;
+    }
+    return false;
+  },
+
+  removeSavedMovie(slug) {
+    const saved = this.getSavedMovies();
+    const filtered = saved.filter(m => m.slug !== slug);
+    localStorage.setItem('savedMovies', JSON.stringify(filtered));
+    return filtered.length !== saved.length;
+  },
+
+  isMovieSaved(slug) {
+    const saved = this.getSavedMovies();
+    return saved.some(m => m.slug === slug);
+  },
+
+  // Theo dõi tiến độ xem
+  getWatchProgress() {
+    try {
+      return JSON.parse(localStorage.getItem('watchProgress') || '{}');
+    } catch {
+      return {};
+    }
+  },
+
+  setWatchProgress(movieSlug, episodeInfo) {
+    const progress = this.getWatchProgress();
+    progress[movieSlug] = {
+      ...episodeInfo,
+      updatedAt: Date.now()
+    };
+    localStorage.setItem('watchProgress', JSON.stringify(progress));
+  },
+
+  getMovieProgress(movieSlug) {
+    const progress = this.getWatchProgress();
+    return progress[movieSlug] || null;
+  },
+
+  clearWatchProgress(movieSlug) {
+    const progress = this.getWatchProgress();
+    delete progress[movieSlug];
+    localStorage.setItem('watchProgress', JSON.stringify(progress));
+  }
+};
 
 function $(selector, parent = document) { return parent.querySelector(selector); }
 function createEl(tag, className, html) {
@@ -44,8 +147,6 @@ function createEl(tag, className, html) {
 }
 
 function clearRootCompletely(root) {
-  console.log('Clearing root completely - before:', root.children.length);
-  
   // Method 1: Remove all children iteratively
   while (root.firstChild) {
     root.removeChild(root.firstChild);
@@ -65,10 +166,8 @@ function clearRootCompletely(root) {
     }
   });
   
-  // Method 5: Force reflow
+  // Force reflow
   root.offsetHeight;
-  
-  console.log('Clearing root completely - after:', root.children.length);
 }
 
 // Helpers an toàn DOM & dữ liệu
@@ -112,11 +211,13 @@ function initTheme() {
 
 function renderLoadingCards(count = 10) {
   const container = createEl('div', 'loading');
+  const fragment = document.createDocumentFragment();
   for (let i = 0; i < count; i++) {
     const card = createEl('div', 'loading__card');
     card.appendChild(createEl('div', 'loading__shimmer'));
-    container.appendChild(card);
+    fragment.appendChild(card);
   }
+  container.appendChild(fragment);
   return container;
 }
 
@@ -138,9 +239,18 @@ function movieCard(movie) {
   const slug = movie.slug;
 
   const card = createEl('article', 'card');
-  const badge = languages ? `<span class="card__badge">${languages}</span>` : '';
+  
+  // Check if movie is saved and has progress
+  const isSaved = Storage.isMovieSaved(slug);
+  const progress = Storage.getMovieProgress(slug);
+  
+  const badges = [];
+  if (languages) badges.push(`<span class="card__badge">${languages}</span>`);
+  if (isSaved) badges.push(`<span class="card__badge card__badge--saved">❤️</span>`);
+  if (progress) badges.push(`<span class="card__badge card__badge--progress">▶ ${progress.episodeName || 'Đang xem'}</span>`);
+  
   card.innerHTML = `
-    ${badge}
+    ${badges.join('')}
     <img class="card__img" loading="lazy" alt="${title}">
     <div class="card__meta">
       <h3 class="card__title">${title}</h3>
@@ -149,15 +259,9 @@ function movieCard(movie) {
   `;
   const imgEl = card.querySelector('.card__img');
   if (imgEl) {
-    const proxied = imageProxy(poster);
-    const absolute = normalizeImageUrl(poster);
+    const processedUrl = processImageUrl(poster);
     imgEl.referrerPolicy = 'no-referrer';
-    imgEl.src = proxied;
-    imgEl.addEventListener('error', () => {
-      if (imgEl.dataset.fallbackApplied === '1') return;
-      imgEl.dataset.fallbackApplied = '1';
-      imgEl.src = absolute;
-    });
+    imgEl.src = processedUrl;
   }
   card.addEventListener('click', () => {
     if (slug) navigateTo(`#/phim/${slug}`);
@@ -169,16 +273,19 @@ function listGrid(movies, className = '') {
   const safe = Array.isArray(movies) ? movies : [];
   const grid = createEl('div', 'grid');
   if (className) grid.className = className;
+  
+  // Use DocumentFragment for better performance
+  const fragment = document.createDocumentFragment();
   for (const item of safe) {
-    grid.appendChild(movieCard(item));
+    fragment.appendChild(movieCard(item));
   }
+  grid.appendChild(fragment);
   return grid;
 }
 
 /* Direct API Layer - No proxy */
 const Api = {
   async getLatest(page = 1) {
-    console.log('🔥 Direct API call - getLatest');
     const url = buildUrl('/danh-sach/phim-moi-cap-nhat-v3', { page });
     return requestJson(url);
   },
@@ -191,7 +298,6 @@ const Api = {
     return requestJson(url);
   },
   async listByType({ type_list, page = 1, sort_field, sort_type, sort_lang, category, country, year, limit = 24 }) {
-    console.log('🔥 Direct API call - listByType:', type_list);
     const url = buildUrl(`/v1/api/danh-sach/${type_list}`, { page, sort_field, sort_type, sort_lang, category, country, year, limit });
     return requestJson(url);
   },
@@ -256,7 +362,6 @@ async function renderHome(root) {
     root.appendChild(moreNewBtn);
     
   } catch (e) {
-    console.error(e);
     safeRemove(loading1);
     root.appendChild(createEl('p', 'error-msg', 'Không thể tải phim mới'));
   }
@@ -515,7 +620,7 @@ async function renderDetail(root, slug) {
     const poster = createEl('img', 'detail__poster');
     poster.loading = 'lazy';
     poster.referrerPolicy = 'no-referrer';
-    poster.src = imageProxy(posterUrl);
+          poster.src = processImageUrl(posterUrl);
     poster.alt = movie.name || 'Poster';
     poster.addEventListener('error', () => {
       if (poster.dataset.fallbackApplied === '1') return;
@@ -540,6 +645,8 @@ async function renderDetail(root, slug) {
     `);
 
     const actions = createEl('div', 'detail__actions');
+    
+    // Nút xem ngay
     const firstTarget = findFirstEpisode(episodes);
     if (firstTarget) {
       const watchBtn = createEl('button', 'btn', 'Xem ngay');
@@ -549,6 +656,43 @@ async function renderDetail(root, slug) {
       });
       actions.appendChild(watchBtn);
     }
+
+    // Nút tiếp tục xem (nếu có progress)
+    const progress = Storage.getMovieProgress(movie.slug);
+    if (progress && episodes.length > 0) {
+      const continueBtn = createEl('button', 'btn btn--continue', `Tiếp tục: ${progress.episodeName || 'Tập đang xem'}`);
+      continueBtn.addEventListener('click', () => {
+        const q = new URLSearchParams({ server: String(progress.serverIndex || 0), ep: progress.episodeSlug || '1' });
+        navigateTo(`#/xem/${movie.slug}?${q.toString()}`);
+      });
+      actions.appendChild(continueBtn);
+    }
+
+    // Nút lưu/bỏ lưu phim
+    const isSaved = Storage.isMovieSaved(movie.slug);
+    const saveBtn = createEl('button', 'btn btn--save', isSaved ? '💔 Bỏ lưu' : '❤️ Lưu phim');
+    saveBtn.addEventListener('click', () => {
+      if (Storage.isMovieSaved(movie.slug)) {
+        Storage.removeSavedMovie(movie.slug);
+        saveBtn.textContent = '❤️ Lưu phim';
+        saveBtn.classList.remove('btn--saved');
+        showNotification({
+          message: 'Đã xóa khỏi danh sách yêu thích',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        Storage.saveMovie(movie);
+        saveBtn.textContent = '💔 Bỏ lưu';
+        saveBtn.classList.add('btn--saved');
+        showNotification({
+          message: 'Đã lưu vào danh sách yêu thích',
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+    if (isSaved) saveBtn.classList.add('btn--saved');
+    actions.appendChild(saveBtn);
+    
     const shareBtn = createEl('button', 'btn btn--ghost', 'Sao chép liên kết');
     shareBtn.addEventListener('click', async () => {
       try {
@@ -696,6 +840,15 @@ async function renderWatch(root, slug, params) {
       else if (ep?.link_m3u8) await renderHls(ep.link_m3u8);
       else player.appendChild(createEl('p', '', 'Không tìm thấy nguồn phát cho tập này.'));
     }
+
+    // Lưu tiến độ xem
+    Storage.setWatchProgress(movie.slug, {
+      episodeName: ep?.name || epSlug || '',
+      episodeSlug: epSlug,
+      serverIndex: serverIndex,
+      serverName: server?.server_name || `Server ${serverIndex+1}`,
+      movieName: movie.name
+    });
 
     const h1 = createEl('h1', '', movie.name || 'Đang xem');
     const sub = createEl('div', 'detail__line', `Tập: <strong>${ep?.name || epSlug || ''}</strong> — Server: <strong>${server?.server_name || serverIndex+1}</strong>`);
@@ -992,16 +1145,8 @@ const Categories = {
 
 // Render trang tất cả thể loại
 async function renderAllCategories(root) {
-  console.log('renderAllCategories called', root, 'children:', root.children.length, 'innerHTML length:', root.innerHTML.length);
-  
-  // Debug: log any existing content
-  if (root.children.length > 0) {
-    console.log('Existing children before cleanup:', Array.from(root.children).map(el => el.tagName + '.' + el.className));
-  }
-  
   // Check if already rendering this page to prevent duplicates
   if (root.dataset.rendering === 'categories') {
-    console.log('Already rendering categories, skipping...');
     return;
   }
   
@@ -1011,14 +1156,8 @@ async function renderAllCategories(root) {
   // Set rendering flag after cleanup
   root.dataset.rendering = 'categories';
   
-  // Add a small delay to ensure DOM is fully cleared
-  await new Promise(resolve => setTimeout(resolve, 20));
-  
-  // Debug: verify cleanup
-  console.log('After cleanup - children:', root.children.length, 'innerHTML length:', root.innerHTML.length);
-  if (root.children.length > 0) {
-    console.log('WARNING: Still has children after cleanup:', Array.from(root.children).map(el => el.tagName + '.' + el.className));
-  }
+  // Force reflow to ensure DOM is fully cleared
+  root.offsetHeight;
   
   root.appendChild(sectionHeader('Tất cả thể loại'));
   
@@ -1060,11 +1199,85 @@ async function renderAllCategories(root) {
   delete root.dataset.rendering;
 }
 
+// Render trang phim đã lưu
+async function renderSavedMovies(root) {
+  if (root.dataset.rendering === 'saved-movies') {
+    return;
+  }
+  
+  clearRootCompletely(root);
+  root.dataset.rendering = 'saved-movies';
+  root.offsetHeight;
+  
+  const savedMovies = Storage.getSavedMovies();
+  
+  root.appendChild(sectionHeader(`❤️ Phim đã lưu (${savedMovies.length})`));
+  
+  if (savedMovies.length === 0) {
+    const emptyState = createEl('div', 'empty-state');
+    emptyState.style.cssText = 'text-align:center;padding:60px 20px;color:var(--muted);';
+    emptyState.innerHTML = `
+      <div style="font-size:48px;margin-bottom:16px;">📺</div>
+      <h3 style="margin:0 0 8px 0;color:var(--text);">Chưa có phim nào được lưu</h3>
+      <p style="margin:0 0 20px 0;">Lưu những bộ phim yêu thích để xem sau</p>
+      <button class="btn btn--ghost" onclick="navigateTo('#/')">Khám phá phim</button>
+    `;
+    root.appendChild(emptyState);
+    delete root.dataset.rendering;
+    return;
+  }
+  
+  // Thông tin thống kê
+  const stats = createEl('div', 'saved-stats');
+  stats.style.cssText = 'margin-bottom:20px;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:12px;';
+  stats.innerHTML = `
+    <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:14px;color:var(--muted);">
+      <div>📊 Tổng cộng: <strong style="color:var(--text);">${savedMovies.length}</strong> phim</div>
+      <div>📅 Lưu gần nhất: <strong style="color:var(--text);">${new Date(savedMovies[0]?.savedAt).toLocaleDateString('vi-VN')}</strong></div>
+    </div>
+  `;
+  root.appendChild(stats);
+  
+  // Actions
+  const actions = createEl('div', 'saved-actions');
+  actions.style.cssText = 'display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;';
+  
+  const clearAllBtn = createEl('button', 'btn btn--danger', '🗑️ Xóa tất cả');
+  clearAllBtn.addEventListener('click', () => {
+    if (confirm('Bạn có chắc muốn xóa tất cả phim đã lưu?')) {
+      localStorage.removeItem('savedMovies');
+      renderSavedMovies(root); // Re-render
+      showNotification({
+        message: 'Đã xóa tất cả phim đã lưu',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+  
+  const exportBtn = createEl('button', 'btn btn--ghost', '📤 Xuất danh sách');
+  exportBtn.addEventListener('click', () => {
+    const data = savedMovies.map(m => `${m.name} (${m.year}) - ${window.location.origin}/#/phim/${m.slug}`).join('\n');
+    navigator.clipboard.writeText(data).then(() => {
+      exportBtn.textContent = '✅ Đã sao chép';
+      setTimeout(() => exportBtn.textContent = '📤 Xuất danh sách', 2000);
+    });
+  });
+  
+  actions.appendChild(clearAllBtn);
+  actions.appendChild(exportBtn);
+  root.appendChild(actions);
+  
+  // Danh sách phim
+  const moviesGrid = listGrid(savedMovies, 'grid');
+  root.appendChild(moviesGrid);
+  
+  delete root.dataset.rendering;
+}
+
 /* App bootstrap */
 let isRouting = false;
 async function router() {
   if (isRouting) {
-    console.log('Router already running, skipping...');
     return;
   }
   isRouting = true;
@@ -1093,6 +1306,11 @@ async function router() {
   }
   if (path === '/the-loai' || path === '/the-loai/') {
     await renderAllCategories(root);
+    isRouting = false;
+    return;
+  }
+  if (path === '/phim-da-luu' || path === '/phim-da-luu/') {
+    await renderSavedMovies(root);
     isRouting = false;
     return;
   }
