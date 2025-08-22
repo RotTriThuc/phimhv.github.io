@@ -5,7 +5,7 @@ Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "    GIT PUSH SCRIPT (PowerShell)" -ForegroundColor Green  
 Write-Host "========================================" -ForegroundColor Green
-Write-Host "Repository: web-xem-anime" -ForegroundColor Yellow
+Write-Host "Repository: phimhv.github.io" -ForegroundColor Yellow
 Write-Host "Author: RotTriThuc" -ForegroundColor Yellow
 Write-Host "Time: $(Get-Date)" -ForegroundColor Yellow
 Write-Host "========================================" -ForegroundColor Green
@@ -87,8 +87,8 @@ Write-Host "========================================" -ForegroundColor Green
 Write-Host "     SUCCESS!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "Changes pushed to GitHub successfully!" -ForegroundColor Green
-Write-Host "Repository: https://github.com/RotTriThuc/web-xem-anime" -ForegroundColor Blue
-Write-Host "Website: https://rottriThuc.github.io/web-xem-anime/" -ForegroundColor Blue
+Write-Host "Repository: https://github.com/RotTriThuc/phimhv.github.io" -ForegroundColor Blue
+Write-Host "Website: https://rottriThuc.github.io/phimhv.github.io/" -ForegroundColor Blue
 Write-Host "GitHub Actions will auto-deploy the website" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Tip: Website will update in 1-2 minutes" -ForegroundColor Magenta
@@ -98,12 +98,12 @@ Write-Host ""
 # Ask to open links
 $openGitHub = Read-Host "Open GitHub repository? (y/n)"
 if ($openGitHub -eq "y" -or $openGitHub -eq "Y") {
-    Start-Process "https://github.com/RotTriThuc/web-xem-anime"
+    Start-Process "https://github.com/RotTriThuc/phimhv.github.io"
 }
 
 $openWebsite = Read-Host "Open live website? (y/n)"
 if ($openWebsite -eq "y" -or $openWebsite -eq "Y") {
-    Start-Process "https://rottriThuc.github.io/web-xem-anime/"
+    Start-Process "https://rottriThuc.github.io/phimhv.github.io/"
 }
 
 Write-Host ""
