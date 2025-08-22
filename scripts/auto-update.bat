@@ -5,7 +5,8 @@ set COMMAND=%1
 if "%COMMAND%"=="" set COMMAND=once
 
 echo ====================================
-echo     KKPhim Auto-Updater v1.0
+echo     KKPhim Auto-Updater v2.0
+echo     🚀 WITH AUTO-PUSH TO GITHUB
 echo ====================================
 echo.
 
@@ -20,9 +21,11 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 :: Hiển thị thông tin
-echo 🚀 Khoi dong Auto-Updater...
+echo 🚀 Khoi dong Auto-Updater v2.0...
 echo 📊 Command: %COMMAND%
 echo 🕐 Time: %date% %time%
+echo 🌐 Auto-Push: ENABLED (will push to GitHub automatically)
+echo 📝 Config: data/auto-update-config.json
 echo.
 
 :: Chạy script tương ứng với command

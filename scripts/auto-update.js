@@ -1,5 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
+const { execSync } = require('child_process');
 
 class AutoUpdater {
   constructor() {
@@ -15,7 +16,9 @@ class AutoUpdater {
       batchSize: 24,
       enableNotifications: true,
       trackNewEpisodes: true,
-      trackNewMovies: true
+      trackNewMovies: true,
+      autoPushToGit: true, // Tự động push lên GitHub
+      gitCommitMessage: 'Auto-update: {updateSummary}' // Template commit message
     };
     
     this.stats = {
@@ -319,6 +322,21 @@ class AutoUpdater {
         hasUpdates: changes.newMovies.length > 0 || changes.newEpisodes.length > 0 || changes.updatedMovies.length > 0
       });
 
+      // Auto-push to GitHub if enabled and there are updates
+      const hasSignificantUpdates = changes.newMovies.length > 0 || changes.newEpisodes.length > 0;
+      if (hasSignificantUpdates) {
+        console.log('\n🔄 Attempting to push updates to GitHub...');
+        const pushSuccess = await this.pushToGitHub(notification);
+        
+        if (pushSuccess) {
+          console.log('🎉 Auto-push completed successfully!');
+        } else {
+          console.log('⚠️ Auto-push skipped or failed (check logs above)');
+        }
+      } else {
+        console.log('📝 No significant updates, skipping Git push');
+      }
+
     } catch (error) {
       console.error('❌ Update failed:', error.message);
       console.error(error.stack);
@@ -331,6 +349,64 @@ class AutoUpdater {
       await fs.writeFile(notificationFile, JSON.stringify(notification, null, 2));
     } catch (error) {
       console.error('❌ Failed to save notification:', error.message);
+    }
+  }
+
+  // Git operations
+  async checkGitStatus() {
+    try {
+      const status = execSync('git status --porcelain', { encoding: 'utf8', cwd: path.join(__dirname, '..') });
+      return status.trim().length > 0; // True if there are changes
+    } catch (error) {
+      console.warn('⚠️ Git status check failed:', error.message);
+      return false;
+    }
+  }
+
+  async pushToGitHub(updateSummary) {
+    if (!this.config.autoPushToGit) {
+      console.log('🚫 Auto-push disabled in config');
+      return false;
+    }
+
+    try {
+      console.log('🔄 Checking for Git changes...');
+      const hasChanges = await this.checkGitStatus();
+      
+      if (!hasChanges) {
+        console.log('📝 No Git changes detected, skipping push');
+        return false;
+      }
+
+      const projectRoot = path.join(__dirname, '..');
+      const commitMessage = this.config.gitCommitMessage.replace('{updateSummary}', updateSummary);
+
+      console.log('📦 Adding files to Git...');
+      execSync('git add .', { cwd: projectRoot, stdio: 'inherit' });
+
+      console.log(`💬 Committing with message: "${commitMessage}"`);
+      execSync(`git commit -m "${commitMessage}"`, { cwd: projectRoot, stdio: 'inherit' });
+
+      console.log('🚀 Pushing to GitHub...');
+      execSync('git push origin main', { cwd: projectRoot, stdio: 'inherit' });
+
+      console.log('✅ Successfully pushed to GitHub!');
+      return true;
+
+    } catch (error) {
+      console.error('❌ Failed to push to GitHub:', error.message);
+      
+      // Check specific error types
+      if (error.message.includes('nothing to commit')) {
+        console.log('📝 Nothing to commit, working tree clean');
+        return false;
+      } else if (error.message.includes('remote rejected')) {
+        console.error('🚫 Push rejected by remote (check permissions/conflicts)');
+      } else if (error.message.includes('not a git repository')) {
+        console.error('📁 Not a Git repository or no Git installed');
+      }
+      
+      return false;
     }
   }
 
