@@ -3,12 +3,12 @@ const STATIC_CACHE = 'phimhv-static-v1';
 const DYNAMIC_CACHE = 'phimhv-dynamic-v1';
 
 const STATIC_ASSETS = [
-  '/phimhv.github.io/',
-  '/phimhv.github.io/index.html',
-  '/phimhv.github.io/assets/app.js',
-  '/phimhv.github.io/assets/styles.css',
-  '/phimhv.github.io/firebase-config.js',
-  '/phimhv.github.io/manifest.json'
+  './',
+  './index.html',
+  './assets/app.js',
+  './assets/styles.css',
+  './firebase-config.js',
+  './manifest.json'
 ];
 
 const CACHE_BLACKLIST = [
@@ -90,7 +90,7 @@ self.addEventListener('fetch', (event) => {
             
             // Return offline fallback for navigation requests
             if (request.mode === 'navigate') {
-              return caches.match('/phimhv.github.io/index.html');
+              return caches.match('./index.html');
             }
             
             throw error;

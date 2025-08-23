@@ -589,7 +589,7 @@ console.log('🎉 Image Loading System V2 Initialized Successfully!');
 // PWA Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/phimhv.github.io/sw.js')
+    navigator.serviceWorker.register('./sw.js')
       .then((registration) => {
         console.log('✅ PWA Service Worker registered successfully:', registration.scope);
         
