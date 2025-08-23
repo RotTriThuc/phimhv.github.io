@@ -585,6 +585,116 @@ try {
 
 // System initialization status
 console.log('🎉 Image Loading System V2 Initialized Successfully!');
+
+// PWA Service Worker Registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/phimhv.github.io/sw.js')
+      .then((registration) => {
+        console.log('✅ PWA Service Worker registered successfully:', registration.scope);
+        
+        // Check for updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('🔄 New version available! Reload to update.');
+              showPWAUpdateNotification();
+            }
+          });
+        });
+      })
+      .catch((registrationError) => {
+        console.log('❌ PWA Service Worker registration failed:', registrationError);
+      });
+  });
+}
+
+// PWA Update Notification
+function showPWAUpdateNotification() {
+  const notification = createEl('div', 'pwa-update-notification');
+  notification.innerHTML = `
+    <div class="pwa-update-content">
+      <span>🔄 Phiên bản mới có sẵn!</span>
+      <button onclick="location.reload()" class="pwa-update-btn">Cập nhật</button>
+      <button onclick="this.parentElement.parentElement.remove()" class="pwa-close-btn">×</button>
+    </div>
+  `;
+  document.body.appendChild(notification);
+  
+  // Auto-hide after 10 seconds
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, 10000);
+}
+
+// PWA Install Prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showPWAInstallBanner();
+});
+
+function showPWAInstallBanner() {
+  // Only show if not already installed
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    return; // Already installed
+  }
+
+  const installBanner = createEl('div', 'pwa-install-banner');
+  installBanner.innerHTML = `
+    <div class="pwa-install-content">
+      <div class="pwa-install-text">
+        <strong>📱 Cài đặt KKPhim</strong>
+        <span>Trải nghiệm xem phim như ứng dụng gốc</span>
+      </div>
+      <button onclick="installPWA()" class="pwa-install-btn">Cài đặt</button>
+      <button onclick="this.parentElement.parentElement.remove()" class="pwa-install-close">×</button>
+    </div>
+  `;
+  document.body.appendChild(installBanner);
+  
+  // Auto-hide after 30 seconds
+  setTimeout(() => {
+    if (installBanner.parentElement) {
+      installBanner.remove();
+    }
+  }, 30000);
+}
+
+// PWA Install Function
+window.installPWA = function() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('✅ User accepted PWA install');
+        showNotification('🎉 Đã cài đặt thành công! Tìm KKPhim trên màn hình chính.', 'success');
+      } else {
+        console.log('❌ User dismissed PWA install');
+      }
+      deferredPrompt = null;
+      
+      // Remove install banner
+      const banner = document.querySelector('.pwa-install-banner');
+      if (banner) banner.remove();
+    });
+  }
+};
+
+// PWA Network Status
+window.addEventListener('online', () => {
+  console.log('🌐 Back online');
+  showNotification('🌐 Đã kết nối lại internet', 'success');
+});
+
+window.addEventListener('offline', () => {
+  console.log('📴 Gone offline');
+  showNotification('📴 Không có kết nối internet - Chế độ offline', 'warning');
+});
 console.log('📊 Components Status:', {
   imageLoader: !!imageLoader,
   performanceMonitor: !!performanceMonitor,

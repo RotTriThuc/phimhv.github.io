@@ -13,6 +13,11 @@ data/auto-update-config.json
 # Trackable summary file (small, can be committed)
 # movie-updates-summary.json - NOT IGNORED
 
+# Capacitor files (if using Capacitor alternative)
+android/
+ios/
+capacitor.config.js
+
 # Log files
 logs/
 *.log
