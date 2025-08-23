@@ -1,18 +1,73 @@
 {
-  "lastUpdate": "2025-08-23T02:57:26.552Z",
-  "totalMovies": 23999,
+  "lastUpdate": "2025-08-23T07:39:53.697Z",
+  "totalMovies": 24005,
   "stats": {
-    "newMovies": 1,
-    "newEpisodes": 0,
-    "updatedMovies": 1
+    "newMovies": 6,
+    "newEpisodes": 17,
+    "updatedMovies": 14
   },
   "recentMovies": [
     {
-      "name": "Khủng Long Xanh Du Hành Thế Giới Truyện Tranh",
-      "slug": "khung-long-xanh-du-hanh-the-gioi-truyen-tranh",
+      "name": "Người Bị Bỏ Rơi",
+      "slug": "nguoi-bi-bo-roi",
+      "year": 2025,
+      "added": "2025-08-23T07:39:53.601Z"
+    },
+    {
+      "name": "Áo Giáp Vàng: Thánh Chiến Khởi Đầu (Hiệp Sĩ Hoàng Đạo)",
+      "slug": "ao-giap-vang-thanh-chien-khoi-dau-hiep-si-hoang-dao",
+      "year": 2023,
+      "added": "2025-08-23T07:39:53.601Z"
+    },
+    {
+      "name": "Chuyện Muông Thú Dạy Bé Cừu Bay",
+      "slug": "chuyen-muong-thu-day-be-cuu-bay",
       "year": 2024,
-      "added": "2025-08-23T02:57:26.455Z"
+      "added": "2025-08-23T07:39:53.601Z"
+    },
+    {
+      "name": "Cứu Chữa Thần Thỏ",
+      "slug": "cuu-chua-than-tho",
+      "year": 2025,
+      "added": "2025-08-23T07:39:53.601Z"
+    },
+    {
+      "name": "Nữ Thần Chiến Tranh",
+      "slug": "nu-than-chien-tranh",
+      "year": 2011,
+      "added": "2025-08-23T07:39:53.601Z"
     }
   ],
-  "recentEpisodes": []
+  "recentEpisodes": [
+    {
+      "name": "Thần Quốc Chi Thượng",
+      "slug": "than-quoc-chi-thuong",
+      "episode": "Tập 13",
+      "updated": "2025-08-23T12:35:42.000Z"
+    },
+    {
+      "name": "Thôn Phệ Tinh Không",
+      "slug": "thon-phe-tinh-khong",
+      "episode": "Tập 185",
+      "updated": "2025-08-23T12:34:40.000Z"
+    },
+    {
+      "name": "Ta Là Ngài Khun Xinh Đẹp Nhất",
+      "slug": "ta-la-ngai-khun-xinh-dep-nhat",
+      "episode": "Tập 4",
+      "updated": "2025-08-23T12:34:06.000Z"
+    },
+    {
+      "name": "Song Nhẫn",
+      "slug": "song-nhan",
+      "episode": "Tập 22",
+      "updated": "2025-08-23T12:33:14.000Z"
+    },
+    {
+      "name": "Quy Tắc Hắc Nguyệt Quang",
+      "slug": "quy-tac-hac-nguyet-quang",
+      "episode": "Tập 13",
+      "updated": "2025-08-23T12:32:38.000Z"
+    }
+  ]
 }
