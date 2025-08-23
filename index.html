@@ -2,11 +2,41 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Enhanced viewport for better mobile compatibility -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=yes, minimum-scale=1, maximum-scale=5">
+  
+  <!-- Performance and compatibility meta tags -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="XemPhim">
+  
+  <!-- Theme colors for different browsers -->
   <meta name="theme-color" content="#0f0f12">
-  <title>🎬 Web Xem Phim Deep Try</title>
-  <meta name="description" content="Website xem phim deep try. Tìm kiếm, lọc và xem phim mượt mà.">
-  <meta name="keywords" content="xem phim, anime, HvPhim, phim bộ, phim lẻ, hoạt hình, vietsub">
+  <meta name="msapplication-navbutton-color" content="#0f0f12">
+  <meta name="apple-mobile-web-app-status-bar-style" content="#0f0f12">
+  
+  <!-- DNS prefetch for performance -->
+  <link rel="dns-prefetch" href="https://phimapi.com">
+  <link rel="dns-prefetch" href="https://phimimg.com">
+  <link rel="dns-prefetch" href="https://wsrv.nl">
+  <link rel="dns-prefetch" href="https://images.weserv.nl">
+  <link rel="dns-prefetch" href="https://i0.wp.com">
+  
+  <!-- PWA Configuration -->
+  <link rel="manifest" href="simple-manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="XemPhim">
+  <meta name="msapplication-TileColor" content="#6c5ce7">
+  <meta name="msapplication-TileImage" content="assets/icons/icon-144x144.png">
+  
+  <title>🎬 XemPhim - Website Xem Phim Online</title>
+  <meta name="description" content="Website xem phim online với giao diện đẹp, tốc độ nhanh. Hỗ trợ tất cả thiết bị và trình duyệt. Có thể cài đặt như ứng dụng.">
+  <meta name="keywords" content="xem phim online, phim hay, anime, HvPhim, phim bộ, phim lẻ, hoạt hình, vietsub, PWA, web app">
   <meta name="author" content="NGUYEN HOAI VU">
   
   <!-- Favicon -->
@@ -83,8 +113,88 @@
     </div>
   </footer>
 
+  <!-- Browser Compatibility - Load in order -->
+  <script src="./assets/polyfills.js"></script>
+  <script src="./assets/es5-helpers.js"></script>
+  
+  <!-- Image Loading Fix Notification -->
+  <script src="./assets/image-fix-notification.js"></script>
+  
+  <!-- PWA Components -->
+  <script src="./simple-pwa-install.js"></script>
+  <script src="./assets/generate-pwa-icons.js"></script>
+  
+  <!-- Legacy browser support -->
+  <!--[if lt IE 10]>
+    <style>
+      .header { position: fixed !important; }
+      .app { margin-top: 120px !important; }
+      .grid { display: block !important; }
+      .card { display: inline-block !important; width: 48% !important; margin: 1% !important; }
+    </style>
+  <![endif]-->
+  
   <script src="./firebase-config.js"></script>
   <link rel="stylesheet" href="./movie-comments.css">
-  <script type="module" src="./assets/app.js?v=2025012116"></script>
+  
+  <!-- Service Worker Registration -->
+  <script>
+    // Register Simple Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/simple-sw.js')
+          .then((registration) => {
+            console.log('🎉 Simple SW registered:', registration);
+          })
+          .catch((registrationError) => {
+            console.log('❌ Simple SW registration failed:', registrationError);
+          });
+      });
+    } else {
+      console.warn('⚠️ Service Workers not supported in this browser');
+    }
+  </script>
+
+  <!-- Progressive app loading -->
+  <script>
+    // Determine loading strategy based on browser capabilities
+    function loadApp() {
+      var useModule = 'noModule' in HTMLScriptElement.prototype && 
+                     window.supportsFeature && 
+                     window.supportsFeature.es6();
+      
+      var script = document.createElement('script');
+      
+                    if (useModule) {
+         // Modern browsers - use ES6 modules
+         script.type = 'module';
+          script.src = './assets/app.js?v=2025012323';
+       } else {
+         // Fallback for older browsers
+          script.src = './assets/app.js?v=2025012323';
+        script.setAttribute('nomodule', '');
+      }
+      
+      script.onerror = function() {
+        // Fallback if main script fails
+        console.warn('Main app failed to load, using basic functionality');
+        document.getElementById('app').innerHTML = 
+          '<div style="text-align:center;padding:40px;color:var(--muted);">' +
+          '<h3>⚠️ Trình duyệt không được hỗ trợ đầy đủ</h3>' +
+          '<p>Vui lòng cập nhật trình duyệt để có trải nghiệm tốt nhất.</p>' +
+          '</div>';
+      };
+      
+      document.head.appendChild(script);
+    }
+    
+    // Load when helpers are ready
+    if (window.supportsFeature) {
+      loadApp();
+    } else {
+      // Wait for helpers to load
+      setTimeout(loadApp, 100);
+    }
+  </script>
 </body>
 </html> 

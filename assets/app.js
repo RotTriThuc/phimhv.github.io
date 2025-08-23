@@ -140,23 +140,20 @@ class ProgressiveImageLoader {
     const useWebP = format === 'auto' && this.supportsWebP();
     const finalFormat = useWebP ? 'webp' : 'jpg';
     
-    // Ultra-fast CDN options (sorted by speed)
+    // CDN-only options (no CORS issues, sorted by reliability)
     const cdnOptions = [
-      // Cloudflare-based CDNs (fastest)
+      // Cloudflare-based CDNs (most reliable, CORS-free)
       `https://wsrv.nl/?url=${encodeURIComponent(baseUrl)}&w=${width}&q=${quality}&output=${finalFormat}&af&il`,
       `https://images.weserv.nl/?url=${encodeURIComponent(baseUrl)}&w=${width}&q=${quality}&output=${finalFormat}&af&il`,
       
-      // Photon CDN (WordPress.com)
+      // WordPress Photon CDN (CORS-free)
       `https://i0.wp.com/${baseUrl.replace(/^https?:\/\//, '')}?w=${width}&quality=${quality}&strip=all`,
       
-      // ImageProxy CDN
-      `https://imageproxy.ifunny.co/crop:x-20,resize:${width}x,quality:${quality}/${baseUrl}`,
+      // Alternative CDN with different params (lower quality fallbacks)
+      `https://wsrv.nl/?url=${encodeURIComponent(baseUrl)}&w=${width}&q=${Math.max(quality - 10, 50)}&output=jpg`,
+      `https://images.weserv.nl/?url=${encodeURIComponent(baseUrl)}&w=${width}&q=${Math.max(quality - 10, 50)}&output=jpg`
       
-      // Direct with cache-busting
-      `${baseUrl}?w=${width}&q=${quality}&t=${Date.now()}`,
-      
-      // Original as final fallback
-      baseUrl
+      // NO direct URL fallback - pure CDN strategy eliminates CORS errors
     ];
     
     return cdnOptions;
@@ -214,36 +211,52 @@ class ProgressiveImageLoader {
       this.cache.set(originalSrc, winnerUrl);
       performanceMonitor.recordLoad(startTime, true);
     } catch (error) {
-      console.warn('🚨 All CDNs failed for:', originalSrc, error);
-      // Fallback to original if all fail
-      this.setImageSrc(imgElement, originalSrc);
+      console.warn('🚨 All CDNs failed for:', originalSrc.substring(0, 60) + '...', error.message);
+      
+      // Don't retry original URL due to CORS issues - go straight to placeholder
+      this.setImagePlaceholder(imgElement);
       performanceMonitor.recordLoad(startTime, false);
     }
     
     imgElement.dataset.loaded = 'true';
   }
   
-  // Race multiple CDNs concurrently
+  // Race multiple CDNs concurrently with improved error handling
   async raceLoadImages(urls) {
     return new Promise((resolve, reject) => {
       let completed = 0;
       let hasResolved = false;
+      const errors = [];
       
       urls.forEach((url, index) => {
-        this.tryLoadImage(url)
+        // Use shorter timeout for CDNs (they should be fast)
+        const timeout = url.includes('wsrv.nl') || url.includes('weserv.nl') || url.includes('wp.com') ? 4000 : 2000;
+        
+        this.tryLoadImage(url, timeout)
           .then(result => {
             if (!hasResolved) {
               hasResolved = true;
+              console.log(`✅ Image loaded from: ${url.substring(0, 50)}...`);
               resolve(result);
             }
           })
-          .catch(() => {
+          .catch(error => {
+            // Don't log individual CDN failures (too noisy)
             completed++;
+            
             if (completed === urls.length && !hasResolved) {
-              reject(new Error('All CDNs failed'));
+              reject(new Error(`All CDNs failed after ${completed} attempts`));
             }
           });
       });
+      
+      // Global timeout as safety net (shorter for better UX)
+      setTimeout(() => {
+        if (!hasResolved) {
+          hasResolved = true;
+          reject(new Error('Global timeout: CDNs too slow'));
+        }
+      }, 8000);
     });
   }
   
@@ -291,12 +304,38 @@ class ProgressiveImageLoader {
     }
   }
   
-  // Promise-based image loading
-  tryLoadImage(url) {
+  // Promise-based image loading with timeout
+  tryLoadImage(url, timeout = 5000) {
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.onload = () => resolve(url);
-      img.onerror = () => reject(new Error(`Failed to load: ${url}`));
+      let completed = false;
+      
+      // Set up timeout
+      const timeoutId = setTimeout(() => {
+        if (!completed) {
+          completed = true;
+          reject(new Error(`Timeout loading: ${url}`));
+        }
+      }, timeout);
+      
+      img.onload = () => {
+        if (!completed) {
+          completed = true;
+          clearTimeout(timeoutId);
+          resolve(url);
+        }
+      };
+      
+      img.onerror = () => {
+        if (!completed) {
+          completed = true;
+          clearTimeout(timeoutId);
+          reject(new Error(`Failed to load: ${url}`));
+        }
+      };
+      
+      // Add crossOrigin for CDN compatibility
+      img.crossOrigin = 'anonymous';
       img.src = url;
     });
   }
@@ -312,6 +351,7 @@ class ProgressiveImageLoader {
       imgElement.src = url;
       imgElement.style.transition = 'opacity 0.2s ease';
       imgElement.style.opacity = '1';
+      imgElement.style.filter = 'none'; // Remove any placeholder filters
       
       // Remove any blur preview
       const container = imgElement.parentNode;
@@ -328,6 +368,59 @@ class ProgressiveImageLoader {
       }
     } catch (error) {
       console.warn('🚨 Failed to set image source:', error);
+    }
+  }
+  
+  // Set beautiful placeholder when image fails to load
+  setImagePlaceholder(imgElement) {
+    if (!imgElement) return;
+    
+    try {
+      // Create a beautiful gradient placeholder
+      const canvas = document.createElement('canvas');
+      canvas.width = 300;
+      canvas.height = 450; // 2:3 aspect ratio
+      const ctx = canvas.getContext('2d');
+      
+      // Create gradient background
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Add movie icon
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.font = 'bold 48px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🎬', canvas.width / 2, canvas.height / 2 - 20);
+      
+      // Add text
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.font = 'bold 16px Arial';
+      ctx.fillText('Poster', canvas.width / 2, canvas.height / 2 + 30);
+      
+      // Convert to data URL and set as src
+      imgElement.src = canvas.toDataURL('image/png');
+      imgElement.style.opacity = '0.8';
+      imgElement.style.filter = 'none';
+      
+      // Remove any blur preview
+      const container = imgElement.parentNode;
+      if (container) {
+        const blurPreview = container.querySelector('.image-blur-preview');
+        if (blurPreview) {
+          blurPreview.remove();
+        }
+      }
+      
+    } catch (error) {
+      console.warn('🚨 Failed to create placeholder:', error);
+      // Fallback: just hide the image gracefully
+      imgElement.style.opacity = '0.3';
+      imgElement.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
     }
   }
   
@@ -433,6 +526,17 @@ class ImagePerformanceMonitor {
     this.stats.totalLoadTime += loadTime;
     this.loadTimes.push(loadTime);
     
+    // Update global stats
+    if (window.imageStats) {
+      window.imageStats.total++;
+      if (success) {
+        window.imageStats.success++;
+      } else {
+        window.imageStats.failed++;
+      }
+      window.imageStats.avgLoadTime = Math.round(this.stats.totalLoadTime / this.stats.totalImages);
+    }
+    
     if (success) {
       this.stats.loadedImages++;
     } else {
@@ -441,20 +545,23 @@ class ImagePerformanceMonitor {
     
     this.stats.averageLoadTime = this.stats.totalLoadTime / this.stats.totalImages;
     
-    // Show notification on significant improvement
-    if (this.stats.loadedImages === 10 && this.stats.averageLoadTime < 800) {
+    // Show notification on significant improvement or after fixing issues
+    if (this.stats.loadedImages === 10 && this.stats.averageLoadTime < 1000) {
       this.showPerformanceNotification();
     }
   }
   
   showPerformanceNotification() {
     const notification = createEl('div', 'perf-notification');
+    const successRate = Math.round((this.stats.loadedImages / this.stats.totalImages) * 100);
+    
     notification.innerHTML = `
       <div class="perf-notification-content">
-        <div class="perf-notification-icon">⚡</div>
+        <div class="perf-notification-icon">🚀</div>
         <div class="perf-notification-text">
-          <strong>Image Loading Optimized!</strong><br>
-          ${Math.round(this.stats.averageLoadTime)}ms average load time
+          <strong>Image Loading V3 Active!</strong><br>
+          ${Math.round(this.stats.averageLoadTime)}ms avg • ${successRate}% success rate<br>
+          <small>CDN optimized with smart fallbacks</small>
         </div>
         <button class="perf-notification-close">×</button>
       </div>
@@ -466,7 +573,7 @@ class ImagePerformanceMonitor {
       if (notification.parentNode) {
         notification.remove();
       }
-    }, 4000);
+    }, 6000);
     
     notification.querySelector('.perf-notification-close').addEventListener('click', () => {
       notification.remove();
@@ -584,12 +691,33 @@ try {
 }
 
 // System initialization status
-console.log('🎉 Image Loading System V2 Initialized Successfully!');
+console.log('🎉 Image Loading System V3.2 Initialized Successfully!');
 console.log('📊 Components Status:', {
   imageLoader: !!imageLoader,
   performanceMonitor: !!performanceMonitor,
-  networkIndicator: !!networkIndicator
+  networkIndicator: !!networkIndicator,
+  cdnOptimized: true,
+  fallbacksEnabled: true
 });
+
+// Monitor image loading performance
+let imageStats = {
+  total: 0,
+  success: 0,
+  failed: 0,
+  avgLoadTime: 0
+};
+
+// Report stats periodically
+setInterval(() => {
+  if (imageStats.total > 0) {
+    const successRate = (imageStats.success / imageStats.total * 100).toFixed(1);
+    console.log(`📊 Image Loading Stats: ${imageStats.success}/${imageStats.total} (${successRate}%) - Avg: ${imageStats.avgLoadTime}ms`);
+  }
+}, 30000); // Every 30 seconds
+
+// Export stats for debugging
+window.getImageStats = () => imageStats;
 
 // LocalStorage Management for Saved Movies and Watch Progress
 const Storage = {
