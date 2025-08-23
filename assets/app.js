@@ -695,6 +695,193 @@ window.addEventListener('offline', () => {
   console.log('📴 Gone offline');
   showNotification('📴 Không có kết nối internet - Chế độ offline', 'warning');
 });
+
+// Wait for compatibility layer to be ready
+document.addEventListener('compatibilityready', function() {
+  console.log('🌐 Compatibility layer ready, features available:', window.CompatibilityLayer.features);
+  
+  // Apply compatibility-based optimizations
+  applyCompatibilityOptimizations();
+});
+
+// Compatibility-based optimizations
+function applyCompatibilityOptimizations() {
+  if (!window.CompatibilityLayer) return;
+  
+  var features = window.CompatibilityLayer.features;
+  var device = window.CompatibilityLayer.optimizeForDevice();
+  
+  // Optimize for low-performance devices
+  if (device.oldAndroid || device.oldIE || !features.requestAnimationFrame) {
+    console.log('⚡ Applying low-performance optimizations');
+    
+    // Disable heavy features
+    if (window.imageLoader) {
+      imageLoader.config.enableBlurPreview = false;
+      imageLoader.config.enableCDNRacing = false;
+    }
+    
+    // Reduce animation complexity
+    document.body.classList.add('low-performance');
+  }
+  
+  // Optimize for touch devices
+  if (features.touch) {
+    document.body.classList.add('touch-device');
+    console.log('👆 Touch optimizations applied');
+  }
+  
+  // Apply grid/flexbox fallbacks
+  if (!features.cssGrid) {
+    var gridElements = document.querySelectorAll('.grid');
+    Array.from(gridElements).forEach(function(el) {
+      el.classList.add('grid-fallback', 'no-cssgrid');
+    });
+  }
+  
+  if (!features.cssFlexbox) {
+    var flexElements = document.querySelectorAll('.flex, .header__nav');
+    Array.from(flexElements).forEach(function(el) {
+      el.classList.add('flex-fallback', 'no-flexbox');
+    });
+  }
+  
+  // Enhanced fetch with fallback
+  if (!features.fetch) {
+    console.log('🔄 Using XMLHttpRequest fallback for API calls');
+  }
+  
+  // Storage fallback notifications
+  if (!features.localStorage) {
+    console.warn('💾 LocalStorage not available, using memory storage');
+    showNotification('⚠️ Không thể lưu dữ liệu cục bộ', 'warning');
+  }
+}
+
+// Enhanced createEl function with compatibility
+function createElCompat(tag, className, attributes) {
+  var element = document.createElement(tag);
+  
+  if (className) {
+    if (typeof className === 'string') {
+      // Use classList if available, otherwise className
+      if (element.classList) {
+        className.split(' ').forEach(function(cls) {
+          if (cls.trim()) element.classList.add(cls.trim());
+        });
+      } else {
+        element.className = className;
+      }
+    }
+  }
+  
+  if (attributes) {
+    for (var key in attributes) {
+      if (attributes.hasOwnProperty(key)) {
+        element.setAttribute(key, attributes[key]);
+      }
+    }
+  }
+  
+  return element;
+}
+
+// Fallback for browsers without Array.from
+if (!Array.from && window.CompatibilityLayer) {
+  // Will be polyfilled by compatibility layer
+}
+
+// Enhanced event listener with compatibility
+function addEventListenerCompat(element, event, handler, options) {
+  if (element.addEventListener) {
+    element.addEventListener(event, handler, options);
+  } else if (element.attachEvent) {
+    element.attachEvent('on' + event, handler);
+  } else {
+    element['on' + event] = handler;
+  }
+}
+
+// Cross-browser classList compatibility
+function addClassCompat(element, className) {
+  if (element.classList) {
+    element.classList.add(className);
+  } else {
+    if (element.className.indexOf(className) === -1) {
+      element.className += ' ' + className;
+    }
+  }
+}
+
+function removeClassCompat(element, className) {
+  if (element.classList) {
+    element.classList.remove(className);
+  } else {
+    element.className = element.className.replace(new RegExp('(^|\\s)' + className + '(\\s|$)', 'g'), ' ').trim();
+  }
+}
+
+// Enhanced intersection observer with fallback
+function createIntersectionObserverCompat(callback, options) {
+  if (window.IntersectionObserver) {
+    return new IntersectionObserver(callback, options);
+  } else {
+    // Fallback is already handled by compatibility layer
+    return new IntersectionObserver(callback, options);
+  }
+}
+
+// Performance-aware image loading
+function loadImageWithFallback(imgElement, src) {
+  if (!imgElement || !src) return;
+  
+  // Check if browser supports modern image loading
+  if (window.CompatibilityLayer && window.CompatibilityLayer.features.performance) {
+    // Use modern image loading
+    if (window.imageLoader) {
+      imageLoader.loadImage(imgElement);
+    } else {
+      imgElement.src = src;
+    }
+  } else {
+    // Simple fallback for old browsers
+    imgElement.src = src;
+  }
+}
+
+// Enhanced fetch with automatic fallback
+function fetchCompat(url, options) {
+  if (window.fetch) {
+    return fetch(url, options);
+  } else {
+    // XMLHttpRequest fallback (already polyfilled by compatibility layer)
+    return fetch(url, options);
+  }
+}
+
+// Browser capability reporting
+function reportBrowserCapabilities() {
+  if (!window.CompatibilityLayer) return;
+  
+  var capabilities = {
+    userAgent: navigator.userAgent,
+    features: window.CompatibilityLayer.features,
+    device: window.CompatibilityLayer.optimizeForDevice(),
+    viewport: {
+      width: window.innerWidth,
+      height: window.innerHeight
+    },
+    connection: navigator.connection || navigator.mozConnection || navigator.webkitConnection,
+    memory: navigator.deviceMemory,
+    cores: navigator.hardwareConcurrency
+  };
+  
+  console.log('📊 Browser Capabilities Report:', capabilities);
+  return capabilities;
+}
+
+// Auto-report capabilities when ready
+setTimeout(reportBrowserCapabilities, 1000);
 console.log('📊 Components Status:', {
   imageLoader: !!imageLoader,
   performanceMonitor: !!performanceMonitor,
