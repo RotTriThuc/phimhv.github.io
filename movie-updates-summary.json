@@ -1,11 +1,18 @@
 {
-  "lastUpdate": "2025-01-22T15:30:00.000Z",
-  "totalMovies": 0,
+  "lastUpdate": "2025-08-23T02:57:26.552Z",
+  "totalMovies": 23999,
   "stats": {
-    "newMovies": 0,
+    "newMovies": 1,
     "newEpisodes": 0,
-    "updatedMovies": 0
+    "updatedMovies": 1
   },
-  "recentMovies": [],
+  "recentMovies": [
+    {
+      "name": "Khủng Long Xanh Du Hành Thế Giới Truyện Tranh",
+      "slug": "khung-long-xanh-du-hanh-the-gioi-truyen-tranh",
+      "year": 2024,
+      "added": "2025-08-23T02:57:26.455Z"
+    }
+  ],
   "recentEpisodes": []
-} 
+}

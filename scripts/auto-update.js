@@ -248,7 +248,42 @@ class AutoUpdater {
 
     await fs.writeFile(this.MAIN_FILE, JSON.stringify(mergedData, null, 2));
     
+    // Create trackable summary file for Git (small file that can be committed)
+    const hasSignificantUpdates = changes.newMovies.length > 0 || changes.newEpisodes.length > 0;
+    if (hasSignificantUpdates) {
+      await this.createTrackableSummary(changes, mergedData.length);
+    }
+    
     console.log(`💾 Saved ${mergedData.length} movies to database`);
+  }
+
+  async createTrackableSummary(changes, totalMovies) {
+    const summaryFile = path.join(__dirname, '..', 'movie-updates-summary.json');
+    
+    const summary = {
+      lastUpdate: new Date().toISOString(),
+      totalMovies: totalMovies,
+      stats: {
+        newMovies: changes.newMovies.length,
+        newEpisodes: changes.newEpisodes.length,
+        updatedMovies: changes.updatedMovies.length
+      },
+      recentMovies: changes.newMovies.slice(0, 5).map(movie => ({
+        name: movie.name,
+        slug: movie.slug,
+        year: movie.year,
+        added: movie.detectedAt
+      })),
+      recentEpisodes: changes.newEpisodes.slice(0, 5).map(ep => ({
+        name: ep.name,
+        slug: ep.slug,
+        episode: ep.newEpisode,
+        updated: ep.updatedAt
+      }))
+    };
+
+    await fs.writeFile(summaryFile, JSON.stringify(summary, null, 2));
+    console.log(`📝 Created trackable summary file for Git push`);
   }
 
   createNotificationMessage(changes) {

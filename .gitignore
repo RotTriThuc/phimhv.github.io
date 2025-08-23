@@ -10,6 +10,9 @@ data/updates-log.json
 data/latest-notification.json
 data/auto-update-config.json
 
+# Trackable summary file (small, can be committed)
+# movie-updates-summary.json - NOT IGNORED
+
 # Log files
 logs/
 *.log
