@@ -1,18 +1,73 @@
 {
-  "lastUpdate": "2025-08-23T02:57:26.552Z",
-  "totalMovies": 23999,
+  "lastUpdate": "2025-08-24T02:16:12.191Z",
+  "totalMovies": 24007,
   "stats": {
-    "newMovies": 1,
-    "newEpisodes": 0,
-    "updatedMovies": 1
+    "newMovies": 8,
+    "newEpisodes": 36,
+    "updatedMovies": 24
   },
   "recentMovies": [
     {
-      "name": "Khủng Long Xanh Du Hành Thế Giới Truyện Tranh",
-      "slug": "khung-long-xanh-du-hanh-the-gioi-truyen-tranh",
+      "name": "Gala Chào Xuân 2025 Của Đài Phát Thanh Và Truyền Hình Trung Ương Trung Quốc",
+      "slug": "gala-chao-xuan-2025-cua-dai-phat-thanh-va-truyen-hinh-trung-uong-trung-quoc",
+      "year": 2025,
+      "added": "2025-08-24T02:16:12.111Z"
+    },
+    {
+      "name": "Ngự Trù Của Bạo Chúa",
+      "slug": "ngu-tru-cua-bao-chua",
+      "year": 2025,
+      "added": "2025-08-24T02:16:12.112Z"
+    },
+    {
+      "name": "Người Bị Bỏ Rơi",
+      "slug": "nguoi-bi-bo-roi",
+      "year": 2025,
+      "added": "2025-08-24T02:16:12.112Z"
+    },
+    {
+      "name": "Áo Giáp Vàng: Thánh Chiến Khởi Đầu (Hiệp Sĩ Hoàng Đạo)",
+      "slug": "ao-giap-vang-thanh-chien-khoi-dau-hiep-si-hoang-dao",
+      "year": 2023,
+      "added": "2025-08-24T02:16:12.112Z"
+    },
+    {
+      "name": "Chuyện Muông Thú Dạy Bé Cừu Bay",
+      "slug": "chuyen-muong-thu-day-be-cuu-bay",
       "year": 2024,
-      "added": "2025-08-23T02:57:26.455Z"
+      "added": "2025-08-24T02:16:12.112Z"
     }
   ],
-  "recentEpisodes": []
+  "recentEpisodes": [
+    {
+      "name": "Đua Xe Bắn Súng (Phần 2)",
+      "slug": "dua-xe-ban-sung-phan-2",
+      "episode": "Tập 7",
+      "updated": "2025-08-24T02:36:58.000Z"
+    },
+    {
+      "name": "Ngoại Tình Tột Đỉnh",
+      "slug": "ngoai-tinh-tot-dinh",
+      "episode": "Tập 6",
+      "updated": "2025-08-24T02:36:00.000Z"
+    },
+    {
+      "name": "YAIBA: Huyền Thoại Samurai",
+      "slug": "yaiba-huyen-thoai-samurai",
+      "episode": "Tập 20",
+      "updated": "2025-08-24T01:03:20.000Z"
+    },
+    {
+      "name": "Ultraman Omega",
+      "slug": "ultraman-omega",
+      "episode": "Tập 8",
+      "updated": "2025-08-24T01:02:49.000Z"
+    },
+    {
+      "name": "Quái Vật Số 8 (Phần 2)",
+      "slug": "quai-vat-so-8-phan-2",
+      "episode": "Tập 7",
+      "updated": "2025-08-24T00:59:05.000Z"
+    }
+  ]
 }
