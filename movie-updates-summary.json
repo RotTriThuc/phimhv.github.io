@@ -1,18 +1,49 @@
 {
-  "lastUpdate": "2025-08-24T10:14:51.084Z",
-  "totalMovies": 24008,
+  "lastUpdate": "2025-08-24T11:19:02.774Z",
+  "totalMovies": 24009,
   "stats": {
-    "newMovies": 0,
-    "newEpisodes": 1,
-    "updatedMovies": 0
+    "newMovies": 1,
+    "newEpisodes": 21,
+    "updatedMovies": 8
   },
-  "recentMovies": [],
+  "recentMovies": [
+    {
+      "name": "Mười Hai Con Giáp",
+      "slug": "muoi-hai-con-giap",
+      "year": 2025,
+      "added": "2025-08-24T11:19:02.682Z"
+    }
+  ],
   "recentEpisodes": [
     {
-      "name": "Tử Dạ Quy",
-      "slug": "tu-da-quy",
-      "episode": "Tập 17",
-      "updated": "2025-08-24T17:04:25.000Z"
+      "name": "Thám Tử Lừng Danh Conan",
+      "slug": "tham-tu-lung-danh-conan",
+      "episode": "Tập 1172",
+      "updated": "2025-08-24T18:12:41.000Z"
+    },
+    {
+      "name": "Tại Hạ Anh Đài",
+      "slug": "tai-ha-anh-dai",
+      "episode": "Tập 9",
+      "updated": "2025-08-24T18:12:11.000Z"
+    },
+    {
+      "name": "Song Nhẫn",
+      "slug": "song-nhan",
+      "episode": "Hoàn Tất (23/23)",
+      "updated": "2025-08-24T18:11:47.000Z"
+    },
+    {
+      "name": "Quy Tắc Hắc Nguyệt Quang",
+      "slug": "quy-tac-hac-nguyet-quang",
+      "episode": "Tập 15",
+      "updated": "2025-08-24T18:11:13.000Z"
+    },
+    {
+      "name": "Ớt Nhỏ Thập Niên 80",
+      "slug": "ot-nho-thap-nien-80",
+      "episode": "Tập 23",
+      "updated": "2025-08-24T18:10:44.000Z"
     }
   ]
 }
