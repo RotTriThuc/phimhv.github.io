@@ -1,43 +1,18 @@
 {
-  "lastUpdate": "2025-08-24T09:08:03.601Z",
+  "lastUpdate": "2025-08-24T10:14:51.084Z",
   "totalMovies": 24008,
   "stats": {
-    "newMovies": 1,
-    "newEpisodes": 4,
-    "updatedMovies": 2
+    "newMovies": 0,
+    "newEpisodes": 1,
+    "updatedMovies": 0
   },
-  "recentMovies": [
-    {
-      "name": "Dữ Tấn Trường An",
-      "slug": "du-tan-truong-an",
-      "year": 2025,
-      "added": "2025-08-24T09:08:03.514Z"
-    }
-  ],
+  "recentMovies": [],
   "recentEpisodes": [
     {
-      "name": "Thỏa Thuận Bí Mật",
-      "slug": "thoa-thuan-bi-mat",
-      "episode": "Tập 5",
-      "updated": "2025-08-24T13:08:35.000Z"
-    },
-    {
-      "name": "Mùa Hè Hikaru Chết",
-      "slug": "mua-he-hikaru-chet",
-      "episode": "Tập 8",
-      "updated": "2025-08-24T13:07:35.000Z"
-    },
-    {
-      "name": "Mãn Đình Phương",
-      "slug": "man-dinh-phuong",
-      "episode": "Tập 9",
-      "updated": "2025-08-24T13:00:43.000Z"
-    },
-    {
-      "name": "Hiến Ngư",
-      "slug": "hien-ngu",
-      "episode": "Tập 20",
-      "updated": "2025-08-24T13:00:16.000Z"
+      "name": "Tử Dạ Quy",
+      "slug": "tu-da-quy",
+      "episode": "Tập 17",
+      "updated": "2025-08-24T17:04:25.000Z"
     }
   ]
 }
