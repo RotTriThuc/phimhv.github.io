@@ -2587,7 +2587,7 @@ function initPerformanceDashboard() {
     font-family: monospace;
   `;
   
-  // Toggle button (always visible)
+  // Toggle button (hidden but functional)
   const toggleBtn = createEl('button', 'perf-toggle');
   toggleBtn.innerHTML = '📊';
   toggleBtn.title = 'Toggle Performance Monitor';
@@ -2600,13 +2600,15 @@ function initPerformanceDashboard() {
     border-radius: 50%;
     cursor: pointer;
     font-size: 16px;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
     backdrop-filter: blur(10px);
     margin-bottom: 8px;
     margin-left: auto;
+    opacity: 0;
+    pointer-events: none;
   `;
   
   // Dashboard panel
@@ -2627,18 +2629,27 @@ function initPerformanceDashboard() {
     overflow: hidden;
   `;
   
-  // Check saved state
-  const isHidden = localStorage.getItem('perfDashboardHidden') === 'true';
-  if (isHidden) {
+  // Check saved states
+  const isDashboardHidden = localStorage.getItem('perfDashboardHidden') === 'true';
+  const isButtonVisible = localStorage.getItem('perfButtonVisible') === 'true';
+  
+  // Set dashboard state
+  if (isDashboardHidden) {
     dashboard.style.maxHeight = '0';
     dashboard.style.padding = '0 12px';
     dashboard.style.opacity = '0';
     dashboard.style.transform = 'translateY(-10px)';
     toggleBtn.innerHTML = '📊';
-    toggleBtn.style.opacity = '0.6';
   } else {
     dashboard.style.maxHeight = '500px';
     toggleBtn.innerHTML = '❌';
+  }
+  
+  // Set button visibility (default is hidden)
+  if (isButtonVisible) {
+    toggleBtn.style.display = 'flex';
+    toggleBtn.style.opacity = '1';
+    toggleBtn.style.pointerEvents = 'auto';
   }
   
   container.appendChild(toggleBtn);
@@ -2761,7 +2772,8 @@ function initPerformanceDashboard() {
       <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #444; font-size: 10px; opacity: 0.7;">
         <div style="margin-bottom: 2px;">⌨️ Ctrl+Shift+P: Clear caches</div>
         <div style="margin-bottom: 2px;">⌨️ Ctrl+Shift+D: Toggle dashboard</div>
-        <div>🎯 Click 📊 button to toggle</div>
+        <div style="margin-bottom: 2px;">⌨️ Ctrl+Shift+B: Show/hide button</div>
+        <div style="font-size: 9px; opacity: 0.5;">Performance Monitor - Stealth Mode</div>
       </div>
     `;
     
@@ -2809,15 +2821,41 @@ function initPerformanceDashboard() {
       e.preventDefault();
       toggleBtn.click();
       
-      // Brief highlight animation
+      // Brief highlight animation (works even when hidden)
       toggleBtn.style.boxShadow = '0 0 20px rgba(108, 92, 231, 0.8)';
       setTimeout(() => {
         toggleBtn.style.boxShadow = 'none';
       }, 300);
     }
+    
+    // Ctrl+Shift+B: Show/hide toggle button
+    if (e.ctrlKey && e.shiftKey && e.key === 'B') {
+      e.preventDefault();
+      const isHidden = toggleBtn.style.display === 'none';
+      
+      if (isHidden) {
+        // Show button
+        toggleBtn.style.display = 'flex';
+        toggleBtn.style.opacity = '1';
+        toggleBtn.style.pointerEvents = 'auto';
+        localStorage.setItem('perfButtonVisible', 'true');
+        
+        // Brief pulse animation
+        toggleBtn.style.animation = 'pulse 0.6s ease';
+        setTimeout(() => {
+          toggleBtn.style.animation = '';
+        }, 600);
+      } else {
+        // Hide button
+        toggleBtn.style.display = 'none';
+        toggleBtn.style.opacity = '0';
+        toggleBtn.style.pointerEvents = 'none';
+        localStorage.setItem('perfButtonVisible', 'false');
+      }
+    }
   });
   
-  // Add CSS animations for notifications
+  // Add CSS animations for notifications and button effects
   if (!document.getElementById('perf-animations')) {
     const style = document.createElement('style');
     style.id = 'perf-animations';
@@ -2841,6 +2879,21 @@ function initPerformanceDashboard() {
         to {
           opacity: 0;
           transform: translate(-50%, -50%) scale(0.8);
+        }
+      }
+      
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+          box-shadow: 0 0 0 0 rgba(108, 92, 231, 0.7);
+        }
+        50% {
+          transform: scale(1.1);
+          box-shadow: 0 0 0 10px rgba(108, 92, 231, 0);
+        }
+        100% {
+          transform: scale(1);
+          box-shadow: 0 0 0 0 rgba(108, 92, 231, 0);
         }
       }
     `;
