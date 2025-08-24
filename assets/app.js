@@ -343,45 +343,74 @@ class ProgressiveImageLoader {
   
   // Batch load critical images with immediate priority
   preloadCritical(urls) {
-    // Immediate load first 4 visible items
-    const criticalUrls = urls.slice(0, 4);
+    // Only preload first 2 above-fold images to avoid warnings
+    const criticalUrls = urls.slice(0, 2);
     
-    // Use fastest CDN for critical images
-    criticalUrls.forEach(async (url, index) => {
-      if (url) {
-        try {
-          const optimizedUrls = this.getOptimizedUrl(url, { width: 300, quality: 70 });
-          // Pre-warm cache with fastest CDN
-          await this.tryLoadImage(optimizedUrls[0]);
-          this.cache.set(url, optimizedUrls[0]);
-        } catch (error) {
-          // Silent fail for preload
-        }
+    // Use fastest CDN for critical images (non-blocking)
+    criticalUrls.forEach((url, index) => {
+      if (url && !this.cache.has(url)) {
+        // Non-blocking preload to avoid performance issues
+        requestAnimationFrame(async () => {
+          try {
+            const optimizedUrls = this.getOptimizedUrl(url, { width: 300, quality: 70 });
+            // Pre-warm cache with fastest CDN
+            await this.tryLoadImage(optimizedUrls[0]);
+            this.cache.set(url, optimizedUrls[0]);
+          } catch (error) {
+            // Silent fail for preload
+          }
+        });
       }
     });
     
-    // Traditional link preload as backup
-    urls.slice(0, 6).forEach(url => {
-      if (url) {
-        const link = document.createElement('link');
-        link.rel = 'preload';
-        link.as = 'image';
-        link.href = this.getOptimizedUrl(url, { width: 300 })[0];
-        document.head.appendChild(link);
-      }
-    });
-  }
+         // Skip link preload - it causes too many browser warnings
+     // Instead rely on immediate loading for visible images
+     
+     // Clean up old preload links periodically
+     this.cleanupPreloadLinks();
+   }
+   
+   // Clean up unused preload links to avoid warnings
+   cleanupPreloadLinks() {
+     const preloadLinks = document.querySelectorAll('link[rel="preload"][as="image"]');
+     preloadLinks.forEach(link => {
+       // Remove preload links older than 10 seconds
+       if (!link.dataset.timestamp) {
+         link.dataset.timestamp = Date.now();
+       } else if (Date.now() - parseInt(link.dataset.timestamp) > 10000) {
+         link.remove();
+       }
+     });
+   }
   
-  // Batch load visible images concurrently
+  // Batch load visible images concurrently (throttled)
   batchLoadVisible() {
-    const images = document.querySelectorAll('.card__img[data-src]:not([data-loaded="true"])');
-    const visibleImages = Array.from(images).filter(img => {
-      const rect = img.getBoundingClientRect();
-      return rect.top < window.innerHeight + 200; // 200px buffer
-    });
+    // Throttle to avoid excessive calls
+    if (this.batchLoadTimeout) return;
     
-    // Load all visible images concurrently
-    visibleImages.forEach(img => this.loadImage(img));
+    this.batchLoadTimeout = setTimeout(() => {
+      const images = document.querySelectorAll('.card__img[data-src]:not([data-loaded="true"])');
+      if (images.length === 0) {
+        this.batchLoadTimeout = null;
+        return;
+      }
+      
+      const visibleImages = Array.from(images).filter(img => {
+        try {
+          const rect = img.getBoundingClientRect();
+          return rect.top < window.innerHeight + 200; // 200px buffer
+        } catch (e) {
+          return false; // Skip if element is not in DOM
+        }
+      });
+      
+      // Load visible images with slight delay to avoid blocking
+      visibleImages.forEach((img, index) => {
+        setTimeout(() => this.loadImage(img), index * 50);
+      });
+      
+      this.batchLoadTimeout = null;
+    }, 150);
   }
 }
 
@@ -817,8 +846,24 @@ function movieCard(movie) {
       }
     });
   }
-  card.addEventListener('click', () => {
-    if (slug) navigateTo(`#/phim/${slug}`);
+  card.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!slug) {
+      console.warn('⚠️ No slug found for movie:', movie);
+      return;
+    }
+    
+    // Add visual feedback
+    card.style.transform = 'scale(0.98)';
+    card.style.transition = 'transform 0.1s ease';
+    
+    // Navigate with slight delay for better UX
+    setTimeout(() => {
+      card.style.transform = '';
+      navigateTo(`#/phim/${slug}`);
+    }, 100);
   });
   return card;
 }
@@ -828,11 +873,13 @@ function listGrid(movies, className = '') {
   const grid = createEl('div', 'grid');
   if (className) grid.className = className;
   
-  // Extract poster URLs for aggressive preloading
-  const posterUrls = safe.map(m => m.poster_url || m.thumb_url).filter(Boolean);
+  // Extract poster URLs for smart preloading (only first few)
+  const posterUrls = safe.slice(0, 4).map(m => m.poster_url || m.thumb_url).filter(Boolean);
   
-  // Immediate critical image preloading
-  imageLoader.preloadCritical(posterUrls);
+  // Conservative critical image preloading to avoid browser warnings
+  if (posterUrls.length > 0) {
+    imageLoader.preloadCritical(posterUrls);
+  }
   
   // Use DocumentFragment for better performance
   const fragment = document.createDocumentFragment();
@@ -910,6 +957,22 @@ function navigateTo(hash) {
   } else {
     location.hash = hash;
   }
+  
+  // Ensure scroll to top after navigation (fallback)
+  requestAnimationFrame(() => {
+    if (window.scrollY > 50) {
+      try {
+        window.scrollTo({ 
+          top: 0, 
+          left: 0, 
+          behavior: window.scrollY > 500 ? 'instant' : 'smooth' 
+        });
+      } catch (e) {
+        // Fallback for older browsers
+        window.scrollTo(0, 0);
+      }
+    }
+  });
 }
 
 async function renderHome(root) {
@@ -1177,6 +1240,16 @@ async function renderFilterList(root, params) {
 
 async function renderDetail(root, slug) {
   root.innerHTML = '';
+  
+  // Ensure scroll to top for detail page (immediate for better UX)
+  if (window.scrollY > 50) {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'instant' // Instant scroll for detail pages
+    });
+  }
+  
   const loading = renderLoadingCards(6);
   root.appendChild(loading);
   try {
@@ -1360,6 +1433,16 @@ async function renderWatch(root, slug, params) {
   const epSlug = params.get('ep') || '';
 
   root.innerHTML = '';
+  
+  // Scroll to top for watch page (immediate for better focus on video)
+  if (window.scrollY > 50) {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'instant'
+    });
+  }
+  
   const loading = renderLoadingCards(4);
   root.appendChild(loading);
 
@@ -1869,6 +1952,23 @@ async function router() {
     return;
   }
   isRouting = true;
+  
+  // Smart scroll to top on navigation
+  const currentScrollY = window.scrollY;
+  if (currentScrollY > 100) {
+    // Use smooth scroll for small distances, instant for large distances
+    const scrollBehavior = currentScrollY > 800 ? 'instant' : 'smooth';
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: scrollBehavior
+    });
+  }
+  
+  // Clean up old preload links on page navigation
+  if (imageLoader && imageLoader.cleanupPreloadLinks) {
+    imageLoader.cleanupPreloadLinks();
+  }
   
   const root = document.getElementById('app');
   const { path, params } = parseHash();
