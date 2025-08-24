@@ -416,6 +416,10 @@ class AutoUpdater {
       const projectRoot = path.join(__dirname, '..');
       const commitMessage = this.config.gitCommitMessage.replace('{updateSummary}', updateSummary);
 
+      // Try to sync with remote first to avoid conflicts
+      console.log('🔄 Syncing with remote repository...');
+      await this.syncWithRemote(projectRoot);
+
       console.log('📦 Adding files to Git...');
       execSync('git add .', { cwd: projectRoot, stdio: 'inherit' });
 
@@ -442,6 +446,69 @@ class AutoUpdater {
       }
       
       return false;
+    }
+  }
+
+  async syncWithRemote(projectRoot) {
+    try {
+      // Check if there are uncommitted changes first
+      const statusOutput = execSync('git status --porcelain', { 
+        encoding: 'utf8', 
+        cwd: projectRoot 
+      });
+      
+      const hasUncommittedChanges = statusOutput.trim().length > 0;
+      
+      if (hasUncommittedChanges) {
+        console.log('📋 Stashing local changes before sync...');
+        execSync('git stash push -m "Auto-stash before sync"', { cwd: projectRoot, stdio: 'inherit' });
+      }
+
+      // Check if we need to pull
+      try {
+        execSync('git fetch origin', { cwd: projectRoot, stdio: 'pipe' });
+        
+        const behindCount = execSync('git rev-list HEAD..origin/main --count', { 
+          encoding: 'utf8', 
+          cwd: projectRoot 
+        }).trim();
+        
+        if (parseInt(behindCount) > 0) {
+          console.log(`📥 Pulling ${behindCount} commits from remote...`);
+          execSync('git pull origin main --no-edit', { cwd: projectRoot, stdio: 'inherit' });
+        } else {
+          console.log('✅ Already up to date with remote');
+        }
+        
+      } catch (pullError) {
+        console.warn('⚠️ Pull failed, trying to handle conflicts...');
+        
+        // If pull failed due to conflicts, try to merge automatically
+        try {
+          execSync('git merge --abort', { cwd: projectRoot, stdio: 'pipe' });
+        } catch (e) {
+          // Ignore if no merge in progress
+        }
+        
+        // Force pull with rebase to avoid conflicts
+        console.log('🔄 Using rebase strategy to resolve conflicts...');
+        execSync('git pull origin main --rebase', { cwd: projectRoot, stdio: 'inherit' });
+      }
+      
+      // Restore stashed changes if any
+      if (hasUncommittedChanges) {
+        try {
+          console.log('📋 Restoring stashed changes...');
+          execSync('git stash pop', { cwd: projectRoot, stdio: 'inherit' });
+        } catch (stashError) {
+          console.warn('⚠️ Could not restore stashed changes:', stashError.message);
+          console.log('💡 You may need to manually resolve this later');
+        }
+      }
+      
+    } catch (error) {
+      console.warn('⚠️ Sync with remote failed:', error.message);
+      console.log('💡 Continuing with local push attempt...');
     }
   }
 
