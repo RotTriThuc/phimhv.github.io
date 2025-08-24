@@ -2565,226 +2565,17 @@ async function router() {
   // Khởi động notification system
   initNotificationSystem();
   
-  // Initialize performance monitoring
-  initPerformanceDashboard();
+  // Initialize simple cache clearing shortcut
+  initCacheClearShortcut();
 })();
 
-// Performance Dashboard (Debug Mode)
-function initPerformanceDashboard() {
-  // Only enable in development or when ?debug=1
-  const urlParams = new URLSearchParams(window.location.search);
-  const isDebug = urlParams.has('debug') || !window.location.hostname.includes('github.io');
+// Simple cache clearing shortcut
+function initCacheClearShortcut() {
+  // Clean up old performance dashboard localStorage items
+  localStorage.removeItem('perfDashboardHidden');
+  localStorage.removeItem('perfButtonVisible');
   
-  if (!isDebug) return;
-  
-  // Main dashboard container
-  const container = createEl('div', 'perf-container');
-  container.style.cssText = `
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    z-index: 10000;
-    font-family: monospace;
-  `;
-  
-  // Toggle button (hidden but functional)
-  const toggleBtn = createEl('button', 'perf-toggle');
-  toggleBtn.innerHTML = '📊';
-  toggleBtn.title = 'Toggle Performance Monitor';
-  toggleBtn.style.cssText = `
-    background: rgba(0,0,0,0.8);
-    color: white;
-    border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 16px;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    backdrop-filter: blur(10px);
-    margin-bottom: 8px;
-    margin-left: auto;
-    opacity: 0;
-    pointer-events: none;
-  `;
-  
-  // Dashboard panel
-  const dashboard = createEl('div', 'perf-dashboard');
-  dashboard.style.cssText = `
-    background: rgba(0,0,0,0.9);
-    color: white;
-    padding: 12px;
-    border-radius: 8px;
-    font-size: 11px;
-    line-height: 1.4;
-    min-width: 200px;
-    max-width: 300px;
-    opacity: 0.8;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-    transform: translateY(0);
-    overflow: hidden;
-  `;
-  
-  // Check saved states
-  const isDashboardHidden = localStorage.getItem('perfDashboardHidden') === 'true';
-  const isButtonVisible = localStorage.getItem('perfButtonVisible') === 'true';
-  
-  // Set dashboard state
-  if (isDashboardHidden) {
-    dashboard.style.maxHeight = '0';
-    dashboard.style.padding = '0 12px';
-    dashboard.style.opacity = '0';
-    dashboard.style.transform = 'translateY(-10px)';
-    toggleBtn.innerHTML = '📊';
-  } else {
-    dashboard.style.maxHeight = '500px';
-    toggleBtn.innerHTML = '❌';
-  }
-  
-  // Set button visibility (default is hidden)
-  if (isButtonVisible) {
-    toggleBtn.style.display = 'flex';
-    toggleBtn.style.opacity = '1';
-    toggleBtn.style.pointerEvents = 'auto';
-  }
-  
-  container.appendChild(toggleBtn);
-  container.appendChild(dashboard);
-  
-  // Toggle functionality
-  toggleBtn.addEventListener('click', () => {
-    const isCurrentlyHidden = dashboard.style.maxHeight === '0px';
-    
-    if (isCurrentlyHidden) {
-      // Show dashboard
-      dashboard.style.maxHeight = '500px';
-      dashboard.style.padding = '12px';
-      dashboard.style.opacity = '0.8';
-      dashboard.style.transform = 'translateY(0)';
-      toggleBtn.innerHTML = '❌';
-      toggleBtn.style.opacity = '1';
-      localStorage.setItem('perfDashboardHidden', 'false');
-    } else {
-      // Hide dashboard
-      dashboard.style.maxHeight = '0';
-      dashboard.style.padding = '0 12px';
-      dashboard.style.opacity = '0';
-      dashboard.style.transform = 'translateY(-10px)';
-      toggleBtn.innerHTML = '📊';
-      toggleBtn.style.opacity = '0.6';
-      localStorage.setItem('perfDashboardHidden', 'true');
-    }
-  });
-  
-  // Hover effects
-  toggleBtn.addEventListener('mouseenter', () => {
-    toggleBtn.style.transform = 'scale(1.1)';
-    toggleBtn.style.background = 'rgba(108, 92, 231, 0.8)';
-  });
-  
-  toggleBtn.addEventListener('mouseleave', () => {
-    toggleBtn.style.transform = 'scale(1)';
-    toggleBtn.style.background = 'rgba(0,0,0,0.8)';
-  });
-  
-  dashboard.addEventListener('mouseenter', () => {
-    if (dashboard.style.maxHeight !== '0px') {
-      dashboard.style.opacity = '1';
-    }
-  });
-  
-  dashboard.addEventListener('mouseleave', () => {
-    if (dashboard.style.maxHeight !== '0px') {
-      dashboard.style.opacity = '0.8';
-    }
-  });
-  
-  document.body.appendChild(container);
-  
-  function updateDashboard() {
-    // Only update if dashboard is visible (performance optimization)
-    if (dashboard.style.maxHeight === '0px') return;
-    
-    const apiStats = apiCache.getStats();
-    const imageStats = performanceMonitor?.getStats() || {};
-    const memoryInfo = performance.memory ? {
-      used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
-      total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024),
-      limit: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024)
-    } : null;
-    
-    let content = `
-      <div style="font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
-        <span>🚀 Performance Monitor</span>
-        <span style="font-size: 10px; opacity: 0.6;">Live</span>
-      </div>
-      
-      <div style="margin-bottom: 6px;">
-        <strong>API Cache:</strong><br>
-        Entries: ${apiStats.entries}<br>
-        In Flight: ${apiStats.inFlight}<br>
-        Memory: ${apiStats.memoryUsage}
-      </div>
-      
-      <div style="margin-bottom: 6px;">
-        <strong>Images:</strong><br>
-        Total: ${imageStats.totalImages || 0}<br>
-        Loaded: ${imageStats.loadedImages || 0}<br>
-        Failed: ${imageStats.failedImages || 0}<br>
-        Avg Load: ${Math.round(imageStats.averageLoadTime || 0)}ms
-      </div>
-    `;
-    
-    if (memoryInfo) {
-      const usagePercent = Math.round((memoryInfo.used / memoryInfo.limit) * 100);
-      const memoryColor = usagePercent > 80 ? '#ff6b6b' : usagePercent > 60 ? '#ffa500' : '#4caf50';
-      content += `
-        <div style="margin-bottom: 6px;">
-          <strong>Memory:</strong><br>
-          Used: ${memoryInfo.used}MB (<span style="color: ${memoryColor}">${usagePercent}%</span>)<br>
-          Limit: ${memoryInfo.limit}MB
-        </div>
-      `;
-    }
-    
-    if (imageLoader?.cdnPerformance) {
-      content += `
-        <div style="margin-bottom: 6px;">
-          <strong>CDN Performance:</strong><br>
-      `;
-      
-      Array.from(imageLoader.cdnPerformance.entries())
-        .sort((a, b) => a[1].avgTime - b[1].avgTime)
-        .slice(0, 3)
-        .forEach(([name, data]) => {
-          const speed = data.avgTime < 500 ? '🟢' : data.avgTime < 1000 ? '🟡' : '🔴';
-          content += `${speed} ${name}: ${Math.round(data.avgTime)}ms<br>`;
-        });
-      
-      content += `</div>`;
-    }
-    
-    content += `
-      <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #444; font-size: 10px; opacity: 0.7;">
-        <div style="margin-bottom: 2px;">⌨️ Ctrl+Shift+P: Clear caches</div>
-        <div style="margin-bottom: 2px;">⌨️ Ctrl+Shift+D: Toggle dashboard</div>
-        <div style="margin-bottom: 2px;">⌨️ Ctrl+Shift+B: Show/hide button</div>
-        <div style="font-size: 9px; opacity: 0.5;">Performance Monitor - Stealth Mode</div>
-      </div>
-    `;
-    
-    dashboard.innerHTML = content;
-  }
-  
-  // Update dashboard every 2 seconds
-  setInterval(updateDashboard, 2000);
-  updateDashboard(); // Initial update
-  
-  // Add keyboard shortcuts
+  // Add keyboard shortcut to clear caches only
   document.addEventListener('keydown', (e) => {
     // Ctrl+Shift+P: Clear caches
     if (e.ctrlKey && e.shiftKey && e.key === 'P') {
@@ -2792,7 +2583,7 @@ function initPerformanceDashboard() {
       apiCache.clear();
       if (imageLoader?.cache) imageLoader.cache.clear();
       
-      // Show notification
+      // Show simple notification
       const notification = createEl('div', '');
       notification.style.cssText = `
         position: fixed;
@@ -2805,95 +2596,33 @@ function initPerformanceDashboard() {
         border-radius: 8px;
         z-index: 10001;
         font-weight: 500;
-        animation: slideIn 0.3s ease;
+        font-size: 14px;
+        animation: fadeInOut 2s ease forwards;
       `;
       notification.textContent = '🧹 Caches cleared!';
       document.body.appendChild(notification);
       
-      setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease forwards';
-        setTimeout(() => notification.remove(), 300);
-      }, 1700);
-    }
-    
-    // Ctrl+Shift+D: Toggle dashboard
-    if (e.ctrlKey && e.shiftKey && e.key === 'D') {
-      e.preventDefault();
-      toggleBtn.click();
-      
-      // Brief highlight animation (works even when hidden)
-      toggleBtn.style.boxShadow = '0 0 20px rgba(108, 92, 231, 0.8)';
-      setTimeout(() => {
-        toggleBtn.style.boxShadow = 'none';
-      }, 300);
-    }
-    
-    // Ctrl+Shift+B: Show/hide toggle button
-    if (e.ctrlKey && e.shiftKey && e.key === 'B') {
-      e.preventDefault();
-      const isHidden = toggleBtn.style.display === 'none';
-      
-      if (isHidden) {
-        // Show button
-        toggleBtn.style.display = 'flex';
-        toggleBtn.style.opacity = '1';
-        toggleBtn.style.pointerEvents = 'auto';
-        localStorage.setItem('perfButtonVisible', 'true');
-        
-        // Brief pulse animation
-        toggleBtn.style.animation = 'pulse 0.6s ease';
-        setTimeout(() => {
-          toggleBtn.style.animation = '';
-        }, 600);
-      } else {
-        // Hide button
-        toggleBtn.style.display = 'none';
-        toggleBtn.style.opacity = '0';
-        toggleBtn.style.pointerEvents = 'none';
-        localStorage.setItem('perfButtonVisible', 'false');
-      }
+      setTimeout(() => notification.remove(), 2000);
     }
   });
   
-  // Add CSS animations for notifications and button effects
-  if (!document.getElementById('perf-animations')) {
+  // Add simple CSS animation for notification
+  if (!document.getElementById('cache-clear-animation')) {
     const style = document.createElement('style');
-    style.id = 'perf-animations';
+    style.id = 'cache-clear-animation';
     style.textContent = `
-      @keyframes slideIn {
-        from {
-          opacity: 0;
-          transform: translate(-50%, -50%) scale(0.8);
-        }
-        to {
-          opacity: 1;
-          transform: translate(-50%, -50%) scale(1);
-        }
-      }
-      
-      @keyframes slideOut {
-        from {
-          opacity: 1;
-          transform: translate(-50%, -50%) scale(1);
-        }
-        to {
-          opacity: 0;
-          transform: translate(-50%, -50%) scale(0.8);
-        }
-      }
-      
-      @keyframes pulse {
+      @keyframes fadeInOut {
         0% {
-          transform: scale(1);
-          box-shadow: 0 0 0 0 rgba(108, 92, 231, 0.7);
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.8);
         }
-        50% {
-          transform: scale(1.1);
-          box-shadow: 0 0 0 10px rgba(108, 92, 231, 0);
+        20%, 80% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
         }
         100% {
-          transform: scale(1);
-          box-shadow: 0 0 0 0 rgba(108, 92, 231, 0);
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.8);
         }
       }
     `;
