@@ -14,41 +14,170 @@ function buildUrl(path, params = {}) {
   return url.toString();
 }
 
-// Simple cache for API responses
-const apiCache = new Map();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-async function requestJson(url) {
-  // Check cache first
-  const cached = apiCache.get(url);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+// Advanced LRU Cache with multiple levels
+class AdvancedAPICache {
+  constructor() {
+    this.cache = new Map();
+    this.requestsInFlight = new Map(); // Prevent duplicate requests
+    this.priorities = new Map(); // Track access frequency
+    this.maxSize = 100; // Increased cache size
+    
+    // Different cache durations for different types
+    this.cacheDurations = {
+      'movie-detail': 15 * 60 * 1000,   // 15 min for movie details
+      'movie-list': 5 * 60 * 1000,      // 5 min for movie lists  
+      'categories': 60 * 60 * 1000,     // 1 hour for categories
+      'search': 2 * 60 * 1000,          // 2 min for search results
+      'default': 5 * 60 * 1000          // 5 min default
+    };
+  }
+  
+  getCacheType(url) {
+    if (url.includes('/phim/') && !url.includes('danh-sach')) return 'movie-detail';
+    if (url.includes('/the-loai') || url.includes('/quoc-gia')) return 'categories';
+    if (url.includes('tim-kiem')) return 'search';
+    if (url.includes('danh-sach')) return 'movie-list';
+    return 'default';
+  }
+  
+  getCacheDuration(url) {
+    return this.cacheDurations[this.getCacheType(url)];
+  }
+  
+  get(url) {
+    const cached = this.cache.get(url);
+    if (!cached) return null;
+    
+    const duration = this.getCacheDuration(url);
+    if (Date.now() - cached.timestamp > duration) {
+      this.cache.delete(url);
+      this.priorities.delete(url);
+      return null;
+    }
+    
+    // Update access frequency for LRU
+    this.priorities.set(url, Date.now());
     return cached.data;
   }
   
-  const res = await fetch(url, { 
-    method: 'GET', 
-    mode: 'cors', 
-    credentials: 'omit',
-    headers: { 'Accept': 'application/json' }
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  set(url, data) {
+    // Implement LRU eviction if cache is full
+    if (this.cache.size >= this.maxSize) {
+      this.evictLRU();
+    }
+    
+    this.cache.set(url, { 
+      data, 
+      timestamp: Date.now(),
+      size: JSON.stringify(data).length // Track memory usage
+    });
+    this.priorities.set(url, Date.now());
+  }
   
-  const data = await res.json();
+  evictLRU() {
+    let oldest = Date.now();
+    let oldestKey = null;
+    
+    for (const [key, time] of this.priorities.entries()) {
+      if (time < oldest) {
+        oldest = time;
+        oldestKey = key;
+      }
+    }
+    
+    if (oldestKey) {
+      this.cache.delete(oldestKey);
+      this.priorities.delete(oldestKey);
+    }
+  }
   
-  // Cache the response
-  apiCache.set(url, { data, timestamp: Date.now() });
+  clear() {
+    this.cache.clear();
+    this.priorities.clear();
+    this.requestsInFlight.clear();
+  }
   
-  // Clean old cache entries periodically
-  if (apiCache.size > 50) {
-    const now = Date.now();
-    for (const [key, value] of apiCache.entries()) {
-      if (now - value.timestamp > CACHE_DURATION) {
-        apiCache.delete(key);
+  getStats() {
+    const totalSize = Array.from(this.cache.values())
+      .reduce((sum, item) => sum + (item.size || 0), 0);
+    
+    return {
+      entries: this.cache.size,
+      inFlight: this.requestsInFlight.size,
+      memoryUsage: `${Math.round(totalSize / 1024)} KB`,
+      hitRate: this.hits / (this.hits + this.misses) || 0
+    };
+  }
+}
+
+const apiCache = new AdvancedAPICache();
+
+// Request deduplication and optimization
+async function requestJson(url) {
+  // Check cache first
+  const cached = apiCache.get(url);
+  if (cached) {
+    return cached;
+  }
+  
+  // Check if request is already in flight
+  if (apiCache.requestsInFlight.has(url)) {
+    return apiCache.requestsInFlight.get(url);
+  }
+  
+  // Create new request with timeout and retries
+  const requestPromise = fetchWithRetries(url, 3);
+  apiCache.requestsInFlight.set(url, requestPromise);
+  
+  try {
+    const data = await requestPromise;
+    apiCache.set(url, data);
+    return data;
+  } finally {
+    apiCache.requestsInFlight.delete(url);
+  }
+}
+
+// Enhanced fetch with retries and timeout
+async function fetchWithRetries(url, maxRetries = 3, timeout = 10000) {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
+      const res = await fetch(url, { 
+        method: 'GET', 
+        mode: 'cors', 
+        credentials: 'omit',
+        headers: { 
+          'Accept': 'application/json',
+          'Accept-Encoding': 'gzip, deflate, br'
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      
+      return await res.json();
+      
+    } catch (error) {
+      lastError = error;
+      console.warn(`🔄 Request attempt ${attempt}/${maxRetries} failed:`, error.message);
+      
+      if (attempt < maxRetries) {
+        // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
       }
     }
   }
   
-  return data;
+  throw new Error(`All ${maxRetries} requests failed. Last error: ${lastError.message}`);
 }
 
 function normalizeImageUrl(u) {
@@ -129,37 +258,114 @@ class ProgressiveImageLoader {
     return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
   }
   
-  // Generate optimized image URL with ultra-fast CDNs
+  // Generate optimized image URL with smart CDN selection
   getOptimizedUrl(originalUrl, options = {}) {
     if (!originalUrl) return '';
     
-    const { width = 300, quality = 75, format = 'auto' } = options; // Lower quality for speed
+    const { width = 300, quality = this.getAdaptiveQuality(), format = 'auto' } = options;
     const baseUrl = normalizeImageUrl(originalUrl);
     
     // Use WebP if supported and format is auto
     const useWebP = format === 'auto' && this.supportsWebP();
     const finalFormat = useWebP ? 'webp' : 'jpg';
     
-    // Ultra-fast CDN options (sorted by speed)
-    const cdnOptions = [
-      // Cloudflare-based CDNs (fastest)
-      `https://wsrv.nl/?url=${encodeURIComponent(baseUrl)}&w=${width}&q=${quality}&output=${finalFormat}&af&il`,
-      `https://images.weserv.nl/?url=${encodeURIComponent(baseUrl)}&w=${width}&q=${quality}&output=${finalFormat}&af&il`,
-      
-      // Photon CDN (WordPress.com)
-      `https://i0.wp.com/${baseUrl.replace(/^https?:\/\//, '')}?w=${width}&quality=${quality}&strip=all`,
-      
-      // ImageProxy CDN
-      `https://imageproxy.ifunny.co/crop:x-20,resize:${width}x,quality:${quality}/${baseUrl}`,
-      
-      // Direct with cache-busting
-      `${baseUrl}?w=${width}&q=${quality}&t=${Date.now()}`,
-      
-      // Original as final fallback
-      baseUrl
-    ];
+    // Smart CDN selection based on performance history
+    const cdnOptions = this.getCDNsByPerformance(baseUrl, width, quality, finalFormat);
     
     return cdnOptions;
+  }
+  
+  // Adaptive quality based on network and device
+  getAdaptiveQuality() {
+    let quality = 75; // Default
+    
+    // Adjust based on network speed
+    if (this.networkType === 'slow-2g' || this.networkType === '2g') {
+      quality = 50;
+    } else if (this.networkType === '3g') {
+      quality = 60;
+    } else if (this.networkType === '4g') {
+      quality = 80;
+    }
+    
+    // Adjust based on device pixel ratio
+    if (window.devicePixelRatio > 2) {
+      quality = Math.min(quality + 10, 90);
+    }
+    
+    // Adjust based on viewport size (mobile vs desktop)
+    if (window.innerWidth < 768) {
+      quality = Math.max(quality - 10, 40);
+    }
+    
+    return quality;
+  }
+  
+  // Smart CDN ordering based on performance history
+  getCDNsByPerformance(baseUrl, width, quality, format) {
+    const encodedUrl = encodeURIComponent(baseUrl);
+    
+    // Track CDN performance (load times)
+    if (!this.cdnPerformance) {
+      this.cdnPerformance = new Map();
+    }
+    
+    const cdnConfigs = [
+      {
+        name: 'wsrv',
+        url: `https://wsrv.nl/?url=${encodedUrl}&w=${width}&q=${quality}&output=${format}&af&il`,
+        priority: this.cdnPerformance.get('wsrv')?.avgTime || 1000
+      },
+      {
+        name: 'weserv',
+        url: `https://images.weserv.nl/?url=${encodedUrl}&w=${width}&q=${quality}&output=${format}&af&il`,
+        priority: this.cdnPerformance.get('weserv')?.avgTime || 1200
+      },
+      {
+        name: 'photon',
+        url: `https://i0.wp.com/${baseUrl.replace(/^https?:\/\//, '')}?w=${width}&quality=${quality}&strip=all`,
+        priority: this.cdnPerformance.get('photon')?.avgTime || 1500
+      },
+      {
+        name: 'direct',
+        url: `${baseUrl}?w=${width}&q=${quality}&t=${Date.now()}`,
+        priority: this.cdnPerformance.get('direct')?.avgTime || 2000
+      },
+      {
+        name: 'original',
+        url: baseUrl,
+        priority: 3000
+      }
+    ];
+    
+    // Sort by performance (faster CDNs first)
+    cdnConfigs.sort((a, b) => a.priority - b.priority);
+    
+    return cdnConfigs.map(config => config.url);
+  }
+  
+  // Track CDN performance for smart selection
+  recordCDNPerformance(url, loadTime) {
+    if (!this.cdnPerformance) return;
+    
+    let cdnName = 'original';
+    if (url.includes('wsrv.nl')) cdnName = 'wsrv';
+    else if (url.includes('weserv.nl')) cdnName = 'weserv';
+    else if (url.includes('i0.wp.com')) cdnName = 'photon';
+    else if (url.includes('?w=')) cdnName = 'direct';
+    
+    const current = this.cdnPerformance.get(cdnName) || { times: [], avgTime: 1000 };
+    current.times.push(loadTime);
+    
+    // Keep only last 10 measurements
+    if (current.times.length > 10) {
+      current.times = current.times.slice(-10);
+    }
+    
+    // Calculate moving average
+    current.avgTime = current.times.reduce((sum, time) => sum + time, 0) / current.times.length;
+    
+    this.cdnPerformance.set(cdnName, current);
   }
   
   // Create skeleton placeholder
@@ -223,27 +429,55 @@ class ProgressiveImageLoader {
     imgElement.dataset.loaded = 'true';
   }
   
-  // Race multiple CDNs concurrently
+  // Race multiple CDNs concurrently with performance tracking
   async raceLoadImages(urls) {
     return new Promise((resolve, reject) => {
       let completed = 0;
       let hasResolved = false;
+      const startTime = performance.now();
       
+      // Try URLs with intelligent staggering
       urls.forEach((url, index) => {
-        this.tryLoadImage(url)
-          .then(result => {
-            if (!hasResolved) {
-              hasResolved = true;
-              resolve(result);
-            }
-          })
-          .catch(() => {
-            completed++;
-            if (completed === urls.length && !hasResolved) {
-              reject(new Error('All CDNs failed'));
-            }
-          });
+        // Stagger requests to reduce server load and improve success rate
+        const delay = index * Math.min(50, 200 / urls.length);
+        
+        setTimeout(() => {
+          if (hasResolved) return; // Don't start if already resolved
+          
+          const imgStartTime = performance.now();
+          
+          this.tryLoadImage(url)
+            .then(result => {
+              if (!hasResolved) {
+                hasResolved = true;
+                const loadTime = performance.now() - imgStartTime;
+                
+                // Track CDN performance for future optimization
+                this.recordCDNPerformance(url, loadTime);
+                
+                resolve(result);
+              }
+            })
+            .catch((error) => {
+              const loadTime = performance.now() - imgStartTime;
+              // Penalty for failed CDNs
+              this.recordCDNPerformance(url, loadTime * 3);
+              
+              completed++;
+              if (completed === urls.length && !hasResolved) {
+                reject(new Error(`All ${urls.length} CDNs failed`));
+              }
+            });
+        }, delay);
       });
+      
+      // Global timeout to prevent hanging
+      setTimeout(() => {
+        if (!hasResolved) {
+          hasResolved = true;
+          reject(new Error('Image loading timeout after 12 seconds'));
+        }
+      }, 12000);
     });
   }
   
@@ -868,79 +1102,363 @@ function movieCard(movie) {
   return card;
 }
 
-function listGrid(movies, className = '') {
+// High-performance virtual grid with intelligent rendering
+class VirtualGrid {
+  constructor(container, itemHeight = 260, itemsPerRow = 5) {
+    this.container = container;
+    this.itemHeight = itemHeight;
+    this.itemsPerRow = itemsPerRow;
+    this.items = [];
+    this.visibleItems = new Map();
+    this.renderBuffer = 5; // Extra rows to render above/below viewport
+    
+    this.setupContainer();
+    this.setupScrollListener();
+  }
+  
+  setupContainer() {
+    this.container.style.overflowY = 'auto';
+    this.container.style.position = 'relative';
+    
+    this.viewport = document.createElement('div');
+    this.viewport.style.position = 'absolute';
+    this.viewport.style.top = '0';
+    this.viewport.style.left = '0';
+    this.viewport.style.right = '0';
+    this.container.appendChild(this.viewport);
+  }
+  
+  setupScrollListener() {
+    let scrollTimeout;
+    this.container.addEventListener('scroll', () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => this.updateVisibleItems(), 16); // 60fps
+    }, { passive: true });
+  }
+  
+  setItems(items) {
+    this.items = items;
+    this.updateContainerHeight();
+    this.updateVisibleItems();
+  }
+  
+  updateContainerHeight() {
+    const rows = Math.ceil(this.items.length / this.itemsPerRow);
+    const totalHeight = rows * this.itemHeight;
+    this.viewport.style.height = `${totalHeight}px`;
+  }
+  
+  updateVisibleItems() {
+    const scrollTop = this.container.scrollTop;
+    const containerHeight = this.container.clientHeight;
+    
+    const startRow = Math.max(0, Math.floor(scrollTop / this.itemHeight) - this.renderBuffer);
+    const endRow = Math.min(
+      Math.ceil(this.items.length / this.itemsPerRow),
+      Math.ceil((scrollTop + containerHeight) / this.itemHeight) + this.renderBuffer
+    );
+    
+    const startIndex = startRow * this.itemsPerRow;
+    const endIndex = Math.min(this.items.length, endRow * this.itemsPerRow);
+    
+    // Remove items that are no longer visible
+    this.visibleItems.forEach((element, index) => {
+      if (index < startIndex || index >= endIndex) {
+        element.remove();
+        this.visibleItems.delete(index);
+      }
+    });
+    
+    // Add newly visible items
+    for (let i = startIndex; i < endIndex; i++) {
+      if (!this.visibleItems.has(i) && this.items[i]) {
+        const element = movieCard(this.items[i]);
+        const row = Math.floor(i / this.itemsPerRow);
+        const col = i % this.itemsPerRow;
+        
+        element.style.position = 'absolute';
+        element.style.top = `${row * this.itemHeight}px`;
+        element.style.left = `${col * (100 / this.itemsPerRow)}%`;
+        element.style.width = `${100 / this.itemsPerRow}%`;
+        element.style.padding = '6px';
+        element.style.boxSizing = 'border-box';
+        
+        this.viewport.appendChild(element);
+        this.visibleItems.set(i, element);
+      }
+    }
+    
+    // Trigger image loading for visible items
+    requestAnimationFrame(() => {
+      imageLoader.batchLoadVisible();
+    });
+  }
+}
+
+// Enhanced grid function with optional virtual scrolling
+function listGrid(movies, className = '', enableVirtual = false) {
   const safe = Array.isArray(movies) ? movies : [];
+  
+  // Use virtual scrolling for large datasets
+  if (enableVirtual && safe.length > 50) {
+    const container = createEl('div', `grid ${className || ''}`);
+    container.style.height = '80vh'; // Fixed height for virtual scrolling
+    
+    const virtualGrid = new VirtualGrid(container);
+    virtualGrid.setItems(safe);
+    
+    return container;
+  }
+  
+  // Traditional grid for smaller datasets (optimized)
   const grid = createEl('div', 'grid');
   if (className) grid.className = className;
   
-  // Extract poster URLs for smart preloading (only first few)
-  const posterUrls = safe.slice(0, 4).map(m => m.poster_url || m.thumb_url).filter(Boolean);
+  // Smart preloading based on dataset size
+  const preloadCount = safe.length > 20 ? 6 : Math.min(safe.length, 4);
+  const posterUrls = safe.slice(0, preloadCount).map(m => m.poster_url || m.thumb_url).filter(Boolean);
   
-  // Conservative critical image preloading to avoid browser warnings
   if (posterUrls.length > 0) {
     imageLoader.preloadCritical(posterUrls);
   }
   
-  // Use DocumentFragment for better performance
-  const fragment = document.createDocumentFragment();
-  for (const item of safe) {
-    fragment.appendChild(movieCard(item));
-  }
-  grid.appendChild(fragment);
+  // Batch DOM updates for better performance
+  const batchSize = 10;
+  let currentBatch = 0;
   
-  // Immediate visible area detection after DOM is fully ready
-  requestAnimationFrame(() => {
-    setTimeout(() => {
-      try {
-        imageLoader.batchLoadVisible();
-      } catch (error) {
-        console.warn('🚨 Error in batch loading:', error);
-      }
-    }, 100);
-  });
+  function renderBatch() {
+    const start = currentBatch * batchSize;
+    const end = Math.min(start + batchSize, safe.length);
+    
+    if (start >= safe.length) return;
+    
+    const fragment = document.createDocumentFragment();
+    for (let i = start; i < end; i++) {
+      fragment.appendChild(movieCard(safe[i]));
+    }
+    grid.appendChild(fragment);
+    
+    currentBatch++;
+    
+    // Continue rendering in next frame if more items
+    if (end < safe.length) {
+      requestAnimationFrame(renderBatch);
+    } else {
+      // All items rendered, trigger image loading
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          try {
+            imageLoader.batchLoadVisible();
+          } catch (error) {
+            console.warn('🚨 Error in batch loading:', error);
+          }
+        }, 50);
+      });
+    }
+  }
+  
+  // Start batch rendering
+  renderBatch();
   
   return grid;
 }
 
-/* Direct API Layer - No proxy */
-const Api = {
+/* Enhanced API Layer with Prefetching */
+class APIManager {
+  constructor() {
+    this.prefetchQueue = new Set();
+    this.prefetchInProgress = new Set();
+    this.memoryMonitor = new MemoryMonitor();
+  }
+  
+  // Intelligent prefetching
+  async prefetch(url, priority = 'low') {
+    if (this.prefetchInProgress.has(url) || apiCache.get(url)) {
+      return; // Already prefetching or cached
+    }
+    
+    this.prefetchQueue.add({ url, priority, timestamp: Date.now() });
+    this.processPrefetchQueue();
+  }
+  
+  async processPrefetchQueue() {
+    if (this.prefetchInProgress.size >= 3) return; // Limit concurrent prefetches
+    
+    const sortedQueue = Array.from(this.prefetchQueue)
+      .sort((a, b) => {
+        // Priority: high > medium > low, then by timestamp
+        const priorityOrder = { high: 3, medium: 2, low: 1 };
+        return priorityOrder[b.priority] - priorityOrder[a.priority] || a.timestamp - b.timestamp;
+      });
+    
+    const next = sortedQueue[0];
+    if (!next) return;
+    
+    this.prefetchQueue.delete(next);
+    this.prefetchInProgress.add(next.url);
+    
+    try {
+      await requestJson(next.url);
+    } catch (error) {
+      // Prefetch failures are silent
+    } finally {
+      this.prefetchInProgress.delete(next.url);
+      // Continue processing queue
+      if (this.prefetchQueue.size > 0) {
+        setTimeout(() => this.processPrefetchQueue(), 100);
+      }
+    }
+  }
+  
+  // Smart next page prefetching
+  prefetchNextPage(currentPath, currentPage) {
+    const nextPage = currentPage + 1;
+    const url = buildUrl(currentPath, { page: nextPage });
+    this.prefetch(url, 'medium');
+  }
+  
+  // Related content prefetching
+  prefetchRelatedContent(movies) {
+    // Prefetch first few movie details
+    movies.slice(0, 3).forEach(movie => {
+      const url = buildUrl(`/phim/${movie.slug}`);
+      this.prefetch(url, 'low');
+    });
+  }
+  
   async getLatest(page = 1) {
     const url = buildUrl('/danh-sach/phim-moi-cap-nhat-v3', { page });
-    return requestJson(url);
-  },
+    const result = await requestJson(url);
+    
+    // Prefetch next page and related content
+    this.prefetchNextPage('/danh-sach/phim-moi-cap-nhat-v3', page);
+    if (result?.data?.items) {
+      this.prefetchRelatedContent(result.data.items);
+    }
+    
+    return result;
+  }
+  
   async getMovie(slug) {
     const url = buildUrl(`/phim/${slug}`);
     return requestJson(url);
-  },
+  }
+  
   async search({ keyword, page = 1, sort_field, sort_type, sort_lang, category, country, year, limit }) {
     const url = buildUrl('/v1/api/tim-kiem', { keyword, page, sort_field, sort_type, sort_lang, category, country, year, limit });
-    return requestJson(url);
-  },
+    const result = await requestJson(url);
+    
+    // Prefetch next search page
+    this.prefetchNextPage('/v1/api/tim-kiem', page);
+    
+    return result;
+  }
+  
   async listByType({ type_list, page = 1, sort_field, sort_type, sort_lang, category, country, year, limit = 24 }) {
     const url = buildUrl(`/v1/api/danh-sach/${type_list}`, { page, sort_field, sort_type, sort_lang, category, country, year, limit });
-    return requestJson(url);
-  },
+    const result = await requestJson(url);
+    
+    // Prefetch next page
+    this.prefetchNextPage(`/v1/api/danh-sach/${type_list}`, page);
+    
+    return result;
+  }
+  
   async getCategories() {
     const url = buildUrl('/the-loai');
     return requestJson(url);
-  },
+  }
+  
   async getCountries() {
     const url = buildUrl('/quoc-gia');
     return requestJson(url);
-  },
+  }
+  
   async listByCategory({ slug, page = 1, sort_field, sort_type, sort_lang, country, year, limit = 24 }) {
     const url = buildUrl(`/v1/api/the-loai/${slug}`, { page, sort_field, sort_type, sort_lang, country, year, limit });
-    return requestJson(url);
-  },
+    const result = await requestJson(url);
+    
+    // Prefetch next page
+    this.prefetchNextPage(`/v1/api/the-loai/${slug}`, page);
+    
+    return result;
+  }
+  
   async listByCountry({ slug, page = 1, sort_field, sort_type, sort_lang, category, year, limit = 24 }) {
     const url = buildUrl(`/v1/api/quoc-gia/${slug}`, { page, sort_field, sort_type, sort_lang, category, year, limit });
-    return requestJson(url);
-  },
+    const result = await requestJson(url);
+    
+    this.prefetchNextPage(`/v1/api/quoc-gia/${slug}`, page);
+    
+    return result;
+  }
+  
   async listByYear({ year, page = 1, sort_field, sort_type, sort_lang, category, country, limit = 24 }) {
     const url = buildUrl(`/v1/api/nam/${year}`, { page, sort_field, sort_type, sort_lang, category, country, limit });
-    return requestJson(url);
+    const result = await requestJson(url);
+    
+    this.prefetchNextPage(`/v1/api/nam/${year}`, page);
+    
+    return result;
   }
-};
+}
+
+// Memory monitoring for performance optimization
+class MemoryMonitor {
+  constructor() {
+    this.startMonitoring();
+  }
+  
+  startMonitoring() {
+    // Monitor memory usage every 30 seconds
+    setInterval(() => {
+      this.checkMemoryUsage();
+    }, 30000);
+  }
+  
+  checkMemoryUsage() {
+    if ('memory' in performance) {
+      const memory = performance.memory;
+      const usagePercent = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
+      
+      // If memory usage > 80%, trigger cleanup
+      if (usagePercent > 80) {
+        console.warn('🧠 High memory usage detected:', Math.round(usagePercent) + '%');
+        this.triggerCleanup();
+      }
+    }
+  }
+  
+  triggerCleanup() {
+    // Clear old cache entries more aggressively
+    const now = Date.now();
+    const entries = Array.from(apiCache.cache.entries());
+    
+    entries.forEach(([url, data]) => {
+      const cacheType = apiCache.getCacheType(url);
+      const maxAge = cacheType === 'movie-list' ? 2 * 60 * 1000 : 5 * 60 * 1000; // Shorter for cleanup
+      
+      if (now - data.timestamp > maxAge) {
+        apiCache.cache.delete(url);
+        apiCache.priorities.delete(url);
+      }
+    });
+    
+    // Clear image cache
+    if (imageLoader && imageLoader.cache) {
+      imageLoader.cache.clear();
+    }
+    
+    // Force garbage collection if available
+    if ('gc' in window && typeof window.gc === 'function') {
+      window.gc();
+    }
+    
+    console.log('🧹 Memory cleanup completed');
+  }
+}
+
+const Api = new APIManager();
 
 /* Routing */
 function parseHash() {
@@ -2046,7 +2564,289 @@ async function router() {
   
   // Khởi động notification system
   initNotificationSystem();
+  
+  // Initialize performance monitoring
+  initPerformanceDashboard();
 })();
+
+// Performance Dashboard (Debug Mode)
+function initPerformanceDashboard() {
+  // Only enable in development or when ?debug=1
+  const urlParams = new URLSearchParams(window.location.search);
+  const isDebug = urlParams.has('debug') || !window.location.hostname.includes('github.io');
+  
+  if (!isDebug) return;
+  
+  // Main dashboard container
+  const container = createEl('div', 'perf-container');
+  container.style.cssText = `
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 10000;
+    font-family: monospace;
+  `;
+  
+  // Toggle button (always visible)
+  const toggleBtn = createEl('button', 'perf-toggle');
+  toggleBtn.innerHTML = '📊';
+  toggleBtn.title = 'Toggle Performance Monitor';
+  toggleBtn.style.cssText = `
+    background: rgba(0,0,0,0.8);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(10px);
+    margin-bottom: 8px;
+    margin-left: auto;
+  `;
+  
+  // Dashboard panel
+  const dashboard = createEl('div', 'perf-dashboard');
+  dashboard.style.cssText = `
+    background: rgba(0,0,0,0.9);
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    line-height: 1.4;
+    min-width: 200px;
+    max-width: 300px;
+    opacity: 0.8;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    transform: translateY(0);
+    overflow: hidden;
+  `;
+  
+  // Check saved state
+  const isHidden = localStorage.getItem('perfDashboardHidden') === 'true';
+  if (isHidden) {
+    dashboard.style.maxHeight = '0';
+    dashboard.style.padding = '0 12px';
+    dashboard.style.opacity = '0';
+    dashboard.style.transform = 'translateY(-10px)';
+    toggleBtn.innerHTML = '📊';
+    toggleBtn.style.opacity = '0.6';
+  } else {
+    dashboard.style.maxHeight = '500px';
+    toggleBtn.innerHTML = '❌';
+  }
+  
+  container.appendChild(toggleBtn);
+  container.appendChild(dashboard);
+  
+  // Toggle functionality
+  toggleBtn.addEventListener('click', () => {
+    const isCurrentlyHidden = dashboard.style.maxHeight === '0px';
+    
+    if (isCurrentlyHidden) {
+      // Show dashboard
+      dashboard.style.maxHeight = '500px';
+      dashboard.style.padding = '12px';
+      dashboard.style.opacity = '0.8';
+      dashboard.style.transform = 'translateY(0)';
+      toggleBtn.innerHTML = '❌';
+      toggleBtn.style.opacity = '1';
+      localStorage.setItem('perfDashboardHidden', 'false');
+    } else {
+      // Hide dashboard
+      dashboard.style.maxHeight = '0';
+      dashboard.style.padding = '0 12px';
+      dashboard.style.opacity = '0';
+      dashboard.style.transform = 'translateY(-10px)';
+      toggleBtn.innerHTML = '📊';
+      toggleBtn.style.opacity = '0.6';
+      localStorage.setItem('perfDashboardHidden', 'true');
+    }
+  });
+  
+  // Hover effects
+  toggleBtn.addEventListener('mouseenter', () => {
+    toggleBtn.style.transform = 'scale(1.1)';
+    toggleBtn.style.background = 'rgba(108, 92, 231, 0.8)';
+  });
+  
+  toggleBtn.addEventListener('mouseleave', () => {
+    toggleBtn.style.transform = 'scale(1)';
+    toggleBtn.style.background = 'rgba(0,0,0,0.8)';
+  });
+  
+  dashboard.addEventListener('mouseenter', () => {
+    if (dashboard.style.maxHeight !== '0px') {
+      dashboard.style.opacity = '1';
+    }
+  });
+  
+  dashboard.addEventListener('mouseleave', () => {
+    if (dashboard.style.maxHeight !== '0px') {
+      dashboard.style.opacity = '0.8';
+    }
+  });
+  
+  document.body.appendChild(container);
+  
+  function updateDashboard() {
+    // Only update if dashboard is visible (performance optimization)
+    if (dashboard.style.maxHeight === '0px') return;
+    
+    const apiStats = apiCache.getStats();
+    const imageStats = performanceMonitor?.getStats() || {};
+    const memoryInfo = performance.memory ? {
+      used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
+      total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024),
+      limit: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024)
+    } : null;
+    
+    let content = `
+      <div style="font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+        <span>🚀 Performance Monitor</span>
+        <span style="font-size: 10px; opacity: 0.6;">Live</span>
+      </div>
+      
+      <div style="margin-bottom: 6px;">
+        <strong>API Cache:</strong><br>
+        Entries: ${apiStats.entries}<br>
+        In Flight: ${apiStats.inFlight}<br>
+        Memory: ${apiStats.memoryUsage}
+      </div>
+      
+      <div style="margin-bottom: 6px;">
+        <strong>Images:</strong><br>
+        Total: ${imageStats.totalImages || 0}<br>
+        Loaded: ${imageStats.loadedImages || 0}<br>
+        Failed: ${imageStats.failedImages || 0}<br>
+        Avg Load: ${Math.round(imageStats.averageLoadTime || 0)}ms
+      </div>
+    `;
+    
+    if (memoryInfo) {
+      const usagePercent = Math.round((memoryInfo.used / memoryInfo.limit) * 100);
+      const memoryColor = usagePercent > 80 ? '#ff6b6b' : usagePercent > 60 ? '#ffa500' : '#4caf50';
+      content += `
+        <div style="margin-bottom: 6px;">
+          <strong>Memory:</strong><br>
+          Used: ${memoryInfo.used}MB (<span style="color: ${memoryColor}">${usagePercent}%</span>)<br>
+          Limit: ${memoryInfo.limit}MB
+        </div>
+      `;
+    }
+    
+    if (imageLoader?.cdnPerformance) {
+      content += `
+        <div style="margin-bottom: 6px;">
+          <strong>CDN Performance:</strong><br>
+      `;
+      
+      Array.from(imageLoader.cdnPerformance.entries())
+        .sort((a, b) => a[1].avgTime - b[1].avgTime)
+        .slice(0, 3)
+        .forEach(([name, data]) => {
+          const speed = data.avgTime < 500 ? '🟢' : data.avgTime < 1000 ? '🟡' : '🔴';
+          content += `${speed} ${name}: ${Math.round(data.avgTime)}ms<br>`;
+        });
+      
+      content += `</div>`;
+    }
+    
+    content += `
+      <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #444; font-size: 10px; opacity: 0.7;">
+        <div style="margin-bottom: 2px;">⌨️ Ctrl+Shift+P: Clear caches</div>
+        <div style="margin-bottom: 2px;">⌨️ Ctrl+Shift+D: Toggle dashboard</div>
+        <div>🎯 Click 📊 button to toggle</div>
+      </div>
+    `;
+    
+    dashboard.innerHTML = content;
+  }
+  
+  // Update dashboard every 2 seconds
+  setInterval(updateDashboard, 2000);
+  updateDashboard(); // Initial update
+  
+  // Add keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Ctrl+Shift+P: Clear caches
+    if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+      e.preventDefault();
+      apiCache.clear();
+      if (imageLoader?.cache) imageLoader.cache.clear();
+      
+      // Show notification
+      const notification = createEl('div', '');
+      notification.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--primary);
+        color: white;
+        padding: 16px 24px;
+        border-radius: 8px;
+        z-index: 10001;
+        font-weight: 500;
+        animation: slideIn 0.3s ease;
+      `;
+      notification.textContent = '🧹 Caches cleared!';
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease forwards';
+        setTimeout(() => notification.remove(), 300);
+      }, 1700);
+    }
+    
+    // Ctrl+Shift+D: Toggle dashboard
+    if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+      e.preventDefault();
+      toggleBtn.click();
+      
+      // Brief highlight animation
+      toggleBtn.style.boxShadow = '0 0 20px rgba(108, 92, 231, 0.8)';
+      setTimeout(() => {
+        toggleBtn.style.boxShadow = 'none';
+      }, 300);
+    }
+  });
+  
+  // Add CSS animations for notifications
+  if (!document.getElementById('perf-animations')) {
+    const style = document.createElement('style');
+    style.id = 'perf-animations';
+    style.textContent = `
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.8);
+        }
+        to {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+      
+      @keyframes slideOut {
+        from {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+        to {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.8);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
 
 // Notification System
 function initNotificationSystem() {

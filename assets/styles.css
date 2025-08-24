@@ -1234,4 +1234,115 @@ html {
   .app {
     animation: none;
   }
+}
+
+/* Performance Optimizations */
+.grid {
+  /* Enable hardware acceleration */
+  transform: translateZ(0);
+  will-change: auto;
+  
+  /* Optimize rendering */
+  contain: layout style;
+  
+  /* Improve scroll performance */
+  overflow-anchor: none;
+}
+
+.card {
+  /* Optimize individual cards */
+  contain: layout style;
+  transform: translateZ(0);
+  will-change: transform, opacity;
+}
+
+.card__img {
+  /* Optimize image rendering */
+  contain: layout;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  
+  /* Better memory management */
+  content-visibility: auto;
+  contain-intrinsic-size: 300px 400px;
+}
+
+/* Virtual scrolling specific styles */
+.virtual-grid {
+  contain: strict;
+  overflow: auto;
+}
+
+.virtual-grid .viewport {
+  contain: layout style;
+  will-change: height;
+}
+
+.virtual-grid .card {
+  position: absolute !important;
+  contain: layout style paint;
+}
+
+/* Optimize animations for performance */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes shimmer-loading {
+  0% {
+    transform: translate3d(-100%, 0, 0);
+  }
+  100% {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
+/* Reduce paint complexity */
+.loading__shimmer {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Memory efficient gradients */
+.card__img-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #333 0%, #222 100%);
+  z-index: -1;
+}
+
+/* Performance-first mobile optimizations */
+@media (max-width: 768px) {
+  .grid {
+    /* Reduce complexity on mobile */
+    contain: layout;
+    transform: none;
+  }
+  
+  .card {
+    will-change: auto;
+    transform: none;
+  }
+  
+  .card:hover {
+    transform: none;
+  }
+  
+  /* Disable expensive effects on mobile */
+  .card__img {
+    transition: none;
+    image-rendering: auto;
+  }
+  
+  .loading__shimmer {
+    animation-duration: 2s;
+  }
 } 
