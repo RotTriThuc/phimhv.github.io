@@ -1,49 +1,73 @@
 {
-  "lastUpdate": "2025-08-24T11:19:02.774Z",
-  "totalMovies": 24009,
+  "lastUpdate": "2025-08-25T08:01:57.786Z",
+  "totalMovies": 24018,
   "stats": {
-    "newMovies": 1,
-    "newEpisodes": 21,
-    "updatedMovies": 8
+    "newMovies": 9,
+    "newEpisodes": 35,
+    "updatedMovies": 17
   },
   "recentMovies": [
     {
-      "name": "Mười Hai Con Giáp",
-      "slug": "muoi-hai-con-giap",
+      "name": "Hữu Yểu",
+      "slug": "huu-yeu-2025",
       "year": 2025,
-      "added": "2025-08-24T11:19:02.682Z"
+      "added": "2025-08-25T08:01:57.697Z"
+    },
+    {
+      "name": "Bắt Tướng Quân Về Làm Áp Trại Phu Quân",
+      "slug": "bat-tuong-quan-ve-lam-ap-trai-phu-quan",
+      "year": 2025,
+      "added": "2025-08-25T08:01:57.697Z"
+    },
+    {
+      "name": "Hầu Tửu Quyền",
+      "slug": "hau-tuu-quyen",
+      "year": 2003,
+      "added": "2025-08-25T08:01:57.697Z"
+    },
+    {
+      "name": "Nụ hôn tinh nghịch 2: Tình yêu ở Tokyo",
+      "slug": "nu-hon-tinh-nghich-2-tinh-yeu-o-tokyo",
+      "year": 2015,
+      "added": "2025-08-25T08:01:57.697Z"
+    },
+    {
+      "name": "Nụ hôn tinh nghịch: Tình yêu ở Tokyo",
+      "slug": "nu-hon-tinh-nghich-tinh-yeu-o-tokyo",
+      "year": 2013,
+      "added": "2025-08-25T08:01:57.697Z"
     }
   ],
   "recentEpisodes": [
     {
-      "name": "Thám Tử Lừng Danh Conan",
-      "slug": "tham-tu-lung-danh-conan",
-      "episode": "Tập 1172",
-      "updated": "2025-08-24T18:12:41.000Z"
+      "name": "Trong Tông Môn Trừ Ta Ra Tất Cả Đều Là Gián Điệp",
+      "slug": "trong-tong-mon-tru-ta-ra-tat-ca-deu-la-gian-diep",
+      "episode": "Tập 96",
+      "updated": "2025-08-25T14:47:39.000Z"
     },
     {
-      "name": "Tại Hạ Anh Đài",
-      "slug": "tai-ha-anh-dai",
-      "episode": "Tập 9",
-      "updated": "2025-08-24T18:12:11.000Z"
+      "name": "Lục Địa Kiện Tiên",
+      "slug": "luc-dia-kien-tien",
+      "episode": "Tập 146",
+      "updated": "2025-08-25T14:47:02.000Z"
     },
     {
-      "name": "Song Nhẫn",
-      "slug": "song-nhan",
-      "episode": "Hoàn Tất (23/23)",
-      "updated": "2025-08-24T18:11:47.000Z"
+      "name": "Thôn Thiên Ký",
+      "slug": "thon-thien-ky",
+      "episode": "Tập 37",
+      "updated": "2025-08-25T14:45:50.000Z"
     },
     {
-      "name": "Quy Tắc Hắc Nguyệt Quang",
-      "slug": "quy-tac-hac-nguyet-quang",
-      "episode": "Tập 15",
-      "updated": "2025-08-24T18:11:13.000Z"
+      "name": "Tiểu Tiên Chi Dao (Xiao Xian Zhi Yao)",
+      "slug": "tieu-tien-chi-dao-xiao-xian-zhi-yao",
+      "episode": "Tập 40",
+      "updated": "2025-08-25T14:45:23.000Z"
     },
     {
-      "name": "Ớt Nhỏ Thập Niên 80",
-      "slug": "ot-nho-thap-nien-80",
-      "episode": "Tập 23",
-      "updated": "2025-08-24T18:10:44.000Z"
+      "name": "Vạn Kiếm Vương Tọa",
+      "slug": "van-kiem-vuong-toa",
+      "episode": "Tập 11",
+      "updated": "2025-08-25T14:44:57.000Z"
     }
   ]
 }
