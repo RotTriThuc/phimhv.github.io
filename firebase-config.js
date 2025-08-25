@@ -73,6 +73,9 @@ class MovieCommentSystem {
         }
       });
 
+      // Auto-detect and suggest sync if needed
+      this._checkAndSuggestSync();
+
       this.initialized = true;
       console.log('✅ Comment system ready!');
       return true;
@@ -127,10 +130,21 @@ class MovieCommentSystem {
     let userId = this._tryGetUserIdFromStorage();
 
     if (!userId) {
-      // Generate new user ID with better entropy
-      userId = this._generateUserId();
-      this._saveUserIdToAllStorage(userId);
-      console.log('🆔 Generated new cross-browser User ID:', userId);
+      // Try to get User ID from cross-environment sync
+      userId = this._tryGetCrossEnvironmentUserId();
+
+      if (userId) {
+        console.log('🔄 Found cross-environment User ID, using it:', userId.substring(0, 30) + '...');
+        this._saveUserIdToAllStorage(userId);
+      } else {
+        // Generate new user ID with better entropy
+        userId = this._generateUserId();
+        this._saveUserIdToAllStorage(userId);
+        console.log('🆔 Generated new cross-browser User ID:', userId.substring(0, 30) + '...');
+
+        // Save for cross-environment sync
+        this._saveCrossEnvironmentUserId(userId);
+      }
     }
 
     return userId;
@@ -267,6 +281,217 @@ class MovieCommentSystem {
     // This is synchronous fallback - in real implementation would be async
     // For now, return null and let it generate new ID
     return null;
+  }
+
+  // 🔄 CROSS-ENVIRONMENT USER ID SYNC
+  // Try to get User ID from cross-environment storage
+  _tryGetCrossEnvironmentUserId() {
+    try {
+      // Try to get from URL hash (temporary sync)
+      const urlUserId = this._getUserIdFromURL();
+      if (urlUserId) {
+        console.log('🔗 Found User ID in URL hash');
+        return urlUserId;
+      }
+
+      // Try to get from shared storage key (based on browser fingerprint)
+      const sharedUserId = this._getUserIdFromSharedStorage();
+      if (sharedUserId) {
+        console.log('🔗 Found User ID in shared storage');
+        return sharedUserId;
+      }
+
+      return null;
+    } catch (error) {
+      console.warn('⚠️ Cross-environment sync failed:', error);
+      return null;
+    }
+  }
+
+  // Save User ID for cross-environment access
+  _saveCrossEnvironmentUserId(userId) {
+    try {
+      // Save with shared key based on browser characteristics
+      const sharedKey = this._getSharedStorageKey();
+      localStorage.setItem(sharedKey, userId);
+
+      // Also save with timestamp for cleanup
+      const timestampKey = `${sharedKey}_timestamp`;
+      localStorage.setItem(timestampKey, Date.now().toString());
+
+      console.log('💾 Saved User ID for cross-environment sync');
+    } catch (error) {
+      console.warn('⚠️ Failed to save cross-environment User ID:', error);
+    }
+  }
+
+  // Get User ID from URL hash (for temporary sync)
+  _getUserIdFromURL() {
+    const hash = window.location.hash;
+    const match = hash.match(/[?&]userId=([^&]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  // Get User ID from shared storage
+  _getUserIdFromSharedStorage() {
+    const sharedKey = this._getSharedStorageKey();
+    const userId = localStorage.getItem(sharedKey);
+
+    if (userId) {
+      // Check if not too old (7 days)
+      const timestampKey = `${sharedKey}_timestamp`;
+      const timestamp = localStorage.getItem(timestampKey);
+      const age = Date.now() - parseInt(timestamp || '0');
+      const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+      if (age < maxAge) {
+        return userId;
+      } else {
+        // Clean up old data
+        localStorage.removeItem(sharedKey);
+        localStorage.removeItem(timestampKey);
+      }
+    }
+
+    return null;
+  }
+
+  // Generate shared storage key based on stable browser characteristics
+  _getSharedStorageKey() {
+    // Use stable characteristics that don't change between localhost/GitHub
+    const stableFingerprint = [
+      navigator.language,
+      screen.width + 'x' + screen.height,
+      new Date().getTimezoneOffset(),
+      navigator.platform || 'unknown'
+    ].join('|');
+
+    // Create hash
+    let hash = 0;
+    for (let i = 0; i < stableFingerprint.length; i++) {
+      const char = stableFingerprint.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+
+    return `movie_shared_user_${Math.abs(hash).toString(36)}`;
+  }
+
+  // Auto-detect and suggest sync if needed
+  async _checkAndSuggestSync() {
+    try {
+      // Check if we're on GitHub Pages and have no saved movies
+      const isGitHub = window.location.hostname.includes('github.io');
+      const isLocalhost = window.location.hostname.includes('localhost');
+
+      if (isGitHub) {
+        // Check if we have any saved movies
+        const movies = await this.getSavedMovies();
+        const progress = await this.getAllWatchProgress();
+
+        if (movies.length === 0 && progress.length === 0) {
+          console.log('🔄 GitHub Pages detected with no data - checking for sync options');
+
+          // Check if there's a shared User ID available
+          const sharedUserId = this._getUserIdFromSharedStorage();
+          if (sharedUserId && sharedUserId !== this.getUserId()) {
+            console.log('💡 Found potential User ID from localhost, suggesting sync');
+            this._showAutoSyncSuggestion(sharedUserId);
+          }
+        }
+      }
+
+      // If on localhost, save User ID for GitHub Pages sync
+      if (isLocalhost) {
+        this._saveCrossEnvironmentUserId(this.getUserId());
+      }
+
+    } catch (error) {
+      console.warn('⚠️ Auto-sync check failed:', error);
+    }
+  }
+
+  // Show auto-sync suggestion
+  _showAutoSyncSuggestion(suggestedUserId) {
+    // Only show if not already dismissed
+    const dismissed = localStorage.getItem('auto_sync_dismissed');
+    if (dismissed) return;
+
+    console.log('💡 Showing auto-sync suggestion');
+
+    // Create notification
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed; top: 20px; right: 20px; z-index: 10000;
+      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+      color: white; padding: 15px 20px; border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(108, 92, 231, 0.3);
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 350px; font-size: 14px; line-height: 1.4;
+      animation: slideIn 0.3s ease-out;
+    `;
+
+    notification.innerHTML = `
+      <div style="display: flex; align-items: center; margin-bottom: 10px;">
+        <span style="font-size: 18px; margin-right: 8px;">🔄</span>
+        <strong>Sync dữ liệu từ localhost?</strong>
+      </div>
+      <div style="margin-bottom: 15px; opacity: 0.9;">
+        Phát hiện bạn có dữ liệu phim đã lưu từ localhost. Muốn đồng bộ không?
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button onclick="this.parentElement.parentElement.remove(); window.movieComments._autoSyncFromLocalhost('${suggestedUserId}')"
+                style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+          ✅ Đồng bộ
+        </button>
+        <button onclick="this.parentElement.parentElement.remove(); localStorage.setItem('auto_sync_dismissed', Date.now())"
+                style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+          ❌ Bỏ qua
+        </button>
+      </div>
+    `;
+
+    // Add animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    document.body.appendChild(notification);
+
+    // Auto-hide after 10 seconds
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.style.animation = 'slideIn 0.3s ease-out reverse';
+        setTimeout(() => notification.remove(), 300);
+      }
+    }, 10000);
+  }
+
+  // Auto-sync from localhost
+  async _autoSyncFromLocalhost(localhostUserId) {
+    try {
+      console.log('🔄 Auto-syncing from localhost User ID');
+
+      // Update current User ID
+      this._saveUserIdToAllStorage(localhostUserId);
+
+      // Clear current data to avoid conflicts
+      await this.clearAllSavedMovies();
+
+      // Reload the page to use new User ID
+      console.log('🔄 Reloading page with synced User ID...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+
+    } catch (error) {
+      console.error('❌ Auto-sync failed:', error);
+    }
   }
 
   _saveToIndexedDB(userId) {
