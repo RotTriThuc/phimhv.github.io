@@ -27,11 +27,16 @@ class MovieCommentSystem {
   // Khởi tạo Firebase
   async init() {
     try {
-      // Only log in development
-      if (window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1')) {
-        console.log('🔥 Initializing Movie Comment System...');
-      }
-      
+      // Enhanced logging for debugging GitHub Pages issues
+      console.log('🔥 Initializing Movie Comment System...');
+      console.log('🌐 Environment details:', {
+        hostname: window.location.hostname,
+        origin: window.location.origin,
+        isLocalhost: window.location.hostname.includes('localhost'),
+        isGitHub: window.location.hostname.includes('github.io'),
+        userAgent: navigator.userAgent.substring(0, 100) + '...'
+      });
+
       // Validate config
       if (!this.validateConfig()) {
         throw new Error('Please update Firebase config in firebase-config.js');
@@ -39,14 +44,14 @@ class MovieCommentSystem {
 
       // Load Firebase SDK
       await this.loadFirebase();
-      
+
       // Initialize Firebase app
       if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
       }
-      
+
       this.db = firebase.firestore();
-      
+
       // Enable offline support
       try {
         await this.db.enablePersistence({ synchronizeTabs: true });
@@ -54,7 +59,20 @@ class MovieCommentSystem {
       } catch (err) {
         console.warn('⚠️ Offline support failed:', err.code);
       }
-      
+
+      // Debug User ID generation
+      const userId = this.getUserId();
+      const userName = this.getUserName();
+      console.log('🆔 User identification:', {
+        userId: userId.substring(0, 30) + '...',
+        userName: userName,
+        fingerprint: this._getBrowserFingerprint(),
+        storageAvailable: {
+          localStorage: !!localStorage.getItem('movie_commenter_id'),
+          sessionStorage: !!sessionStorage.getItem('movie_commenter_id')
+        }
+      });
+
       this.initialized = true;
       console.log('✅ Comment system ready!');
       return true;
@@ -121,11 +139,15 @@ class MovieCommentSystem {
   _tryGetUserIdFromStorage() {
     // Try localStorage first
     let userId = localStorage.getItem('movie_commenter_id');
-    if (userId) return userId;
+    if (userId) {
+      console.log('🆔 Found User ID in localStorage:', userId.substring(0, 20) + '...');
+      return userId;
+    }
 
     // Try sessionStorage
     userId = sessionStorage.getItem('movie_commenter_id');
     if (userId) {
+      console.log('🆔 Found User ID in sessionStorage, saving to localStorage');
       // Save back to localStorage for persistence
       localStorage.setItem('movie_commenter_id', userId);
       return userId;
@@ -134,10 +156,12 @@ class MovieCommentSystem {
     // Try IndexedDB (for cross-browser persistence)
     userId = this._getFromIndexedDB();
     if (userId) {
+      console.log('🆔 Found User ID in IndexedDB, saving to localStorage');
       localStorage.setItem('movie_commenter_id', userId);
       return userId;
     }
 
+    console.log('🆔 No existing User ID found, will generate new one');
     return null;
   }
 
@@ -146,24 +170,39 @@ class MovieCommentSystem {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2);
     const browserFingerprint = this._getBrowserFingerprint();
+    const userId = `user_${browserFingerprint}_${random}_${timestamp}`;
 
-    return `user_${browserFingerprint}_${random}_${timestamp}`;
+    console.log('🆔 Generated new User ID:', {
+      fingerprint: browserFingerprint,
+      userId: userId.substring(0, 30) + '...',
+      domain: window.location.hostname,
+      userAgent: navigator.userAgent.substring(0, 50) + '...'
+    });
+
+    return userId;
   }
 
   _getBrowserFingerprint() {
-    // Create semi-persistent browser fingerprint
+    // Create semi-persistent browser fingerprint that works across domains
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     ctx.textBaseline = 'top';
     ctx.font = '14px Arial';
     ctx.fillText('Browser fingerprint', 2, 2);
 
+    // Normalize user agent to remove domain-specific differences
+    const normalizedUserAgent = navigator.userAgent
+      .replace(/localhost:\d+/g, 'localhost')
+      .replace(/127\.0\.0\.1:\d+/g, 'localhost')
+      .replace(/\.github\.io/g, '.github.io'); // Normalize GitHub Pages domains
+
     const fingerprint = [
-      navigator.userAgent,
+      normalizedUserAgent,
       navigator.language,
       screen.width + 'x' + screen.height,
       new Date().getTimezoneOffset(),
-      canvas.toDataURL()
+      // Use a more stable canvas fingerprint
+      this._getStableCanvasFingerprint()
     ].join('|');
 
     // Create short hash from fingerprint
@@ -175,6 +214,36 @@ class MovieCommentSystem {
     }
 
     return Math.abs(hash).toString(36).substring(0, 8);
+  }
+
+  _getStableCanvasFingerprint() {
+    // Create a more stable canvas fingerprint
+    const canvas = document.createElement('canvas');
+    canvas.width = 200;
+    canvas.height = 50;
+    const ctx = canvas.getContext('2d');
+
+    // Use consistent rendering that's less likely to vary between environments
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#f60';
+    ctx.fillRect(125, 1, 62, 20);
+    ctx.fillStyle = '#069';
+    ctx.font = '11pt Arial';
+    ctx.fillText('Cross-browser fingerprint 🔑', 2, 15);
+    ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+    ctx.font = '18pt Arial';
+    ctx.fillText('Stable ID', 4, 45);
+
+    // Return a hash of the canvas data instead of the full data URL
+    const imageData = canvas.toDataURL();
+    let canvasHash = 0;
+    for (let i = 0; i < imageData.length; i++) {
+      const char = imageData.charCodeAt(i);
+      canvasHash = ((canvasHash << 5) - canvasHash) + char;
+      canvasHash = canvasHash & canvasHash;
+    }
+
+    return Math.abs(canvasHash).toString(36).substring(0, 12);
   }
 
   _saveUserIdToAllStorage(userId) {
