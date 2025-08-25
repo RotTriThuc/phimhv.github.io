@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Episode Name Formatting</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #121212;
+      color: #fff;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    .test-section {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .btn {
+      background: #6c5ce7;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 5px;
+      font-size: 14px;
+    }
+    
+    .btn:hover { opacity: 0.8; }
+    .btn--success { background: #00b894; }
+    .btn--continue { background: #f39c12; }
+    
+    .test-case {
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 10px 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 15px;
+      align-items: center;
+    }
+    
+    .test-input {
+      font-family: monospace;
+      font-size: 12px;
+      color: #888;
+    }
+    
+    .test-output {
+      font-weight: bold;
+      color: #00b894;
+    }
+    
+    .test-result {
+      text-align: center;
+    }
+    
+    .test-result.pass {
+      color: #00b894;
+    }
+    
+    .test-result.fail {
+      color: #e74c3c;
+    }
+    
+    .button-preview {
+      background: #333;
+      border: 1px solid #555;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 15px 0;
+    }
+    
+    .card-badge {
+      display: inline-block;
+      background: #f39c12;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin: 5px;
+    }
+    
+    .log-area {
+      background: #000;
+      color: #0f0;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin: 15px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔢 Test Episode Name Formatting</h1>
+    <p>Test function formatEpisodeName để hiển thị đúng số tập</p>
+    
+    <!-- Format Function Test -->
+    <div class="test-section">
+      <h3>🧪 Format Function Test</h3>
+      <p>Test các trường hợp khác nhau của tên tập</p>
+      
+      <div id="format-test-results">
+        <div style="color: #888; text-align: center; padding: 20px;">
+          Click "Run Tests" để bắt đầu test
+        </div>
+      </div>
+      
+      <div style="text-align: center; margin: 20px 0;">
+        <button class="btn btn--success" onclick="runFormatTests()">🧪 Run Format Tests</button>
+        <button class="btn" onclick="testCustomInput()">✏️ Test Custom Input</button>
+      </div>
+    </div>
+
+    <!-- Button Preview -->
+    <div class="test-section">
+      <h3>🎨 Button Preview</h3>
+      <p>Xem cách button "Đang xem" sẽ hiển thị với các tên tập khác nhau</p>
+      
+      <div class="button-preview">
+        <h4>📺 Continue Watch Buttons</h4>
+        <div id="button-previews">
+          Loading previews...
+        </div>
+      </div>
+      
+      <div class="button-preview">
+        <h4>🏷️ Card Badges</h4>
+        <div id="badge-previews">
+          Loading badges...
+        </div>
+      </div>
+      
+      <button class="btn" onclick="generatePreviews()">🎨 Generate Previews</button>
+    </div>
+
+    <!-- Real Data Test -->
+    <div class="test-section">
+      <h3>📊 Real Data Test</h3>
+      <p>Test với dữ liệu thật từ watch progress</p>
+      
+      <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <button class="btn" onclick="testRealWatchProgress()">📊 Test Real Progress</button>
+        <button class="btn" onclick="addTestProgress()">➕ Add Test Progress</button>
+        <button class="btn" onclick="clearTestProgress()">🗑️ Clear Test Progress</button>
+      </div>
+      
+      <div id="real-data-results"></div>
+    </div>
+
+    <!-- Custom Input Test -->
+    <div class="test-section">
+      <h3>✏️ Custom Input Test</h3>
+      <p>Test với input tùy chỉnh</p>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div>
+          <label style="display: block; margin-bottom: 5px;">Episode Name:</label>
+          <input type="text" id="custom-episode-name" placeholder="e.g., 1, ep1, episode 5" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #555; background: #333; color: #fff;">
+        </div>
+        <div>
+          <label style="display: block; margin-bottom: 5px;">Episode Slug:</label>
+          <input type="text" id="custom-episode-slug" placeholder="e.g., tap-1, episode-5" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #555; background: #333; color: #fff;">
+        </div>
+      </div>
+      
+      <button class="btn btn--success" onclick="testCustomFormat()">🧪 Test Custom Format</button>
+      
+      <div id="custom-test-results"></div>
+    </div>
+
+    <!-- Debug Log -->
+    <div class="test-section">
+      <h3>📝 Debug Log</h3>
+      <div class="log-area" id="debug-log">
+        Debug messages will appear here...
+      </div>
+      <button class="btn" onclick="clearDebugLog()">🗑️ Clear Log</button>
+    </div>
+  </div>
+
+  <!-- Load Firebase and App -->
+  <script src="./firebase-config.js"></script>
+  <script src="./assets/app.js"></script>
+  
+  <script>
+    let debugMessages = [];
+    
+    // Test cases for episode name formatting
+    const testCases = [
+      // Basic numbers
+      { episodeName: '1', episodeSlug: '', expected: 'Tập 1' },
+      { episodeName: '12', episodeSlug: '', expected: 'Tập 12' },
+      { episodeName: '001', episodeSlug: '', expected: 'Tập 1' },
+      
+      // Already formatted
+      { episodeName: 'Tập 1', episodeSlug: '', expected: 'Tập 1' },
+      { episodeName: 'Tập 12', episodeSlug: '', expected: 'Tập 12' },
+      { episodeName: 'Episode 5', episodeSlug: '', expected: 'Episode 5' },
+      
+      // Episode patterns
+      { episodeName: 'ep1', episodeSlug: '', expected: 'Tập 1' },
+      { episodeName: 'ep12', episodeSlug: '', expected: 'Tập 12' },
+      { episodeName: 'episode1', episodeSlug: '', expected: 'Tập 1' },
+      { episodeName: 'episode 12', episodeSlug: '', expected: 'Tập 12' },
+      { episodeName: 'EP-5', episodeSlug: '', expected: 'Tập 5' },
+      
+      // Numbers with text
+      { episodeName: '1-vietsub', episodeSlug: '', expected: 'Tập 1' },
+      { episodeName: '12 HD', episodeSlug: '', expected: 'Tập 12' },
+      { episodeName: '5-full', episodeSlug: '', expected: 'Tập 5' },
+      
+      // Fallback to slug
+      { episodeName: '', episodeSlug: '1', expected: 'Tập 1' },
+      { episodeName: '', episodeSlug: 'tap-5', expected: 'Tập tap-5' },
+      { episodeName: '', episodeSlug: 'episode-12', expected: 'Tập 12' },
+      
+      // Edge cases
+      { episodeName: '', episodeSlug: '', expected: 'Tập đang xem' },
+      { episodeName: 'Special', episodeSlug: '', expected: 'Tập Special' },
+      { episodeName: 'OVA', episodeSlug: '', expected: 'Tập OVA' },
+    ];
+    
+    // Capture console
+    const originalConsole = {
+      log: console.log,
+      error: console.error,
+      warn: console.warn
+    };
+    
+    function captureConsole() {
+      ['log', 'error', 'warn'].forEach(method => {
+        console[method] = function(...args) {
+          const message = args.join(' ');
+          debugMessages.push(`[${method.toUpperCase()}] ${message}`);
+          updateDebugLog();
+          originalConsole[method].apply(console, args);
+        };
+      });
+    }
+    
+    function updateDebugLog() {
+      const debugLog = document.getElementById('debug-log');
+      const recent = debugMessages.slice(-15);
+      debugLog.innerHTML = recent.map(msg => `<div>${msg}</div>`).join('');
+      debugLog.scrollTop = debugLog.scrollHeight;
+    }
+    
+    function clearDebugLog() {
+      debugMessages = [];
+      updateDebugLog();
+    }
+    
+    function addDebugMessage(message) {
+      debugMessages.push(`[TEST] ${message}`);
+      updateDebugLog();
+    }
+    
+    function runFormatTests() {
+      addDebugMessage('🧪 Running format tests...');
+      
+      let passCount = 0;
+      let failCount = 0;
+      
+      const results = testCases.map(testCase => {
+        const result = window.formatEpisodeName ? 
+          window.formatEpisodeName(testCase.episodeName, testCase.episodeSlug) :
+          'formatEpisodeName function not found';
+        
+        const passed = result === testCase.expected;
+        if (passed) passCount++;
+        else failCount++;
+        
+        return {
+          ...testCase,
+          result,
+          passed
+        };
+      });
+      
+      // Display results
+      const container = document.getElementById('format-test-results');
+      container.innerHTML = `
+        <div style="text-align: center; margin-bottom: 20px;">
+          <strong>Test Results:</strong> 
+          <span style="color: #00b894;">${passCount} passed</span> / 
+          <span style="color: #e74c3c;">${failCount} failed</span>
+        </div>
+        
+        ${results.map(test => `
+          <div class="test-case">
+            <div class="test-input">
+              episodeName: "${test.episodeName}"<br>
+              episodeSlug: "${test.episodeSlug}"
+            </div>
+            <div class="test-output">${test.result}</div>
+            <div class="test-result ${test.passed ? 'pass' : 'fail'}">
+              ${test.passed ? '✅ PASS' : '❌ FAIL'}<br>
+              <small>Expected: ${test.expected}</small>
+            </div>
+          </div>
+        `).join('')}
+      `;
+      
+      addDebugMessage(`✅ Format tests completed - ${passCount} passed, ${failCount} failed`);
+    }
+    
+    function generatePreviews() {
+      addDebugMessage('🎨 Generating button previews...');
+      
+      const sampleEpisodes = [
+        { name: '1', slug: '1' },
+        { name: 'ep5', slug: 'ep5' },
+        { name: 'Episode 12', slug: 'episode-12' },
+        { name: '25-vietsub', slug: 'tap-25' },
+        { name: 'Special', slug: 'special' },
+        { name: '', slug: 'ova-1' }
+      ];
+      
+      // Generate continue buttons
+      const buttonContainer = document.getElementById('button-previews');
+      buttonContainer.innerHTML = sampleEpisodes.map(ep => {
+        const formatted = window.formatEpisodeName ? 
+          window.formatEpisodeName(ep.name, ep.slug) : 
+          ep.name || ep.slug;
+        
+        return `
+          <button class="btn btn--continue" style="margin: 5px;">
+            Đang xem: ${formatted}
+          </button>
+        `;
+      }).join('');
+      
+      // Generate card badges
+      const badgeContainer = document.getElementById('badge-previews');
+      badgeContainer.innerHTML = sampleEpisodes.map(ep => {
+        const formatted = window.formatEpisodeName ? 
+          window.formatEpisodeName(ep.name, ep.slug) : 
+          ep.name || ep.slug;
+        
+        return `<span class="card-badge">▶ ${formatted}</span>`;
+      }).join('');
+      
+      addDebugMessage('🎨 Button previews generated');
+    }
+    
+    async function testRealWatchProgress() {
+      try {
+        addDebugMessage('📊 Testing real watch progress...');
+        
+        if (window.Storage) {
+          const progress = await window.Storage.getWatchProgress();
+          
+          if (Object.keys(progress).length === 0) {
+            document.getElementById('real-data-results').innerHTML = `
+              <div style="color: #888; text-align: center; padding: 20px;">
+                No watch progress found. Add some test progress first.
+              </div>
+            `;
+            return;
+          }
+          
+          let resultsHtml = '<div style="margin-bottom: 15px;"><strong>Real Watch Progress:</strong></div>';
+          
+          Object.entries(progress).forEach(([movieSlug, prog]) => {
+            const formatted = window.formatEpisodeName ? 
+              window.formatEpisodeName(prog.episodeName, prog.episodeSlug) : 
+              prog.episodeName;
+            
+            resultsHtml += `
+              <div class="test-case">
+                <div class="test-input">
+                  Movie: ${prog.movieName || movieSlug}<br>
+                  Original: "${prog.episodeName}"
+                </div>
+                <div class="test-output">${formatted}</div>
+                <div class="test-result">
+                  <button class="btn btn--continue" style="font-size: 12px; padding: 4px 8px;">
+                    Đang xem: ${formatted}
+                  </button>
+                </div>
+              </div>
+            `;
+          });
+          
+          document.getElementById('real-data-results').innerHTML = resultsHtml;
+          addDebugMessage(`📊 Found ${Object.keys(progress).length} real progress entries`);
+          
+        } else {
+          document.getElementById('real-data-results').innerHTML = `
+            <div style="color: #e74c3c;">❌ Storage not available</div>
+          `;
+        }
+        
+      } catch (error) {
+        document.getElementById('real-data-results').innerHTML = `
+          <div style="color: #e74c3c;">❌ Error: ${error.message}</div>
+        `;
+        addDebugMessage(`❌ Real progress test error: ${error.message}`);
+      }
+    }
+    
+    async function addTestProgress() {
+      try {
+        if (window.Storage) {
+          const testProgress = [
+            { slug: 'test-anime-1', name: 'Test Anime 1', episode: '5', episodeSlug: '5' },
+            { slug: 'test-anime-2', name: 'Test Anime 2', episode: 'ep12', episodeSlug: 'ep12' },
+            { slug: 'test-anime-3', name: 'Test Anime 3', episode: 'Episode 8', episodeSlug: 'episode-8' }
+          ];
+          
+          for (const test of testProgress) {
+            await window.Storage.setWatchProgress(test.slug, {
+              episodeName: test.episode,
+              episodeSlug: test.episodeSlug,
+              serverIndex: 0,
+              serverName: 'Server 1',
+              movieName: test.name
+            });
+          }
+          
+          addDebugMessage(`➕ Added ${testProgress.length} test progress entries`);
+          
+          // Refresh real data test
+          setTimeout(() => {
+            testRealWatchProgress();
+          }, 500);
+        }
+      } catch (error) {
+        addDebugMessage(`❌ Add test progress error: ${error.message}`);
+      }
+    }
+    
+    async function clearTestProgress() {
+      try {
+        if (window.Storage) {
+          const testSlugs = ['test-anime-1', 'test-anime-2', 'test-anime-3'];
+          
+          for (const slug of testSlugs) {
+            await window.Storage.clearWatchProgress(slug);
+          }
+          
+          addDebugMessage('🗑️ Cleared test progress entries');
+          
+          // Refresh real data test
+          setTimeout(() => {
+            testRealWatchProgress();
+          }, 500);
+        }
+      } catch (error) {
+        addDebugMessage(`❌ Clear test progress error: ${error.message}`);
+      }
+    }
+    
+    function testCustomFormat() {
+      const episodeName = document.getElementById('custom-episode-name').value;
+      const episodeSlug = document.getElementById('custom-episode-slug').value;
+      
+      if (!episodeName && !episodeSlug) {
+        document.getElementById('custom-test-results').innerHTML = `
+          <div style="color: #f39c12; margin-top: 15px;">⚠️ Please enter at least one value</div>
+        `;
+        return;
+      }
+      
+      const result = window.formatEpisodeName ? 
+        window.formatEpisodeName(episodeName, episodeSlug) : 
+        'formatEpisodeName function not found';
+      
+      document.getElementById('custom-test-results').innerHTML = `
+        <div style="margin-top: 15px;">
+          <div class="test-case">
+            <div class="test-input">
+              episodeName: "${episodeName}"<br>
+              episodeSlug: "${episodeSlug}"
+            </div>
+            <div class="test-output">${result}</div>
+            <div class="test-result">
+              <button class="btn btn--continue" style="font-size: 12px; padding: 4px 8px;">
+                Đang xem: ${result}
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      addDebugMessage(`✏️ Custom test - Input: "${episodeName}", "${episodeSlug}" → Output: "${result}"`);
+    }
+    
+    function testCustomInput() {
+      document.getElementById('custom-episode-name').focus();
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      captureConsole();
+      
+      // Initial setup
+      setTimeout(() => {
+        generatePreviews();
+        addDebugMessage('🚀 Episode name formatting test initialized');
+      }, 1000);
+    });
+  </script>
+</body>
+</html>

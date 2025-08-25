@@ -854,51 +854,220 @@ console.log('📊 Components Status:', {
   networkIndicator: !!networkIndicator
 });
 
-// LocalStorage Management for Saved Movies and Watch Progress
+// 🔥 Firebase Storage Management for Saved Movies and Watch Progress
+// Thay thế localStorage bằng Firebase để sync across devices
 const Storage = {
-  // Lưu phim yêu thích
-  getSavedMovies() {
+  // Cache for performance
+  _savedMoviesCache: null,
+  _watchProgressCache: null,
+  _cacheExpiry: 5 * 60 * 1000, // 5 minutes
+  _lastCacheUpdate: 0,
+  _forceFirebaseMode: false, // Force Firebase after sync
+
+  // Lưu phim yêu thích (Firebase)
+  async getSavedMovies() {
     try {
-      return JSON.parse(localStorage.getItem('savedMovies') || '[]');
-    } catch {
+      // Use cache if still valid
+      if (this._savedMoviesCache && Date.now() - this._lastCacheUpdate < this._cacheExpiry) {
+        console.log('📦 Using cached movies:', this._savedMoviesCache.length);
+        return this._savedMoviesCache;
+      }
+
+      // ONLY use Firebase - no localStorage fallback
+      if (!window.movieComments || !window.movieComments.initialized) {
+        console.warn('⚠️ Firebase not ready, waiting for initialization...');
+
+        // Wait a bit for Firebase to initialize
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        if (!window.movieComments || !window.movieComments.initialized) {
+          console.warn('⚠️ Firebase still not ready, returning empty array');
+          return [];
+        }
+      }
+
+      console.log('🔥 Loading movies from Firebase...');
+      const movies = await window.movieComments.getSavedMovies();
+
+      // Update cache
+      this._savedMoviesCache = movies;
+      this._lastCacheUpdate = Date.now();
+
+      console.log(`✅ Loaded ${movies.length} movies from Firebase`);
+      return movies;
+
+    } catch (error) {
+      console.error('❌ Get saved movies failed:', error);
+
+      // No localStorage fallback - return empty array
+      console.warn('⚠️ Firebase error, returning empty array (no localStorage fallback)');
       return [];
     }
   },
 
-  saveMovie(movie) {
-    const saved = this.getSavedMovies();
-    const movieData = {
-      slug: movie.slug,
-      name: movie.name,
-      poster_url: movie.poster_url || movie.thumb_url,
-      year: movie.year,
-      lang: movie.lang,
-      savedAt: Date.now()
-    };
-    
-    // Kiểm tra đã lưu chưa
-    if (!saved.some(m => m.slug === movie.slug)) {
-      saved.unshift(movieData);
-      localStorage.setItem('savedMovies', JSON.stringify(saved));
-      return true;
+  async saveMovie(movie) {
+    try {
+      // ONLY use Firebase - no localStorage fallback
+      if (!window.movieComments || !window.movieComments.initialized) {
+        console.warn('⚠️ Firebase not ready, cannot save movie');
+        throw new Error('Firebase chưa sẵn sàng. Vui lòng thử lại sau.');
+      }
+
+      const success = await window.movieComments.saveMovie(movie);
+
+      // Clear cache to force refresh
+      this._savedMoviesCache = null;
+
+      console.log(`✅ Movie saved to Firebase: ${movie.name || movie.slug}`);
+      return success;
+    } catch (error) {
+      console.error('❌ Save movie to Firebase failed:', error);
+      throw error; // No localStorage fallback
     }
-    return false;
   },
 
-  removeSavedMovie(slug) {
-    const saved = this.getSavedMovies();
-    const filtered = saved.filter(m => m.slug !== slug);
-    localStorage.setItem('savedMovies', JSON.stringify(filtered));
-    return filtered.length !== saved.length;
+  async removeSavedMovie(slug) {
+    try {
+      // ONLY use Firebase - no localStorage fallback
+      if (!window.movieComments || !window.movieComments.initialized) {
+        console.warn('⚠️ Firebase not ready, cannot remove movie');
+        throw new Error('Firebase chưa sẵn sàng. Vui lòng thử lại sau.');
+      }
+
+      const success = await window.movieComments.removeSavedMovie(slug);
+
+      // Clear cache to force refresh
+      this._savedMoviesCache = null;
+      this._lastCacheUpdate = 0;
+
+      console.log(`✅ Movie removed from Firebase: ${slug}`);
+      return success;
+    } catch (error) {
+      console.error('❌ Remove movie from Firebase failed:', error);
+      throw error; // No localStorage fallback
+    }
   },
 
-  isMovieSaved(slug) {
-    const saved = this.getSavedMovies();
-    return saved.some(m => m.slug === slug);
+  async isMovieSaved(slug) {
+    try {
+      // ONLY use Firebase - no localStorage fallback
+      if (!window.movieComments || !window.movieComments.initialized) {
+        console.warn('⚠️ Firebase not ready, cannot check if movie is saved');
+        return false;
+      }
+
+      // Check cache first for performance
+      if (this._savedMoviesCache && Date.now() - this._lastCacheUpdate < this._cacheExpiry) {
+        return this._savedMoviesCache.some(m => m.slug === slug);
+      }
+
+      return await window.movieComments.isMovieSaved(slug);
+    } catch (error) {
+      console.error('❌ Check movie saved failed:', error);
+      return false; // No localStorage fallback
+    }
   },
 
-  // Theo dõi tiến độ xem
-  getWatchProgress() {
+  // Theo dõi tiến độ xem (Firebase)
+  async getWatchProgress() {
+    try {
+      if (!window.movieComments || !window.movieComments.initialized) {
+        return this._getLocalWatchProgress();
+      }
+
+      // Use cache if still valid
+      if (this._watchProgressCache && Date.now() - this._lastCacheUpdate < this._cacheExpiry) {
+        return this._watchProgressCache;
+      }
+
+      const progress = await window.movieComments.getAllWatchProgress();
+
+      // Update cache
+      this._watchProgressCache = progress;
+
+      return progress;
+    } catch (error) {
+      console.error('❌ Get watch progress failed, using localStorage:', error);
+      return this._getLocalWatchProgress();
+    }
+  },
+
+  async setWatchProgress(movieSlug, episodeInfo) {
+    try {
+      if (!window.movieComments || !window.movieComments.initialized) {
+        return this._setLocalWatchProgress(movieSlug, episodeInfo);
+      }
+
+      await window.movieComments.setWatchProgress(movieSlug, episodeInfo);
+
+      // Clear cache to force refresh
+      this._watchProgressCache = null;
+
+      // Also save to localStorage as backup
+      this._setLocalWatchProgress(movieSlug, episodeInfo);
+    } catch (error) {
+      console.error('❌ Set watch progress failed, using localStorage:', error);
+      this._setLocalWatchProgress(movieSlug, episodeInfo);
+    }
+  },
+
+  async getMovieProgress(movieSlug) {
+    try {
+      if (!window.movieComments || !window.movieComments.initialized) {
+        return this._getLocalMovieProgress(movieSlug);
+      }
+
+      return await window.movieComments.getWatchProgress(movieSlug);
+    } catch (error) {
+      console.error('❌ Get movie progress failed, using localStorage:', error);
+      return this._getLocalMovieProgress(movieSlug);
+    }
+  },
+
+  async clearWatchProgress(movieSlug) {
+    try {
+      if (!window.movieComments || !window.movieComments.initialized) {
+        return this._clearLocalWatchProgress(movieSlug);
+      }
+
+      await window.movieComments.clearWatchProgress(movieSlug);
+
+      // Clear cache
+      this._watchProgressCache = null;
+
+      // Also clear from localStorage
+      this._clearLocalWatchProgress(movieSlug);
+    } catch (error) {
+      console.error('❌ Clear watch progress failed, using localStorage:', error);
+      this._clearLocalWatchProgress(movieSlug);
+    }
+  },
+
+  // Clear all saved movies
+  async clearAllSavedMovies() {
+    try {
+      if (!window.movieComments || !window.movieComments.initialized) {
+        localStorage.removeItem('savedMovies');
+        return 0;
+      }
+
+      const count = await window.movieComments.clearAllSavedMovies();
+
+      // Clear cache and localStorage
+      this._savedMoviesCache = null;
+      localStorage.removeItem('savedMovies');
+
+      return count;
+    } catch (error) {
+      console.error('❌ Clear all saved movies failed:', error);
+      localStorage.removeItem('savedMovies');
+      return 0;
+    }
+  },
+
+  // LocalStorage methods removed - Firebase only
+
+  _getLocalWatchProgress() {
     try {
       return JSON.parse(localStorage.getItem('watchProgress') || '{}');
     } catch {
@@ -906,8 +1075,8 @@ const Storage = {
     }
   },
 
-  setWatchProgress(movieSlug, episodeInfo) {
-    const progress = this.getWatchProgress();
+  _setLocalWatchProgress(movieSlug, episodeInfo) {
+    const progress = this._getLocalWatchProgress();
     progress[movieSlug] = {
       ...episodeInfo,
       updatedAt: Date.now()
@@ -915,13 +1084,13 @@ const Storage = {
     localStorage.setItem('watchProgress', JSON.stringify(progress));
   },
 
-  getMovieProgress(movieSlug) {
-    const progress = this.getWatchProgress();
+  _getLocalMovieProgress(movieSlug) {
+    const progress = this._getLocalWatchProgress();
     return progress[movieSlug] || null;
   },
 
-  clearWatchProgress(movieSlug) {
-    const progress = this.getWatchProgress();
+  _clearLocalWatchProgress(movieSlug) {
+    const progress = this._getLocalWatchProgress();
     delete progress[movieSlug];
     localStorage.setItem('watchProgress', JSON.stringify(progress));
   }
@@ -1029,15 +1198,34 @@ function movieCard(movie) {
 
   const card = createEl('article', 'card');
   
-  // Check if movie is saved and has progress
-  const isSaved = Storage.isMovieSaved(slug);
-  const progress = Storage.getMovieProgress(slug);
+  // Check if movie is saved and has progress (async)
+  let isSaved = false;
+  let progress = null;
+
+  try {
+    // These are now async, but we'll handle them in the background
+    Storage.isMovieSaved(slug).then(saved => {
+      if (saved && !card.querySelector('.card__badge--saved')) {
+        const savedBadge = createEl('span', 'card__badge card__badge--saved', '❤️');
+        card.appendChild(savedBadge);
+      }
+    });
+
+    Storage.getMovieProgress(slug).then(prog => {
+      if (prog && !card.querySelector('.card__badge--progress')) {
+        // Format episode name để hiển thị rõ ràng trên badge
+        const displayName = formatEpisodeName(prog.episodeName, prog.episodeSlug);
+        const progressBadge = createEl('span', 'card__badge card__badge--progress', `▶ ${displayName}`);
+        card.appendChild(progressBadge);
+      }
+    });
+  } catch (error) {
+    console.warn('⚠️ Error checking movie status:', error);
+  }
   
   const badges = [];
   if (languages) badges.push(`<span class="card__badge">${languages}</span>`);
-  if (isSaved) badges.push(`<span class="card__badge card__badge--saved">❤️</span>`);
-  if (progress) badges.push(`<span class="card__badge card__badge--progress">▶ ${progress.episodeName || 'Đang xem'}</span>`);
-  
+
   card.innerHTML = `
     ${badges.join('')}
     <div class="card__img-container">
@@ -1820,40 +2008,74 @@ async function renderDetail(root, slug) {
       actions.appendChild(watchBtn);
     }
 
-    // Nút tiếp tục xem (nếu có progress)
-    const progress = Storage.getMovieProgress(movie.slug);
-    if (progress && episodes.length > 0) {
-      const continueBtn = createEl('button', 'btn btn--continue', `Đang xem: ${progress.episodeName || 'Tập đang xem'}`);
-      continueBtn.addEventListener('click', () => {
-        const q = new URLSearchParams({ server: String(progress.serverIndex || 0), ep: progress.episodeSlug || '1' });
-        navigateTo(`#/xem/${movie.slug}?${q.toString()}`);
-      });
-      actions.appendChild(continueBtn);
-    }
+    // Nút tiếp tục xem (nếu có progress) - async để không block UI
+    Storage.getMovieProgress(movie.slug).then(progress => {
+      if (progress && episodes.length > 0) {
+        // Format episode name để hiển thị rõ ràng
+        const displayName = formatEpisodeName(progress.episodeName, progress.episodeSlug);
+        const continueBtn = createEl('button', 'btn btn--continue', `Đang xem: ${displayName}`);
 
-    // Nút lưu/bỏ lưu phim
-    const isSaved = Storage.isMovieSaved(movie.slug);
-    const saveBtn = createEl('button', 'btn btn--save', isSaved ? '💔 Bỏ lưu' : '❤️ Lưu phim');
-    saveBtn.addEventListener('click', () => {
-      if (Storage.isMovieSaved(movie.slug)) {
-        Storage.removeSavedMovie(movie.slug);
-        saveBtn.textContent = '❤️ Lưu phim';
-        saveBtn.classList.remove('btn--saved');
+        continueBtn.addEventListener('click', () => {
+          const q = new URLSearchParams({ server: String(progress.serverIndex || 0), ep: progress.episodeSlug || '1' });
+          navigateTo(`#/xem/${movie.slug}?${q.toString()}`);
+        });
+
+        // Insert continue button after watch button
+        const watchBtn = actions.querySelector('.btn:not(.btn--continue):not(.btn--save)');
+        if (watchBtn && watchBtn.nextSibling) {
+          actions.insertBefore(continueBtn, watchBtn.nextSibling);
+        } else {
+          actions.appendChild(continueBtn);
+        }
+      }
+    }).catch(error => {
+      console.warn('⚠️ Error getting movie progress:', error);
+    });
+
+    // Nút lưu/bỏ lưu phim (async)
+    const saveBtn = createEl('button', 'btn btn--save', '❤️ Lưu phim');
+
+    // Check initial state
+    Storage.isMovieSaved(movie.slug).then(isSaved => {
+      saveBtn.textContent = isSaved ? '💔 Bỏ lưu' : '❤️ Lưu phim';
+      if (isSaved) saveBtn.classList.add('btn--saved');
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      saveBtn.disabled = true;
+      saveBtn.textContent = '⏳ Đang xử lý...';
+
+      try {
+        const isSaved = await Storage.isMovieSaved(movie.slug);
+
+        if (isSaved) {
+          await Storage.removeSavedMovie(movie.slug);
+          saveBtn.textContent = '❤️ Lưu phim';
+          saveBtn.classList.remove('btn--saved');
+          showNotification({
+            message: 'Đã xóa khỏi danh sách yêu thích',
+            timestamp: new Date().toISOString()
+          });
+        } else {
+          await Storage.saveMovie(movie);
+          saveBtn.textContent = '💔 Bỏ lưu';
+          saveBtn.classList.add('btn--saved');
+          showNotification({
+            message: 'Đã lưu vào danh sách yêu thích',
+            timestamp: new Date().toISOString()
+          });
+        }
+      } catch (error) {
+        console.error('❌ Save/remove movie failed:', error);
         showNotification({
-          message: 'Đã xóa khỏi danh sách yêu thích',
+          message: 'Có lỗi xảy ra. Vui lòng thử lại.',
           timestamp: new Date().toISOString()
         });
-      } else {
-        Storage.saveMovie(movie);
-        saveBtn.textContent = '💔 Bỏ lưu';
-        saveBtn.classList.add('btn--saved');
-        showNotification({
-          message: 'Đã lưu vào danh sách yêu thích',
-          timestamp: new Date().toISOString()
-        });
+      } finally {
+        saveBtn.disabled = false;
       }
     });
-    if (isSaved) saveBtn.classList.add('btn--saved');
+
     actions.appendChild(saveBtn);
     
     const shareBtn = createEl('button', 'btn btn--ghost', 'Sao chép liên kết');
@@ -1946,6 +2168,38 @@ function findFirstEpisode(episodes) {
   return null;
 }
 
+// Format episode name để hiển thị rõ ràng số tập
+function formatEpisodeName(episodeName, episodeSlug) {
+  if (!episodeName && !episodeSlug) return 'Tập đang xem';
+
+  const name = episodeName || episodeSlug;
+
+  // Nếu đã có "Tập" trong tên thì giữ nguyên
+  if (name.toLowerCase().includes('tập') || name.toLowerCase().includes('episode')) {
+    return name;
+  }
+
+  // Nếu là số thuần túy thì thêm "Tập"
+  if (/^\d+$/.test(name)) {
+    return `Tập ${name}`;
+  }
+
+  // Nếu có số ở đầu thì thêm "Tập"
+  const numberMatch = name.match(/^(\d+)/);
+  if (numberMatch) {
+    return `Tập ${numberMatch[1]}`;
+  }
+
+  // Nếu có pattern như "ep1", "episode1" thì extract số
+  const epMatch = name.match(/(?:ep|episode)[\s-]*(\d+)/i);
+  if (epMatch) {
+    return `Tập ${epMatch[1]}`;
+  }
+
+  // Fallback: thêm "Tập" vào đầu nếu chưa có
+  return name.startsWith('Tập') ? name : `Tập ${name}`;
+}
+
 async function renderWatch(root, slug, params) {
   const serverIndex = Number(params.get('server') || '0');
   const epSlug = params.get('ep') || '';
@@ -2030,9 +2284,12 @@ async function renderWatch(root, slug, params) {
       else player.appendChild(createEl('p', '', 'Không tìm thấy nguồn phát cho tập này.'));
     }
 
-    // Lưu tiến độ xem
+    // Lưu tiến độ xem với tên tập rõ ràng
+    const episodeName = ep?.name || epSlug || '';
+    const displayEpisodeName = formatEpisodeName(episodeName, epSlug);
+
     Storage.setWatchProgress(movie.slug, {
-      episodeName: ep?.name || epSlug || '',
+      episodeName: displayEpisodeName,
       episodeSlug: epSlug,
       serverIndex: serverIndex,
       serverName: server?.server_name || `Server ${serverIndex+1}`,
@@ -2388,33 +2645,161 @@ async function renderAllCategories(root) {
   delete root.dataset.rendering;
 }
 
+// 📱 Cross-Device Sync Function (Global scope)
+window.showCrossDeviceSync = function() {
+  if (window.movieComments && window.movieComments.showSyncDialog) {
+    window.movieComments.showSyncDialog();
+  } else {
+    alert('Tính năng sync chưa sẵn sàng. Vui lòng thử lại sau.');
+  }
+};
+
+// 🔄 Force refresh saved movies after sync
+window.refreshSavedMoviesAfterSync = async function() {
+  console.log('🔄 Refreshing saved movies after sync...');
+
+  try {
+    // Clear all caches thoroughly
+    if (window.Storage) {
+      window.Storage._savedMoviesCache = null;
+      window.Storage._watchProgressCache = null;
+      window.Storage._lastCacheUpdate = 0; // Reset timestamp
+    }
+
+    // Clear localStorage cache
+    localStorage.removeItem('savedMovies');
+    localStorage.removeItem('watchProgress');
+
+    // If we're on saved movies page, re-render it
+    const currentHash = window.location.hash;
+    if (currentHash === '#/phim-da-luu' || currentHash === '#/phim-da-luu/') {
+      const appElement = document.getElementById('app');
+      if (appElement && window.renderSavedMovies) {
+        console.log('🎬 Re-rendering saved movies page...');
+
+        // Force clear the app element first
+        appElement.innerHTML = '';
+        appElement.removeAttribute('data-rendering');
+
+        // Re-render with fresh data
+        await window.renderSavedMovies(appElement);
+        console.log('✅ Saved movies page re-rendered');
+      }
+    }
+
+    console.log('✅ Saved movies refresh completed');
+  } catch (error) {
+    console.error('❌ Error refreshing saved movies:', error);
+  }
+};
+
+// 🚀 Immediate refresh without page reload
+window.immediateRefreshSavedMovies = async function() {
+  console.log('🚀 Immediate refresh of saved movies...');
+
+  try {
+    // Clear all caches and enable force Firebase mode
+    if (window.Storage) {
+      window.Storage._savedMoviesCache = null;
+      window.Storage._watchProgressCache = null;
+      window.Storage._lastCacheUpdate = 0;
+      window.Storage._forceFirebaseMode = true; // Force Firebase after sync
+    }
+    localStorage.removeItem('savedMovies');
+    localStorage.removeItem('watchProgress');
+
+    // Force reload movies from Firebase
+    if (window.Storage) {
+      const movies = await window.Storage.getSavedMovies();
+      console.log(`🎬 Immediate refresh found ${movies.length} movies`);
+    }
+
+    // If on saved movies page, refresh UI
+    const currentHash = window.location.hash;
+    if (currentHash === '#/phim-da-luu' || currentHash === '#/phim-da-luu/') {
+      const appElement = document.getElementById('app');
+      if (appElement) {
+        // Clear and re-render
+        appElement.innerHTML = '';
+        appElement.removeAttribute('data-rendering');
+
+        if (window.renderSavedMovies) {
+          await window.renderSavedMovies(appElement);
+          console.log('✅ UI refreshed immediately');
+        }
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ Immediate refresh failed:', error);
+    return false;
+  }
+};
+
 // Render trang phim đã lưu
 async function renderSavedMovies(root) {
   if (root.dataset.rendering === 'saved-movies') {
     return;
   }
-  
+
   clearRootCompletely(root);
   root.dataset.rendering = 'saved-movies';
   root.offsetHeight;
-  
-  const savedMovies = Storage.getSavedMovies();
-  
-  root.appendChild(sectionHeader(`❤️ Phim đã lưu (${savedMovies.length})`));
-  
-  if (savedMovies.length === 0) {
-    const emptyState = createEl('div', 'empty-state');
-    emptyState.style.cssText = 'text-align:center;padding:60px 20px;color:var(--muted);';
-    emptyState.innerHTML = `
-      <div style="font-size:48px;margin-bottom:16px;">📺</div>
-      <h3 style="margin:0 0 8px 0;color:var(--text);">Chưa có phim nào được lưu</h3>
-      <p style="margin:0 0 20px 0;">Lưu những bộ phim yêu thích để xem sau</p>
-      <button class="btn btn--ghost" onclick="navigateTo('#/')">Khám phá phim</button>
-    `;
-    root.appendChild(emptyState);
-    delete root.dataset.rendering;
-    return;
-  }
+
+  // Show loading state
+  const loadingHeader = sectionHeader('❤️ Phim đã lưu');
+  root.appendChild(loadingHeader);
+
+  const loadingState = createEl('div', 'loading-state');
+  loadingState.style.cssText = 'text-align:center;padding:40px 20px;color:var(--muted);';
+  loadingState.innerHTML = `
+    <div style="font-size:32px;margin-bottom:16px;">⏳</div>
+    <p>Đang tải danh sách phim đã lưu...</p>
+    <div style="font-size:12px;margin-top:8px;">
+      ${window.movieComments?.initialized ? 'Từ Firebase' : 'Từ bộ nhớ local'}
+    </div>
+  `;
+  root.appendChild(loadingState);
+
+  try {
+    // Load saved movies (async)
+    const savedMovies = await Storage.getSavedMovies();
+
+    // Remove loading state
+    safeRemove(loadingState);
+
+    // Update header with count
+    loadingHeader.querySelector('.section__title').textContent = `❤️ Phim đã lưu (${savedMovies.length})`;
+
+    if (savedMovies.length === 0) {
+      const emptyState = createEl('div', 'empty-state');
+      emptyState.style.cssText = 'text-align:center;padding:60px 20px;color:var(--muted);';
+      emptyState.innerHTML = `
+        <div style="font-size:48px;margin-bottom:16px;">📺</div>
+        <h3 style="margin:0 0 8px 0;color:var(--text);">Chưa có phim nào được lưu</h3>
+        <p style="margin:0 0 20px 0;">Lưu những bộ phim yêu thích để xem sau</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button class="btn btn--ghost" onclick="navigateTo('#/')">Khám phá phim</button>
+          <button class="btn sync-device-btn-empty" style="background:#6c5ce7;color:white;">📱 Sync thiết bị</button>
+        </div>
+        <div style="font-size:12px;margin-top:16px;color:var(--muted);">
+          💡 Phim được lưu trên ${window.movieComments?.initialized ? 'Firebase - sync mọi thiết bị' : 'thiết bị này'}
+        </div>
+      `;
+      root.appendChild(emptyState);
+
+      // Add event listener for empty state sync button
+      const emptySyncBtn = emptyState.querySelector('.sync-device-btn-empty');
+      if (emptySyncBtn) {
+        emptySyncBtn.addEventListener('click', () => {
+          window.showCrossDeviceSync();
+        });
+      }
+
+      delete root.dataset.rendering;
+      return;
+    }
   
   // Thông tin thống kê
   const stats = createEl('div', 'saved-stats');
@@ -2427,39 +2812,216 @@ async function renderSavedMovies(root) {
   `;
   root.appendChild(stats);
   
+  // Sync status indicator with cross-device sync button
+  const syncStatus = createEl('div', 'sync-status');
+  syncStatus.style.cssText = 'margin-bottom:20px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:13px;';
+
+  const isFirebaseReady = window.movieComments?.initialized;
+  const currentUser = isFirebaseReady ? window.movieComments.getUserName() : 'Khách';
+
+  // Debug log
+  console.log('🔍 Sync Button Debug - renderSavedMovies:', {
+    isFirebaseReady,
+    currentUser,
+    hasMovieComments: !!window.movieComments,
+    location: window.location.hash
+  });
+
+  syncStatus.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:16px;">${isFirebaseReady ? '🔄' : '💾'}</span>
+        <div>
+          <div style="font-weight:500;color:var(--text);">
+            ${isFirebaseReady ? 'Đồng bộ Firebase' : 'Đang kết nối Firebase'} • ${currentUser}
+          </div>
+          <div style="color:var(--muted);font-size:12px;">
+            ${isFirebaseReady ?
+              'Phim được sync trên mọi thiết bị và trình duyệt' :
+              'Đang tải dữ liệu từ Firebase...'}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn--ghost refresh-firebase-btn" style="font-size:12px;padding:6px 12px;background:#00b894;color:white;" title="Làm mới Firebase và trang web (F5)">
+          🔄 Làm mới
+        </button>
+        <button class="btn btn--ghost sync-device-btn" style="font-size:12px;padding:6px 12px;background:#6c5ce7;color:white;">
+          📱 Sync thiết bị
+        </button>
+      </div>
+    </div>
+  `;
+  root.appendChild(syncStatus);
+
+  // Add F5 keyboard shortcut for Firebase + page refresh (only on saved movies page)
+  const handleKeyPress = (event) => {
+    if (event.key === 'F5' && window.location.hash === '#/phim-da-luu') {
+      // Don't prevent default - let it reload page, but also clear Firebase cache first
+      console.log('⌨️ F5 pressed on saved movies page - clearing Firebase cache before reload');
+
+      // Clear Firebase cache before page reload
+      if (window.Storage) {
+        window.Storage._savedMoviesCache = null;
+        window.Storage._watchProgressCache = null;
+        window.Storage._lastCacheUpdate = 0;
+        window.Storage._forceFirebaseMode = true;
+      }
+
+      // Clear localStorage
+      localStorage.removeItem('savedMovies');
+      localStorage.removeItem('watchProgress');
+
+      // Let browser handle the page reload naturally
+      // No event.preventDefault() - allow normal F5 behavior
+    }
+  };
+
+  // Add keyboard listener
+  document.addEventListener('keydown', handleKeyPress);
+
+  // Clean up listener when page changes
+  const cleanup = () => {
+    document.removeEventListener('keydown', handleKeyPress);
+  };
+
+  // Store cleanup function for later use
+  if (!window.savedMoviesCleanup) {
+    window.savedMoviesCleanup = [];
+  }
+  window.savedMoviesCleanup.push(cleanup);
+
+  // Add event listener for refresh Firebase + page button
+  const refreshFirebaseBtn = syncStatus.querySelector('.refresh-firebase-btn');
+  if (refreshFirebaseBtn) {
+    refreshFirebaseBtn.addEventListener('click', async () => {
+      refreshFirebaseBtn.disabled = true;
+      refreshFirebaseBtn.textContent = '⏳ Đang tải...';
+
+      try {
+        console.log('🔄 Starting Firebase + Page refresh...');
+
+        // Step 1: Clear all caches to force fresh data from Firebase
+        if (window.Storage) {
+          window.Storage._savedMoviesCache = null;
+          window.Storage._watchProgressCache = null;
+          window.Storage._lastCacheUpdate = 0;
+          window.Storage._forceFirebaseMode = true; // Force Firebase mode
+        }
+
+        // Step 2: Clear any localStorage remnants
+        localStorage.removeItem('savedMovies');
+        localStorage.removeItem('watchProgress');
+
+        console.log('🗑️ Cleared all caches and localStorage');
+
+        // Step 3: Show loading message
+        if (window.showNotification) {
+          window.showNotification({
+            message: '🔄 Đang làm mới Firebase và trang web...',
+            timestamp: new Date().toISOString()
+          });
+        }
+
+        // Step 4: Wait a moment for cache clearing to take effect
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        console.log('🌐 Reloading page for complete refresh...');
+
+        // Step 5: Reload the entire page for complete refresh
+        window.location.reload();
+
+      } catch (error) {
+        console.error('❌ Firebase + Page refresh failed:', error);
+
+        // Show error notification
+        if (window.showNotification) {
+          window.showNotification({
+            message: '❌ Lỗi khi làm mới: ' + error.message,
+            timestamp: new Date().toISOString()
+          });
+        }
+
+        // Still reload page even if there's an error
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
+    });
+  }
+
+  // Add event listener for sync device button
+  const syncDeviceBtn = syncStatus.querySelector('.sync-device-btn');
+  if (syncDeviceBtn) {
+    syncDeviceBtn.addEventListener('click', () => {
+      window.showCrossDeviceSync();
+    });
+  }
+
   // Actions
   const actions = createEl('div', 'saved-actions');
   actions.style.cssText = 'display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;';
-  
-  const clearAllBtn = createEl('button', 'btn btn--danger', '🗑️ Xóa tất cả');
-  clearAllBtn.addEventListener('click', () => {
-    if (confirm('Bạn có chắc muốn xóa tất cả phim đã lưu?')) {
-      localStorage.removeItem('savedMovies');
-      renderSavedMovies(root); // Re-render
-      showNotification({
-        message: 'Đã xóa tất cả phim đã lưu',
-        timestamp: new Date().toISOString()
-      });
-    }
-  });
-  
-  const exportBtn = createEl('button', 'btn btn--ghost', '📤 Xuất danh sách');
-  exportBtn.addEventListener('click', () => {
-    const data = savedMovies.map(m => `${m.name} (${m.year}) - ${window.location.origin}/#/phim/${m.slug}`).join('\n');
-    navigator.clipboard.writeText(data).then(() => {
-      exportBtn.textContent = '✅ Đã sao chép';
-      setTimeout(() => exportBtn.textContent = '📤 Xuất danh sách', 2000);
+
+    const clearAllBtn = createEl('button', 'btn btn--danger', '🗑️ Xóa tất cả');
+    clearAllBtn.addEventListener('click', async () => {
+      if (confirm('Bạn có chắc muốn xóa tất cả phim đã lưu?')) {
+        clearAllBtn.disabled = true;
+        clearAllBtn.textContent = 'Đang xóa...';
+
+        try {
+          const count = await Storage.clearAllSavedMovies();
+          showNotification({
+            message: `Đã xóa ${count} phim khỏi danh sách`,
+            timestamp: new Date().toISOString()
+          });
+          renderSavedMovies(root); // Re-render
+        } catch (error) {
+          console.error('Clear all failed:', error);
+          showNotification({
+            message: 'Có lỗi xảy ra khi xóa danh sách',
+            timestamp: new Date().toISOString()
+          });
+        } finally {
+          clearAllBtn.disabled = false;
+          clearAllBtn.textContent = '🗑️ Xóa tất cả';
+        }
+      }
     });
-  });
-  
-  actions.appendChild(clearAllBtn);
-  actions.appendChild(exportBtn);
-  root.appendChild(actions);
-  
-  // Danh sách phim
-  const moviesGrid = listGrid(savedMovies, 'grid');
-  root.appendChild(moviesGrid);
-  
+
+    const exportBtn = createEl('button', 'btn btn--ghost', '📤 Xuất danh sách');
+    exportBtn.addEventListener('click', () => {
+      const data = savedMovies.map(m => `${m.name} (${m.year}) - ${window.location.origin}/#/phim/${m.slug}`).join('\n');
+      navigator.clipboard.writeText(data).then(() => {
+        exportBtn.textContent = '✅ Đã sao chép';
+        setTimeout(() => exportBtn.textContent = '📤 Xuất danh sách', 2000);
+      });
+    });
+
+    // Removed duplicate refresh button - using the one in sync status instead
+
+    actions.appendChild(clearAllBtn);
+    actions.appendChild(exportBtn);
+    root.appendChild(actions);
+
+    // Danh sách phim
+    const moviesGrid = listGrid(savedMovies, 'grid');
+    root.appendChild(moviesGrid);
+
+  } catch (error) {
+    console.error('❌ Load saved movies failed:', error);
+    safeRemove(loadingState);
+
+    const errorState = createEl('div', 'error-state');
+    errorState.style.cssText = 'text-align:center;padding:60px 20px;color:var(--muted);';
+    errorState.innerHTML = `
+      <div style="font-size:48px;margin-bottom:16px;">❌</div>
+      <h3 style="margin:0 0 8px 0;color:var(--text);">Không thể tải danh sách phim</h3>
+      <p style="margin:0 0 20px 0;">Có lỗi xảy ra khi tải phim đã lưu</p>
+      <button class="btn btn--ghost" onclick="renderSavedMovies(document.getElementById('app'))">Thử lại</button>
+    `;
+    root.appendChild(errorState);
+  }
+
   delete root.dataset.rendering;
 }
 

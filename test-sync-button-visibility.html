@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Sync Button Visibility</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #121212;
+      color: #fff;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .test-section {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .btn {
+      background: #6c5ce7;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 5px;
+      font-size: 14px;
+    }
+    
+    .btn:hover { opacity: 0.8; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    
+    .status.success { background: rgba(76, 175, 80, 0.2); border: 1px solid #4caf50; }
+    .status.error { background: rgba(244, 67, 54, 0.2); border: 1px solid #f44336; }
+    .status.info { background: rgba(33, 150, 243, 0.2); border: 1px solid #2196f3; }
+    
+    .code-block {
+      background: #000;
+      color: #0f0;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+    
+    .preview-container {
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 15px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Test Sync Button Visibility</h1>
+    <p>Kiểm tra xem button "📱 Sync thiết bị" có hiển thị trong trang "Phim đã lưu" không</p>
+    
+    <!-- Quick Test -->
+    <div class="test-section">
+      <h3>⚡ Quick Test</h3>
+      <div id="quick-test-status" class="status info">Checking...</div>
+      
+      <button class="btn" onclick="testSyncButtonExists()">🔍 Check Button Exists</button>
+      <button class="btn" onclick="testShowSyncDialog()">📱 Test Sync Dialog</button>
+      <button class="btn" onclick="simulateSavedMoviesPage()">📺 Simulate Page</button>
+    </div>
+
+    <!-- System Status -->
+    <div class="test-section">
+      <h3>📊 System Status</h3>
+      <div class="code-block" id="system-status">
+        Loading system status...
+      </div>
+    </div>
+
+    <!-- Button Preview -->
+    <div class="test-section">
+      <h3>🎨 Button Preview</h3>
+      <p>Đây là cách button sẽ hiển thị:</p>
+      
+      <!-- Empty State Preview -->
+      <div class="preview-container">
+        <h4>📺 Empty State (Chưa có phim)</h4>
+        <div style="text-align:center;padding:40px 20px;color:#888;">
+          <div style="font-size:48px;margin-bottom:16px;">📺</div>
+          <h3 style="margin:0 0 8px 0;color:#fff;">Chưa có phim nào được lưu</h3>
+          <p style="margin:0 0 20px 0;">Lưu những bộ phim yêu thích để xem sau</p>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <button class="btn" style="background:#666;">Khám phá phim</button>
+            <button class="btn" onclick="testShowSyncDialog()" style="background:#6c5ce7;color:white;">📱 Sync thiết bị</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- With Movies Preview -->
+      <div class="preview-container">
+        <h4>📚 With Movies State (Có phim)</h4>
+        <div style="padding:12px;background:#333;border:1px solid #555;border-radius:8px;font-size:13px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:16px;">🔄</span>
+              <div>
+                <div style="font-weight:500;color:#fff;">
+                  Đồng bộ Firebase • Test User
+                </div>
+                <div style="color:#888;font-size:12px;">
+                  Phim được sync trên mọi thiết bị và trình duyệt
+                </div>
+              </div>
+            </div>
+            <button class="btn" onclick="testShowSyncDialog()" style="font-size:12px;padding:6px 12px;background:#6c5ce7;color:white;">
+              📱 Sync thiết bị
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual Navigation Test -->
+    <div class="test-section">
+      <h3>🧭 Manual Navigation Test</h3>
+      <p>Test navigation to saved movies page:</p>
+      
+      <button class="btn" onclick="navigateToSavedMovies()">🎬 Go to Saved Movies</button>
+      <button class="btn" onclick="checkCurrentPage()">📍 Check Current Page</button>
+      <button class="btn" onclick="inspectPageElements()">🔍 Inspect Elements</button>
+      
+      <div id="navigation-results" style="margin-top: 15px;"></div>
+    </div>
+
+    <!-- Console Output -->
+    <div class="test-section">
+      <h3>📝 Console Output</h3>
+      <div class="code-block" id="console-output">
+        Console messages will appear here...
+      </div>
+    </div>
+  </div>
+
+  <!-- Load Firebase and App -->
+  <script src="./firebase-config.js"></script>
+  <script src="./assets/app.js"></script>
+  
+  <script>
+    let consoleMessages = [];
+    
+    // Capture console messages
+    const originalConsole = {
+      log: console.log,
+      error: console.error,
+      warn: console.warn
+    };
+    
+    function captureConsole() {
+      ['log', 'error', 'warn'].forEach(method => {
+        console[method] = function(...args) {
+          const message = args.join(' ');
+          consoleMessages.push(`[${method.toUpperCase()}] ${message}`);
+          updateConsoleOutput();
+          originalConsole[method].apply(console, args);
+        };
+      });
+    }
+    
+    function updateConsoleOutput() {
+      const consoleOutput = document.getElementById('console-output');
+      const recent = consoleMessages.slice(-10);
+      consoleOutput.innerHTML = recent.map(msg => `<div>${msg}</div>`).join('');
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+    
+    function updateSystemStatus() {
+      const status = {
+        'window.movieComments exists': !!window.movieComments,
+        'movieComments.initialized': window.movieComments?.initialized || false,
+        'showCrossDeviceSync exists': !!window.showCrossDeviceSync,
+        'Current hash': window.location.hash,
+        'Current timestamp': new Date().toLocaleTimeString()
+      };
+      
+      document.getElementById('system-status').innerHTML = Object.entries(status)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join('\n');
+    }
+    
+    function testSyncButtonExists() {
+      const buttons = document.querySelectorAll('.sync-device-btn, .sync-device-btn-empty');
+      const count = buttons.length;
+      
+      if (count > 0) {
+        document.getElementById('quick-test-status').innerHTML = `✅ Found ${count} sync button(s) on page`;
+        document.getElementById('quick-test-status').className = 'status success';
+        
+        buttons.forEach((btn, index) => {
+          console.log(`Button ${index + 1}:`, btn.textContent.trim(), btn.className);
+        });
+      } else {
+        document.getElementById('quick-test-status').innerHTML = '❌ No sync buttons found on page';
+        document.getElementById('quick-test-status').className = 'status error';
+      }
+    }
+    
+    function testShowSyncDialog() {
+      try {
+        if (window.showCrossDeviceSync) {
+          window.showCrossDeviceSync();
+          console.log('✅ showCrossDeviceSync() called successfully');
+        } else {
+          console.error('❌ window.showCrossDeviceSync not found');
+          alert('❌ showCrossDeviceSync function not found');
+        }
+      } catch (error) {
+        console.error('❌ Error calling showCrossDeviceSync:', error);
+        alert(`❌ Error: ${error.message}`);
+      }
+    }
+    
+    function simulateSavedMoviesPage() {
+      // Create a test container
+      const testContainer = document.createElement('div');
+      testContainer.id = 'test-app';
+      testContainer.style.cssText = 'position:fixed;top:50px;right:20px;width:400px;max-height:80vh;overflow-y:auto;background:#1e1e1e;border:1px solid #333;border-radius:8px;padding:20px;z-index:1000;';
+      
+      testContainer.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+          <h4 style="margin:0;color:#fff;">🎬 Simulated Saved Movies</h4>
+          <button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:18px;">×</button>
+        </div>
+        <div id="simulated-content">Loading...</div>
+      `;
+      
+      document.body.appendChild(testContainer);
+      
+      // Simulate renderSavedMovies
+      setTimeout(async () => {
+        const content = document.getElementById('simulated-content');
+        
+        try {
+          // Check if we have saved movies
+          const savedMovies = window.Storage ? await window.Storage.getSavedMovies() : [];
+          
+          if (savedMovies.length === 0) {
+            // Empty state
+            content.innerHTML = `
+              <div style="text-align:center;padding:40px 20px;color:#888;">
+                <div style="font-size:48px;margin-bottom:16px;">📺</div>
+                <h3 style="margin:0 0 8px 0;color:#fff;">Chưa có phim nào được lưu</h3>
+                <p style="margin:0 0 20px 0;">Lưu những bộ phim yêu thích để xem sau</p>
+                <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                  <button class="btn" style="background:#666;">Khám phá phim</button>
+                  <button class="btn sync-device-btn-empty" onclick="testShowSyncDialog()" style="background:#6c5ce7;color:white;">📱 Sync thiết bị</button>
+                </div>
+              </div>
+            `;
+          } else {
+            // With movies state
+            content.innerHTML = `
+              <div style="margin-bottom:20px;padding:16px;background:#333;border:1px solid #555;border-radius:12px;">
+                <div style="font-size:14px;color:#888;">
+                  📊 Tổng cộng: <strong style="color:#fff;">${savedMovies.length}</strong> phim
+                </div>
+              </div>
+              
+              <div style="margin-bottom:20px;padding:12px;background:#333;border:1px solid #555;border-radius:8px;font-size:13px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:16px;">🔄</span>
+                    <div>
+                      <div style="font-weight:500;color:#fff;">
+                        Đồng bộ Firebase • Test User
+                      </div>
+                      <div style="color:#888;font-size:12px;">
+                        Phim được sync trên mọi thiết bị và trình duyệt
+                      </div>
+                    </div>
+                  </div>
+                  <button class="btn sync-device-btn" onclick="testShowSyncDialog()" style="font-size:12px;padding:6px 12px;background:#6c5ce7;color:white;">
+                    📱 Sync thiết bị
+                  </button>
+                </div>
+              </div>
+              
+              <div style="color:#888;font-size:12px;">
+                Simulated ${savedMovies.length} saved movies...
+              </div>
+            `;
+          }
+          
+          console.log('✅ Simulated saved movies page rendered');
+          
+        } catch (error) {
+          content.innerHTML = `<div style="color:#f44336;">❌ Error: ${error.message}</div>`;
+          console.error('❌ Simulation error:', error);
+        }
+      }, 500);
+    }
+    
+    function navigateToSavedMovies() {
+      window.location.hash = '#/phim-da-luu';
+      setTimeout(() => {
+        checkCurrentPage();
+      }, 1000);
+    }
+    
+    function checkCurrentPage() {
+      const hash = window.location.hash;
+      const appElement = document.getElementById('app');
+      const syncButtons = document.querySelectorAll('.sync-device-btn, .sync-device-btn-empty');
+      
+      const results = `
+        <div class="status info">
+          <strong>Current Hash:</strong> ${hash}<br>
+          <strong>App Element:</strong> ${appElement ? 'Found' : 'Not Found'}<br>
+          <strong>Sync Buttons:</strong> ${syncButtons.length} found<br>
+          <strong>Page Title:</strong> ${document.title}
+        </div>
+      `;
+      
+      document.getElementById('navigation-results').innerHTML = results;
+      console.log('📍 Page check:', { hash, appElement: !!appElement, syncButtons: syncButtons.length });
+    }
+    
+    function inspectPageElements() {
+      const elements = {
+        'app': document.getElementById('app'),
+        'sync-device-btn': document.querySelectorAll('.sync-device-btn'),
+        'sync-device-btn-empty': document.querySelectorAll('.sync-device-btn-empty'),
+        'sync-status': document.querySelectorAll('.sync-status'),
+        'saved-stats': document.querySelectorAll('.saved-stats')
+      };
+      
+      let results = '<div class="status info"><strong>Page Elements:</strong><br>';
+      
+      Object.entries(elements).forEach(([name, element]) => {
+        if (element.length !== undefined) {
+          results += `${name}: ${element.length} found<br>`;
+        } else {
+          results += `${name}: ${element ? 'Found' : 'Not Found'}<br>`;
+        }
+      });
+      
+      results += '</div>';
+      
+      document.getElementById('navigation-results').innerHTML = results;
+      console.log('🔍 Element inspection:', elements);
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      captureConsole();
+      
+      // Initial status check
+      setTimeout(() => {
+        updateSystemStatus();
+        testSyncButtonExists();
+      }, 1000);
+      
+      // Auto-refresh status every 3 seconds
+      setInterval(() => {
+        updateSystemStatus();
+      }, 3000);
+    });
+  </script>
+</body>
+</html>

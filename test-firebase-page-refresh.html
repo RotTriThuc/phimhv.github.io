@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Firebase + Page Refresh</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #121212;
+      color: #fff;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    .test-section {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .btn {
+      background: #6c5ce7;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 5px;
+      font-size: 14px;
+    }
+    
+    .btn:hover { opacity: 0.8; }
+    .btn--success { background: #00b894; }
+    .btn--danger { background: #e74c3c; }
+    .btn--warning { background: #f39c12; }
+    
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    
+    .status.success { background: rgba(76, 175, 80, 0.2); border: 1px solid #4caf50; }
+    .status.error { background: rgba(244, 67, 54, 0.2); border: 1px solid #f44336; }
+    .status.info { background: rgba(33, 150, 243, 0.2); border: 1px solid #2196f3; }
+    .status.warning { background: rgba(243, 156, 18, 0.2); border: 1px solid #f39c12; }
+    
+    .refresh-demo {
+      background: #2a2a2a;
+      border: 2px solid #00b894;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 15px 0;
+    }
+    
+    .step-indicator {
+      background: #333;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 10px 0;
+      border-left: 4px solid #00b894;
+    }
+    
+    .cache-status {
+      background: #1a1a1a;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 10px 0;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    
+    .warning-box {
+      background: rgba(243, 156, 18, 0.1);
+      border: 1px solid #f39c12;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    
+    .log-area {
+      background: #000;
+      color: #0f0;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin: 15px 0;
+    }
+    
+    .countdown {
+      font-size: 18px;
+      font-weight: bold;
+      color: #f39c12;
+      text-align: center;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔄 Test Firebase + Page Refresh</h1>
+    <p>Test nút "Làm mới" refresh cả Firebase data lẫn trang web</p>
+    
+    <!-- Warning -->
+    <div class="warning-box">
+      <strong>⚠️ Lưu ý:</strong> Test này sẽ reload trang web. Hãy chuẩn bị để trang sẽ được refresh!
+    </div>
+    
+    <!-- Current Status -->
+    <div class="test-section">
+      <h3>📊 Current Status</h3>
+      
+      <div class="cache-status" id="cache-status">
+        Loading cache status...
+      </div>
+      
+      <div style="display: flex; gap: 10px; margin: 15px 0;">
+        <button class="btn" onclick="checkCacheStatus()">🔍 Check Cache Status</button>
+        <button class="btn btn--warning" onclick="addTestData()">➕ Add Test Data</button>
+        <button class="btn btn--danger" onclick="clearAllData()">🗑️ Clear All Data</button>
+      </div>
+      
+      <div id="status-results"></div>
+    </div>
+
+    <!-- Refresh Process Demo -->
+    <div class="test-section">
+      <h3>🔄 Refresh Process Demo</h3>
+      <p>Mô phỏng quá trình refresh Firebase + page</p>
+      
+      <div class="refresh-demo">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <div>
+            <div style="font-weight: bold;">🔥 Đồng bộ Firebase • Test User</div>
+            <div style="font-size: 12px; color: #888;">Phim được sync trên mọi thiết bị và trình duyệt</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn--success" onclick="simulateRefresh()" id="demo-refresh-btn">
+              🔄 Làm mới
+            </button>
+            <button class="btn">📱 Sync thiết bị</button>
+          </div>
+        </div>
+        
+        <div id="refresh-steps" style="display: none;">
+          <div class="step-indicator">
+            <strong>Step 1:</strong> 🗑️ Clear Firebase cache và localStorage
+          </div>
+          <div class="step-indicator">
+            <strong>Step 2:</strong> 🔄 Force Firebase mode
+          </div>
+          <div class="step-indicator">
+            <strong>Step 3:</strong> 🌐 Reload entire page
+          </div>
+          <div class="countdown" id="countdown">Reloading in 3...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Real Button Test -->
+    <div class="test-section">
+      <h3>🧪 Real Button Test</h3>
+      <p>Test với nút thật trong trang "Phim đã lưu"</p>
+      
+      <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <button class="btn" onclick="navigateToSavedMovies()">📺 Go to Saved Movies</button>
+        <button class="btn btn--success" onclick="testRealRefreshButton()">🔄 Test Real Refresh</button>
+        <button class="btn btn--warning" onclick="testF5Shortcut()">⌨️ Test F5 (Will Reload!)</button>
+      </div>
+      
+      <div class="warning-box">
+        <strong>⚠️ Cảnh báo:</strong> Các test này sẽ thực sự reload trang!
+      </div>
+      
+      <div id="real-test-results"></div>
+    </div>
+
+    <!-- Before/After Comparison -->
+    <div class="test-section">
+      <h3>📊 Before/After Comparison</h3>
+      <p>So sánh trạng thái trước và sau khi refresh</p>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div>
+          <h4>📸 Before Refresh</h4>
+          <div class="cache-status" id="before-status">
+            Click "Capture Before" to record current state
+          </div>
+          <button class="btn" onclick="captureBeforeState()">📸 Capture Before</button>
+        </div>
+        
+        <div>
+          <h4>🔄 After Refresh</h4>
+          <div class="cache-status" id="after-status">
+            Will be populated after page reload
+          </div>
+          <button class="btn btn--success" onclick="captureAfterState()">🔄 Capture After</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Debug Log -->
+    <div class="test-section">
+      <h3>📝 Debug Log</h3>
+      <div class="log-area" id="debug-log">
+        Debug messages will appear here...
+      </div>
+      <button class="btn" onclick="clearDebugLog()">🗑️ Clear Log</button>
+    </div>
+  </div>
+
+  <!-- Load Firebase and App -->
+  <script src="./firebase-config.js"></script>
+  <script src="./assets/app.js"></script>
+  
+  <script>
+    let debugMessages = [];
+    let beforeState = null;
+    
+    // Capture console
+    const originalConsole = {
+      log: console.log,
+      error: console.error,
+      warn: console.warn
+    };
+    
+    function captureConsole() {
+      ['log', 'error', 'warn'].forEach(method => {
+        console[method] = function(...args) {
+          const message = args.join(' ');
+          debugMessages.push(`[${method.toUpperCase()}] ${message}`);
+          updateDebugLog();
+          originalConsole[method].apply(console, args);
+        };
+      });
+    }
+    
+    function updateDebugLog() {
+      const debugLog = document.getElementById('debug-log');
+      const recent = debugMessages.slice(-15);
+      debugLog.innerHTML = recent.map(msg => `<div>${msg}</div>`).join('');
+      debugLog.scrollTop = debugLog.scrollHeight;
+    }
+    
+    function clearDebugLog() {
+      debugMessages = [];
+      updateDebugLog();
+    }
+    
+    function addDebugMessage(message) {
+      debugMessages.push(`[TEST] ${message}`);
+      updateDebugLog();
+    }
+    
+    function checkCacheStatus() {
+      const status = {
+        'Firebase Cache': window.Storage?._savedMoviesCache ? 'Has Data' : 'Empty',
+        'Cache Timestamp': window.Storage?._lastCacheUpdate || 0,
+        'Force Firebase Mode': window.Storage?._forceFirebaseMode || false,
+        'localStorage savedMovies': localStorage.getItem('savedMovies') ? 'Has Data' : 'Empty',
+        'localStorage watchProgress': localStorage.getItem('watchProgress') ? 'Has Data' : 'Empty',
+        'Page Load Time': new Date().toLocaleTimeString()
+      };
+      
+      let statusHtml = '';
+      Object.entries(status).forEach(([key, value]) => {
+        statusHtml += `<div>${key}: <strong>${value}</strong></div>`;
+      });
+      
+      document.getElementById('cache-status').innerHTML = statusHtml;
+      addDebugMessage('📊 Cache status checked');
+    }
+    
+    function addTestData() {
+      // Add fake cache data
+      if (window.Storage) {
+        window.Storage._savedMoviesCache = [
+          { slug: 'test-1', name: 'Test Movie 1', savedAt: Date.now() },
+          { slug: 'test-2', name: 'Test Movie 2', savedAt: Date.now() }
+        ];
+        window.Storage._lastCacheUpdate = Date.now();
+      }
+      
+      // Add fake localStorage data
+      localStorage.setItem('savedMovies', JSON.stringify([
+        { slug: 'local-1', name: 'Local Movie 1', savedAt: Date.now() }
+      ]));
+      
+      document.getElementById('status-results').innerHTML = `
+        <div class="status success">✅ Added test data to cache and localStorage</div>
+      `;
+      
+      addDebugMessage('➕ Added test data');
+      checkCacheStatus();
+    }
+    
+    function clearAllData() {
+      // Clear Firebase cache
+      if (window.Storage) {
+        window.Storage._savedMoviesCache = null;
+        window.Storage._lastCacheUpdate = 0;
+        window.Storage._forceFirebaseMode = false;
+      }
+      
+      // Clear localStorage
+      localStorage.removeItem('savedMovies');
+      localStorage.removeItem('watchProgress');
+      
+      document.getElementById('status-results').innerHTML = `
+        <div class="status info">🗑️ Cleared all cache and localStorage data</div>
+      `;
+      
+      addDebugMessage('🗑️ Cleared all data');
+      checkCacheStatus();
+    }
+    
+    function simulateRefresh() {
+      const btn = document.getElementById('demo-refresh-btn');
+      const steps = document.getElementById('refresh-steps');
+      const countdown = document.getElementById('countdown');
+      
+      btn.disabled = true;
+      btn.textContent = '⏳ Đang tải...';
+      steps.style.display = 'block';
+      
+      addDebugMessage('🔄 Starting simulated refresh...');
+      
+      // Simulate the refresh process
+      let count = 3;
+      const countdownInterval = setInterval(() => {
+        countdown.textContent = `Reloading in ${count}...`;
+        count--;
+        
+        if (count < 0) {
+          clearInterval(countdownInterval);
+          countdown.textContent = '🌐 Reloading page now!';
+          
+          // Actually reload the page
+          addDebugMessage('🌐 Simulated refresh - reloading page');
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }
+      }, 1000);
+    }
+    
+    function navigateToSavedMovies() {
+      addDebugMessage('📺 Navigating to saved movies page...');
+      window.location.hash = '#/phim-da-luu';
+      
+      setTimeout(() => {
+        document.getElementById('real-test-results').innerHTML = `
+          <div class="status info">
+            📺 Navigated to saved movies page<br>
+            Current hash: ${window.location.hash}<br>
+            Look for the "🔄 Làm mới" button in the sync status section
+          </div>
+        `;
+      }, 1000);
+    }
+    
+    function testRealRefreshButton() {
+      addDebugMessage('🧪 Testing real refresh button...');
+      
+      const refreshBtn = document.querySelector('.refresh-firebase-btn');
+      if (refreshBtn) {
+        document.getElementById('real-test-results').innerHTML = `
+          <div class="status warning">
+            ⚠️ About to click real refresh button - page will reload!<br>
+            Button found: ${refreshBtn.textContent.trim()}
+          </div>
+        `;
+        
+        // Give user a moment to see the message
+        setTimeout(() => {
+          addDebugMessage('🔄 Clicking real refresh button - page will reload');
+          refreshBtn.click();
+        }, 2000);
+        
+      } else {
+        document.getElementById('real-test-results').innerHTML = `
+          <div class="status error">❌ Refresh button not found. Navigate to saved movies page first.</div>
+        `;
+        addDebugMessage('❌ Real refresh button not found');
+      }
+    }
+    
+    function testF5Shortcut() {
+      if (window.location.hash !== '#/phim-da-luu') {
+        document.getElementById('real-test-results').innerHTML = `
+          <div class="status warning">⚠️ F5 shortcut only works on saved movies page. Navigate there first.</div>
+        `;
+        return;
+      }
+      
+      document.getElementById('real-test-results').innerHTML = `
+        <div class="status warning">
+          ⚠️ About to simulate F5 key press - page will reload!<br>
+          This will clear Firebase cache and reload the page.
+        </div>
+      `;
+      
+      setTimeout(() => {
+        addDebugMessage('⌨️ Simulating F5 key press - page will reload');
+        
+        // Simulate F5 key press
+        const event = new KeyboardEvent('keydown', {
+          key: 'F5',
+          code: 'F5',
+          keyCode: 116,
+          which: 116,
+          bubbles: true
+        });
+        
+        document.dispatchEvent(event);
+        
+        // If F5 handling doesn't reload, do it manually
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+        
+      }, 2000);
+    }
+    
+    function captureBeforeState() {
+      beforeState = {
+        firebaseCache: window.Storage?._savedMoviesCache ? 'Has Data' : 'Empty',
+        cacheTimestamp: window.Storage?._lastCacheUpdate || 0,
+        forceFirebaseMode: window.Storage?._forceFirebaseMode || false,
+        localStorage: localStorage.getItem('savedMovies') ? 'Has Data' : 'Empty',
+        timestamp: new Date().toLocaleTimeString()
+      };
+      
+      let beforeHtml = '';
+      Object.entries(beforeState).forEach(([key, value]) => {
+        beforeHtml += `<div>${key}: <strong>${value}</strong></div>`;
+      });
+      
+      document.getElementById('before-status').innerHTML = beforeHtml;
+      
+      // Store in sessionStorage to survive page reload
+      sessionStorage.setItem('beforeRefreshState', JSON.stringify(beforeState));
+      
+      addDebugMessage('📸 Captured before state');
+    }
+    
+    function captureAfterState() {
+      const afterState = {
+        firebaseCache: window.Storage?._savedMoviesCache ? 'Has Data' : 'Empty',
+        cacheTimestamp: window.Storage?._lastCacheUpdate || 0,
+        forceFirebaseMode: window.Storage?._forceFirebaseMode || false,
+        localStorage: localStorage.getItem('savedMovies') ? 'Has Data' : 'Empty',
+        timestamp: new Date().toLocaleTimeString()
+      };
+      
+      let afterHtml = '';
+      Object.entries(afterState).forEach(([key, value]) => {
+        afterHtml += `<div>${key}: <strong>${value}</strong></div>`;
+      });
+      
+      document.getElementById('after-status').innerHTML = afterHtml;
+      
+      // Compare with before state if available
+      const storedBefore = sessionStorage.getItem('beforeRefreshState');
+      if (storedBefore) {
+        const before = JSON.parse(storedBefore);
+        afterHtml += '<br><strong>Changes:</strong><br>';
+        
+        Object.keys(afterState).forEach(key => {
+          if (before[key] !== afterState[key]) {
+            afterHtml += `<div style="color: #f39c12;">${key}: ${before[key]} → ${afterState[key]}</div>`;
+          }
+        });
+        
+        document.getElementById('after-status').innerHTML = afterHtml;
+      }
+      
+      addDebugMessage('🔄 Captured after state');
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      captureConsole();
+      
+      // Initial status check
+      setTimeout(() => {
+        checkCacheStatus();
+        addDebugMessage('🚀 Firebase + Page refresh test initialized');
+        
+        // Check if we just reloaded from a test
+        const storedBefore = sessionStorage.getItem('beforeRefreshState');
+        if (storedBefore) {
+          addDebugMessage('🔄 Detected page reload - capturing after state');
+          setTimeout(() => {
+            captureAfterState();
+          }, 2000);
+        }
+      }, 1000);
+    });
+  </script>
+</body>
+</html>

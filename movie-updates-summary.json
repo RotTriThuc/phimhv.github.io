@@ -1,73 +1,25 @@
 {
-  "lastUpdate": "2025-08-25T14:21:40.534Z",
-  "totalMovies": 24024,
+  "lastUpdate": "2025-08-25T16:24:58.475Z",
+  "totalMovies": 24025,
   "stats": {
-    "newMovies": 6,
-    "newEpisodes": 8,
-    "updatedMovies": 1
+    "newMovies": 1,
+    "newEpisodes": 1,
+    "updatedMovies": 0
   },
   "recentMovies": [
     {
-      "name": "Bách Yêu Phổ (Phần 5)",
-      "slug": "bach-yeu-pho-phan-5",
-      "year": 2025,
-      "added": "2025-08-25T14:21:40.434Z"
-    },
-    {
-      "name": "Bách Yêu Phổ (Phần 3)",
-      "slug": "bach-yeu-pho-phan-3",
-      "year": 2022,
-      "added": "2025-08-25T14:21:40.434Z"
-    },
-    {
-      "name": "Bách Yêu Phổ (Phần 2)",
-      "slug": "bach-yeu-pho-phan-2",
-      "year": 2021,
-      "added": "2025-08-25T14:21:40.434Z"
-    },
-    {
-      "name": "Bách Yêu Phổ (Phần 1)",
-      "slug": "bach-yeu-pho-phan-1",
-      "year": 2020,
-      "added": "2025-08-25T14:21:40.434Z"
-    },
-    {
-      "name": "Bình Minh Rực Lửa (Phần 2)",
-      "slug": "binh-minh-ruc-lua-phan-2",
-      "year": 2025,
-      "added": "2025-08-25T14:21:40.434Z"
+      "name": "Bên Người Gió Cũng Ngọt Ngào",
+      "slug": "ben-nguoi-gio-cung-ngot-ngao",
+      "year": 2023,
+      "added": "2025-08-25T16:24:58.390Z"
     }
   ],
   "recentEpisodes": [
     {
-      "name": "Cẩm Tú Trạch Tâm",
-      "slug": "cam-tu-trach-tam",
-      "episode": "Hoàn Tất (26/26)",
-      "updated": "2025-08-25T20:42:39.000Z"
-    },
-    {
-      "name": "Bách Yêu Phổ (Phần 4)",
-      "slug": "bach-yeu-pho-phan-4",
-      "episode": "Hoàn Tất (12/12)",
-      "updated": "2025-08-25T18:36:46.000Z"
-    },
-    {
-      "name": "Tử Dạ Quy",
-      "slug": "tu-da-quy",
-      "episode": "Tập 19",
-      "updated": "2025-08-25T18:16:52.000Z"
-    },
-    {
-      "name": "Ớt Nhỏ Thập Niên 80",
-      "slug": "ot-nho-thap-nien-80",
-      "episode": "Hoàn Tất (24/24)",
-      "updated": "2025-08-25T18:16:33.000Z"
-    },
-    {
-      "name": "Đấu Trí Ký Ức",
-      "slug": "dau-tri-ky-uc",
-      "episode": "Tập 11",
-      "updated": "2025-08-25T18:15:52.000Z"
+      "name": "Lữ Trình Thanh Xuân",
+      "slug": "lu-trinh-thanh-xuan",
+      "episode": "Tập 8",
+      "updated": "2025-08-25T21:54:25.000Z"
     }
   ]
 }

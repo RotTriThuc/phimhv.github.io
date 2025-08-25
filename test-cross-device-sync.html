@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Cross-Device Sync</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #121212;
+      color: #fff;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    .test-section {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .btn {
+      background: #6c5ce7;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 5px;
+      font-size: 14px;
+    }
+    
+    .btn:hover { opacity: 0.8; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .btn--success { background: #00b894; }
+    .btn--danger { background: #e74c3c; }
+    
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    
+    .status.success { background: rgba(76, 175, 80, 0.2); border: 1px solid #4caf50; }
+    .status.error { background: rgba(244, 67, 54, 0.2); border: 1px solid #f44336; }
+    .status.info { background: rgba(33, 150, 243, 0.2); border: 1px solid #2196f3; }
+    
+    .device-simulator {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    
+    .device {
+      background: #2a2a2a;
+      border: 2px solid #444;
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+    }
+    
+    .device-header {
+      background: #333;
+      margin: -20px -20px 15px -20px;
+      padding: 10px 20px;
+      border-radius: 10px 10px 0 0;
+      font-weight: bold;
+      text-align: center;
+    }
+    
+    .movie-list {
+      background: #1a1a1a;
+      border-radius: 6px;
+      padding: 10px;
+      margin: 10px 0;
+      min-height: 100px;
+    }
+    
+    .movie-item {
+      background: #333;
+      padding: 8px 12px;
+      margin: 5px 0;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    
+    .sync-code-display {
+      background: #6c5ce7;
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      letter-spacing: 3px;
+      margin: 10px 0;
+    }
+    
+    .sync-input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #555;
+      border-radius: 6px;
+      background: #333;
+      color: #fff;
+      text-align: center;
+      font-size: 18px;
+      letter-spacing: 2px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📱 Test Cross-Device Sync</h1>
+    <p>Simulate sync giữa 2 thiết bị/trình duyệt khác nhau</p>
+    
+    <!-- Current Status -->
+    <div class="test-section">
+      <h3>📊 Current Status</h3>
+      <div id="current-status" class="status info">Checking system status...</div>
+      <div>
+        <strong>Current User:</strong> <span id="current-user">Loading...</span><br>
+        <strong>Current User ID:</strong> <span id="current-user-id" style="font-family: monospace; font-size: 12px;">Loading...</span><br>
+        <strong>Firebase Status:</strong> <span id="firebase-status">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Device Simulator -->
+    <div class="test-section">
+      <h3>🔄 Cross-Device Sync Simulator</h3>
+      <p>Mô phỏng sync giữa Opera và Edge</p>
+      
+      <div class="device-simulator">
+        <!-- Device A (Opera) -->
+        <div class="device">
+          <div class="device-header">🌐 Opera Browser</div>
+          
+          <div>
+            <strong>User:</strong> <span id="device-a-user">Hoài Vũ</span><br>
+            <strong>User ID:</strong> <span id="device-a-id" style="font-size: 11px; color: #888;">user_abc123...</span>
+          </div>
+          
+          <div class="movie-list" id="device-a-movies">
+            <div style="color: #888; text-align: center; padding: 20px;">
+              Chưa có phim nào
+            </div>
+          </div>
+          
+          <button class="btn" onclick="addMovieToDeviceA()">➕ Thêm phim</button>
+          <button class="btn btn--success" onclick="generateSyncCode()">📤 Tạo mã sync</button>
+          
+          <div id="sync-code-container" style="display: none;">
+            <div class="sync-code-display" id="sync-code">123456</div>
+            <div style="text-align: center; font-size: 12px; color: #888;">
+              Nhập mã này trên Edge
+            </div>
+          </div>
+        </div>
+
+        <!-- Device B (Edge) -->
+        <div class="device">
+          <div class="device-header">🔷 Microsoft Edge</div>
+          
+          <div>
+            <strong>User:</strong> <span id="device-b-user">Khách</span><br>
+            <strong>User ID:</strong> <span id="device-b-id" style="font-size: 11px; color: #888;">user_xyz789...</span>
+          </div>
+          
+          <div class="movie-list" id="device-b-movies">
+            <div style="color: #888; text-align: center; padding: 20px;">
+              Chưa có phim nào
+            </div>
+          </div>
+          
+          <input type="text" class="sync-input" id="sync-input" placeholder="Nhập mã sync từ Opera" maxlength="6">
+          <button class="btn btn--success" onclick="applySyncCode()">📥 Đồng bộ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Real System Test -->
+    <div class="test-section">
+      <h3>🧪 Real System Test</h3>
+      <p>Test với hệ thống Firebase thực tế</p>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div>
+          <button class="btn" onclick="testSaveMovie()">💾 Save Test Movie</button>
+          <button class="btn" onclick="testLoadMovies()">📚 Load Saved Movies</button>
+          <button class="btn btn--success" onclick="testGenerateSyncCode()">📤 Generate Real Sync Code</button>
+        </div>
+        <div>
+          <input type="text" id="real-sync-input" placeholder="Enter real sync code" maxlength="6" style="padding: 8px; border-radius: 4px; border: 1px solid #555; background: #333; color: #fff; width: 120px;">
+          <button class="btn btn--success" onclick="testApplySyncCode()">📥 Apply Real Sync</button>
+        </div>
+      </div>
+      
+      <div id="real-test-results" style="margin-top: 15px;"></div>
+    </div>
+
+    <!-- Test Results -->
+    <div class="test-section">
+      <h3>📋 Test Results</h3>
+      <div id="test-results"></div>
+    </div>
+  </div>
+
+  <!-- Load Firebase and App -->
+  <script src="./firebase-config.js"></script>
+  <script src="./assets/app.js"></script>
+  
+  <script>
+    let testResults = [];
+    let deviceAMovies = [];
+    let deviceBMovies = [];
+    let currentSyncCode = null;
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initializeTest();
+    });
+    
+    async function initializeTest() {
+      try {
+        // Wait for Firebase to initialize
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Update current status
+        if (window.movieComments) {
+          const userId = window.movieComments.getUserId();
+          const userName = window.movieComments.getUserName();
+          const isFirebaseReady = window.movieComments.initialized;
+          
+          document.getElementById('current-user').textContent = userName;
+          document.getElementById('current-user-id').textContent = userId;
+          document.getElementById('firebase-status').textContent = isFirebaseReady ? '✅ Connected' : '❌ Not Ready';
+          
+          document.getElementById('current-status').innerHTML = isFirebaseReady ? 
+            '✅ System ready for cross-device sync testing' : 
+            '⚠️ Firebase not ready - some features may not work';
+          document.getElementById('current-status').className = isFirebaseReady ? 'status success' : 'status error';
+          
+          // Update device simulators
+          document.getElementById('device-a-user').textContent = userName;
+          document.getElementById('device-a-id').textContent = userId.substring(0, 20) + '...';
+          
+        } else {
+          document.getElementById('current-status').innerHTML = '❌ movieComments not loaded';
+          document.getElementById('current-status').className = 'status error';
+        }
+        
+        addTestResult('info', 'Test system initialized');
+        
+      } catch (error) {
+        addTestResult('error', `Initialization failed: ${error.message}`);
+      }
+    }
+    
+    function addTestResult(type, message) {
+      const timestamp = new Date().toLocaleTimeString();
+      testResults.unshift({ type, message, timestamp });
+      
+      if (testResults.length > 10) {
+        testResults = testResults.slice(0, 10);
+      }
+      
+      const resultsHtml = testResults.map(result => `
+        <div class="status ${result.type}">
+          <strong>[${result.timestamp}]</strong> ${result.message}
+        </div>
+      `).join('');
+      
+      document.getElementById('test-results').innerHTML = resultsHtml;
+    }
+    
+    // Simulator functions
+    function addMovieToDeviceA() {
+      const movieNames = [
+        'Thanh Gươm Diệt Quỷ',
+        'Attack on Titan', 
+        'One Piece',
+        'Naruto Shippuden',
+        'Dragon Ball Super'
+      ];
+      
+      const randomMovie = movieNames[Math.floor(Math.random() * movieNames.length)];
+      if (!deviceAMovies.includes(randomMovie)) {
+        deviceAMovies.push(randomMovie);
+        updateDeviceMovieList('device-a-movies', deviceAMovies);
+        addTestResult('success', `Added "${randomMovie}" to Opera`);
+      }
+    }
+    
+    function generateSyncCode() {
+      currentSyncCode = Math.random().toString().substring(2, 8);
+      document.getElementById('sync-code').textContent = currentSyncCode;
+      document.getElementById('sync-code-container').style.display = 'block';
+      addTestResult('success', `Generated sync code: ${currentSyncCode}`);
+    }
+    
+    function applySyncCode() {
+      const inputCode = document.getElementById('sync-input').value.trim();
+      if (inputCode === currentSyncCode) {
+        // Sync successful
+        deviceBMovies = [...deviceAMovies];
+        updateDeviceMovieList('device-b-movies', deviceBMovies);
+        
+        // Update device B user info
+        document.getElementById('device-b-user').textContent = document.getElementById('device-a-user').textContent;
+        document.getElementById('device-b-id').textContent = document.getElementById('device-a-id').textContent;
+        
+        addTestResult('success', `✅ Sync successful! ${deviceBMovies.length} movies synced to Edge`);
+        
+        // Clear sync code
+        document.getElementById('sync-code-container').style.display = 'none';
+        document.getElementById('sync-input').value = '';
+        currentSyncCode = null;
+        
+      } else {
+        addTestResult('error', '❌ Invalid sync code');
+      }
+    }
+    
+    function updateDeviceMovieList(containerId, movies) {
+      const container = document.getElementById(containerId);
+      if (movies.length === 0) {
+        container.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Chưa có phim nào</div>';
+      } else {
+        container.innerHTML = movies.map(movie => 
+          `<div class="movie-item">🎬 ${movie}</div>`
+        ).join('');
+      }
+    }
+    
+    // Real system test functions
+    async function testSaveMovie() {
+      try {
+        const testMovie = {
+          slug: 'test-movie-' + Date.now(),
+          name: 'Test Movie ' + new Date().toLocaleTimeString(),
+          poster_url: 'https://via.placeholder.com/300x400',
+          year: 2025,
+          lang: 'Vietsub'
+        };
+        
+        if (window.movieComments) {
+          const result = await window.movieComments.saveMovie(testMovie);
+          addTestResult('success', `✅ Saved movie: ${testMovie.name}`);
+        } else {
+          addTestResult('error', '❌ movieComments not available');
+        }
+      } catch (error) {
+        addTestResult('error', `❌ Save failed: ${error.message}`);
+      }
+    }
+    
+    async function testLoadMovies() {
+      try {
+        if (window.movieComments) {
+          const movies = await window.movieComments.getSavedMovies();
+          addTestResult('success', `📚 Loaded ${movies.length} movies from Firebase`);
+          
+          const resultDiv = document.getElementById('real-test-results');
+          resultDiv.innerHTML = `
+            <div class="status info">
+              <strong>Saved Movies (${movies.length}):</strong><br>
+              ${movies.map(m => `• ${m.name || m.slug}`).join('<br>') || 'No movies found'}
+            </div>
+          `;
+        } else {
+          addTestResult('error', '❌ movieComments not available');
+        }
+      } catch (error) {
+        addTestResult('error', `❌ Load failed: ${error.message}`);
+      }
+    }
+    
+    async function testGenerateSyncCode() {
+      try {
+        if (window.movieComments && window.movieComments.generateSyncCode) {
+          const syncCode = window.movieComments.generateSyncCode();
+          addTestResult('success', `🔑 Generated real sync code: ${syncCode}`);
+          
+          const resultDiv = document.getElementById('real-test-results');
+          resultDiv.innerHTML = `
+            <div class="status success">
+              <strong>Real Sync Code:</strong><br>
+              <div style="font-size: 24px; font-weight: bold; text-align: center; margin: 10px 0; background: #6c5ce7; padding: 15px; border-radius: 8px; color: white; letter-spacing: 3px;">
+                ${syncCode}
+              </div>
+              <div style="text-align: center; font-size: 12px;">
+                Use this code on another browser/device
+              </div>
+            </div>
+          `;
+        } else {
+          addTestResult('error', '❌ generateSyncCode not available');
+        }
+      } catch (error) {
+        addTestResult('error', `❌ Generate sync code failed: ${error.message}`);
+      }
+    }
+    
+    async function testApplySyncCode() {
+      try {
+        const syncCode = document.getElementById('real-sync-input').value.trim();
+        if (!syncCode) {
+          addTestResult('error', '❌ Please enter a sync code');
+          return;
+        }
+        
+        if (window.movieComments && window.movieComments.useSyncCode) {
+          const result = await window.movieComments.useSyncCode(syncCode);
+          addTestResult('success', `✅ Sync successful with user: ${result.userName}`);
+          
+          const resultDiv = document.getElementById('real-test-results');
+          resultDiv.innerHTML = `
+            <div class="status success">
+              <strong>Sync Successful!</strong><br>
+              User: ${result.userName}<br>
+              User ID: ${result.userId}<br>
+              <div style="margin-top: 10px; font-size: 12px;">
+                Page will reload automatically to apply changes...
+              </div>
+            </div>
+          `;
+          
+          // Auto reload after 3 seconds
+          setTimeout(() => {
+            location.reload();
+          }, 3000);
+          
+        } else {
+          addTestResult('error', '❌ useSyncCode not available');
+        }
+      } catch (error) {
+        addTestResult('error', `❌ Apply sync code failed: ${error.message}`);
+      }
+    }
+    
+    // Auto-format sync code inputs
+    document.getElementById('sync-input').oninput = (e) => {
+      e.target.value = e.target.value.replace(/\D/g, '');
+    };
+    
+    document.getElementById('real-sync-input').oninput = (e) => {
+      e.target.value = e.target.value.replace(/\D/g, '');
+    };
+  </script>
+</body>
+</html>

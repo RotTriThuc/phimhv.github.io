@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Saved Movies Fix</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #121212;
+      color: #fff;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .test-section {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .btn {
+      background: #6c5ce7;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 5px;
+      font-size: 14px;
+    }
+    
+    .btn:hover { opacity: 0.8; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    
+    .status.success { background: rgba(76, 175, 80, 0.2); border: 1px solid #4caf50; }
+    .status.error { background: rgba(244, 67, 54, 0.2); border: 1px solid #f44336; }
+    .status.info { background: rgba(33, 150, 243, 0.2); border: 1px solid #2196f3; }
+    
+    .console-log {
+      background: #000;
+      color: #0f0;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Test Saved Movies Fix</h1>
+    <p>Test để verify rằng lỗi "isSaved is not defined" đã được sửa</p>
+    
+    <!-- Error Status -->
+    <div class="test-section">
+      <h3>🚨 Error Status</h3>
+      <div id="error-status" class="status info">Checking for JavaScript errors...</div>
+      <div class="console-log" id="console-log">
+        <div>Console output will appear here...</div>
+      </div>
+    </div>
+    
+    <!-- Storage System Test -->
+    <div class="test-section">
+      <h3>💾 Storage System Test</h3>
+      <div id="storage-status" class="status info">Testing Storage object...</div>
+      <button class="btn" onclick="testStorageObject()">Test Storage Object</button>
+      <button class="btn" onclick="testSaveMovie()">Test Save Movie</button>
+      <button class="btn" onclick="testIsMovieSaved()">Test Is Movie Saved</button>
+      <button class="btn" onclick="testRemoveMovie()">Test Remove Movie</button>
+    </div>
+    
+    <!-- Firebase Connection -->
+    <div class="test-section">
+      <h3>🔥 Firebase Connection</h3>
+      <div id="firebase-status" class="status info">Checking Firebase connection...</div>
+      <button class="btn" onclick="testFirebaseConnection()">Test Firebase</button>
+    </div>
+    
+    <!-- Test Results -->
+    <div class="test-section">
+      <h3>📊 Test Results</h3>
+      <div id="test-results"></div>
+    </div>
+  </div>
+
+  <!-- Load the actual app files -->
+  <script src="./firebase-config.js"></script>
+  <script src="./assets/app.js"></script>
+  
+  <script>
+    let testResults = [];
+    let consoleMessages = [];
+    
+    // Capture console messages
+    const originalConsole = {
+      log: console.log,
+      error: console.error,
+      warn: console.warn
+    };
+    
+    function captureConsole() {
+      ['log', 'error', 'warn'].forEach(method => {
+        console[method] = function(...args) {
+          const message = args.join(' ');
+          consoleMessages.push(`[${method.toUpperCase()}] ${message}`);
+          updateConsoleLog();
+          originalConsole[method].apply(console, args);
+        };
+      });
+    }
+    
+    function updateConsoleLog() {
+      const consoleLog = document.getElementById('console-log');
+      const recent = consoleMessages.slice(-20); // Show last 20 messages
+      consoleLog.innerHTML = recent.map(msg => `<div>${msg}</div>`).join('');
+      consoleLog.scrollTop = consoleLog.scrollHeight;
+    }
+    
+    function addTestResult(type, message) {
+      const timestamp = new Date().toLocaleTimeString();
+      testResults.unshift({ type, message, timestamp });
+      
+      if (testResults.length > 15) {
+        testResults = testResults.slice(0, 15);
+      }
+      
+      const resultsHtml = testResults.map(result => `
+        <div class="status ${result.type}">
+          <strong>[${result.timestamp}]</strong> ${result.message}
+        </div>
+      `).join('');
+      
+      document.getElementById('test-results').innerHTML = resultsHtml;
+    }
+    
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', async () => {
+      captureConsole();
+      
+      // Check for JavaScript errors
+      window.addEventListener('error', (event) => {
+        document.getElementById('error-status').innerHTML = `❌ JavaScript Error: ${event.error.message}`;
+        document.getElementById('error-status').className = 'status error';
+        addTestResult('error', `JavaScript Error: ${event.error.message}`);
+      });
+      
+      // Wait a bit for everything to load
+      setTimeout(async () => {
+        await checkErrorStatus();
+        await checkStorageSystem();
+        await checkFirebaseConnection();
+      }, 2000);
+    });
+    
+    async function checkErrorStatus() {
+      try {
+        // Check if the main objects exist
+        if (typeof Storage === 'undefined') {
+          throw new Error('Storage object is not defined');
+        }
+        
+        if (typeof window.movieComments === 'undefined') {
+          throw new Error('movieComments object is not defined');
+        }
+        
+        document.getElementById('error-status').innerHTML = '✅ No JavaScript errors detected';
+        document.getElementById('error-status').className = 'status success';
+        addTestResult('success', 'No JavaScript errors detected');
+        
+      } catch (error) {
+        document.getElementById('error-status').innerHTML = `❌ Error: ${error.message}`;
+        document.getElementById('error-status').className = 'status error';
+        addTestResult('error', `Error: ${error.message}`);
+      }
+    }
+    
+    async function checkStorageSystem() {
+      try {
+        // Test Storage object methods
+        const methods = ['saveMovie', 'removeSavedMovie', 'isMovieSaved', 'getSavedMovies'];
+        const missingMethods = methods.filter(method => typeof Storage[method] !== 'function');
+        
+        if (missingMethods.length > 0) {
+          throw new Error(`Missing Storage methods: ${missingMethods.join(', ')}`);
+        }
+        
+        document.getElementById('storage-status').innerHTML = '✅ Storage object is properly defined';
+        document.getElementById('storage-status').className = 'status success';
+        addTestResult('success', 'Storage object methods are available');
+        
+      } catch (error) {
+        document.getElementById('storage-status').innerHTML = `❌ Storage Error: ${error.message}`;
+        document.getElementById('storage-status').className = 'status error';
+        addTestResult('error', `Storage Error: ${error.message}`);
+      }
+    }
+    
+    async function checkFirebaseConnection() {
+      try {
+        if (window.movieComments && window.movieComments.initialized) {
+          document.getElementById('firebase-status').innerHTML = '✅ Firebase is connected and ready';
+          document.getElementById('firebase-status').className = 'status success';
+          addTestResult('success', 'Firebase connection is working');
+        } else {
+          document.getElementById('firebase-status').innerHTML = '⚠️ Firebase not initialized (will use localStorage fallback)';
+          document.getElementById('firebase-status').className = 'status info';
+          addTestResult('info', 'Firebase not ready, localStorage fallback active');
+        }
+      } catch (error) {
+        document.getElementById('firebase-status').innerHTML = `❌ Firebase Error: ${error.message}`;
+        document.getElementById('firebase-status').className = 'status error';
+        addTestResult('error', `Firebase Error: ${error.message}`);
+      }
+    }
+    
+    async function testStorageObject() {
+      try {
+        addTestResult('info', 'Testing Storage object...');
+        
+        // Test basic functionality
+        const testResult = typeof Storage;
+        addTestResult('success', `Storage object type: ${testResult}`);
+        
+        const methods = Object.getOwnPropertyNames(Storage).filter(prop => typeof Storage[prop] === 'function');
+        addTestResult('success', `Storage methods: ${methods.join(', ')}`);
+        
+      } catch (error) {
+        addTestResult('error', `Storage test failed: ${error.message}`);
+      }
+    }
+    
+    async function testSaveMovie() {
+      try {
+        addTestResult('info', 'Testing save movie functionality...');
+        
+        const testMovie = {
+          slug: 'test-movie-' + Date.now(),
+          name: 'Test Movie ' + new Date().toLocaleTimeString(),
+          poster_url: 'https://via.placeholder.com/300x400',
+          year: 2025,
+          lang: 'Vietsub'
+        };
+        
+        const result = await Storage.saveMovie(testMovie);
+        addTestResult('success', `Save movie result: ${result}`);
+        
+      } catch (error) {
+        addTestResult('error', `Save movie test failed: ${error.message}`);
+      }
+    }
+    
+    async function testIsMovieSaved() {
+      try {
+        addTestResult('info', 'Testing isMovieSaved functionality...');
+        
+        const result = await Storage.isMovieSaved('test-movie-slug');
+        addTestResult('success', `isMovieSaved result: ${result}`);
+        
+      } catch (error) {
+        addTestResult('error', `isMovieSaved test failed: ${error.message}`);
+      }
+    }
+    
+    async function testRemoveMovie() {
+      try {
+        addTestResult('info', 'Testing remove movie functionality...');
+        
+        const result = await Storage.removeSavedMovie('test-movie-slug');
+        addTestResult('success', `Remove movie result: ${result}`);
+        
+      } catch (error) {
+        addTestResult('error', `Remove movie test failed: ${error.message}`);
+      }
+    }
+    
+    async function testFirebaseConnection() {
+      try {
+        addTestResult('info', 'Testing Firebase connection...');
+        
+        if (window.movieComments) {
+          await window.movieComments.init();
+          addTestResult('success', `Firebase initialized: ${window.movieComments.initialized}`);
+        } else {
+          addTestResult('error', 'movieComments object not found');
+        }
+        
+      } catch (error) {
+        addTestResult('error', `Firebase test failed: ${error.message}`);
+      }
+    }
+  </script>
+</body>
+</html>

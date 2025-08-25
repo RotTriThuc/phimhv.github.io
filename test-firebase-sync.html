@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Firebase Sync - Saved Movies</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #121212;
+      color: #fff;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .test-section {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .btn {
+      background: #6c5ce7;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 5px;
+      font-size: 14px;
+    }
+    
+    .btn:hover { opacity: 0.8; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    
+    .status.success { background: rgba(76, 175, 80, 0.2); border: 1px solid #4caf50; }
+    .status.error { background: rgba(244, 67, 54, 0.2); border: 1px solid #f44336; }
+    .status.info { background: rgba(33, 150, 243, 0.2); border: 1px solid #2196f3; }
+    
+    .movie-list {
+      background: #2a2a2a;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 10px 0;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .movie-item {
+      padding: 8px;
+      border-bottom: 1px solid #444;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .movie-item:last-child { border-bottom: none; }
+    
+    .device-info {
+      font-size: 12px;
+      color: #888;
+      background: #333;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔥 Firebase Saved Movies - Test Page</h1>
+    <p>Test cross-device sync functionality cho hệ thống lưu phim</p>
+    
+    <!-- Firebase Status -->
+    <div class="test-section">
+      <h3>📡 Firebase Connection Status</h3>
+      <div id="firebase-status" class="status info">Đang kiểm tra kết nối...</div>
+      <div class="device-info">
+        <strong>Device Info:</strong><br>
+        <span id="device-info">Loading...</span>
+      </div>
+    </div>
+    
+    <!-- User Info -->
+    <div class="test-section">
+      <h3>👤 User Information</h3>
+      <div>
+        <label>Tên hiển thị: </label>
+        <input type="text" id="user-name" placeholder="Nhập tên của bạn" style="padding:8px;margin:5px;border-radius:4px;border:1px solid #555;background:#333;color:#fff;">
+        <button class="btn" onclick="updateUserName()">Cập nhật</button>
+      </div>
+      <div id="user-info" class="status info">Loading user info...</div>
+    </div>
+    
+    <!-- Test Actions -->
+    <div class="test-section">
+      <h3>🧪 Test Actions</h3>
+      <button class="btn" onclick="testSaveMovie()">💾 Test Save Movie</button>
+      <button class="btn" onclick="testRemoveMovie()">🗑️ Test Remove Movie</button>
+      <button class="btn" onclick="loadSavedMovies()">🔄 Reload Saved Movies</button>
+      <button class="btn" onclick="clearAllMovies()">🧹 Clear All Movies</button>
+      <button class="btn" onclick="testMultipleDevices()">📱 Simulate Multi-Device</button>
+    </div>
+    
+    <!-- Saved Movies List -->
+    <div class="test-section">
+      <h3>📚 Saved Movies List</h3>
+      <div id="movies-count" class="status info">Loading...</div>
+      <div id="movies-list" class="movie-list">
+        <div style="text-align:center;color:#888;">Đang tải danh sách phim...</div>
+      </div>
+    </div>
+    
+    <!-- Test Results -->
+    <div class="test-section">
+      <h3>📊 Test Results</h3>
+      <div id="test-results"></div>
+    </div>
+  </div>
+
+  <!-- Load Firebase Config -->
+  <script src="./firebase-config.js"></script>
+  
+  <script>
+    let testResults = [];
+    
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initializePage();
+    });
+    
+    async function initializePage() {
+      // Show device info
+      document.getElementById('device-info').innerHTML = `
+        Platform: ${navigator.platform}<br>
+        User Agent: ${navigator.userAgent.substring(0, 50)}...<br>
+        Language: ${navigator.language}<br>
+        Screen: ${screen.width}x${screen.height}
+      `;
+      
+      // Wait for Firebase to initialize
+      try {
+        await window.movieComments.init();
+        
+        if (window.movieComments.initialized) {
+          document.getElementById('firebase-status').innerHTML = '✅ Firebase connected successfully';
+          document.getElementById('firebase-status').className = 'status success';
+        } else {
+          throw new Error('Firebase not initialized');
+        }
+      } catch (error) {
+        document.getElementById('firebase-status').innerHTML = `❌ Firebase connection failed: ${error.message}`;
+        document.getElementById('firebase-status').className = 'status error';
+      }
+      
+      // Load user info
+      const userId = window.movieComments.getUserId();
+      const userName = window.movieComments.getUserName();
+      document.getElementById('user-name').value = userName;
+      document.getElementById('user-info').innerHTML = `User ID: ${userId}<br>Display Name: ${userName}`;
+      
+      // Load saved movies
+      await loadSavedMovies();
+    }
+    
+    function updateUserName() {
+      const newName = document.getElementById('user-name').value.trim();
+      if (newName) {
+        window.movieComments.setUserName(newName);
+        document.getElementById('user-info').innerHTML = `User ID: ${window.movieComments.getUserId()}<br>Display Name: ${newName}`;
+        addTestResult('success', `Updated user name to: ${newName}`);
+      }
+    }
+    
+    async function testSaveMovie() {
+      const testMovie = {
+        slug: `test-movie-${Date.now()}`,
+        name: `Test Movie ${new Date().toLocaleTimeString()}`,
+        poster_url: 'https://via.placeholder.com/300x400',
+        year: 2025,
+        lang: 'Vietsub',
+        quality: 'FHD',
+        episode_current: 'Tập 1'
+      };
+      
+      try {
+        const success = await window.movieComments.saveMovie(testMovie);
+        if (success) {
+          addTestResult('success', `✅ Saved movie: ${testMovie.name}`);
+          await loadSavedMovies();
+        } else {
+          addTestResult('error', `⚠️ Movie already exists: ${testMovie.name}`);
+        }
+      } catch (error) {
+        addTestResult('error', `❌ Save failed: ${error.message}`);
+      }
+    }
+    
+    async function testRemoveMovie() {
+      const movies = await window.movieComments.getSavedMovies();
+      if (movies.length === 0) {
+        addTestResult('error', '❌ No movies to remove');
+        return;
+      }
+      
+      const movieToRemove = movies[0];
+      try {
+        const success = await window.movieComments.removeSavedMovie(movieToRemove.slug);
+        if (success) {
+          addTestResult('success', `✅ Removed movie: ${movieToRemove.name}`);
+          await loadSavedMovies();
+        } else {
+          addTestResult('error', `⚠️ Movie not found: ${movieToRemove.name}`);
+        }
+      } catch (error) {
+        addTestResult('error', `❌ Remove failed: ${error.message}`);
+      }
+    }
+    
+    async function loadSavedMovies() {
+      try {
+        const movies = await window.movieComments.getSavedMovies();
+        
+        document.getElementById('movies-count').innerHTML = `📊 Total saved movies: ${movies.length}`;
+        document.getElementById('movies-count').className = 'status success';
+        
+        if (movies.length === 0) {
+          document.getElementById('movies-list').innerHTML = '<div style="text-align:center;color:#888;">Chưa có phim nào được lưu</div>';
+        } else {
+          const moviesHtml = movies.map(movie => `
+            <div class="movie-item">
+              <div>
+                <strong>${movie.name}</strong> (${movie.year})<br>
+                <small style="color:#888;">${movie.lang} • ${movie.quality || 'N/A'} • ${new Date(movie.savedAt).toLocaleString()}</small>
+              </div>
+              <button class="btn" onclick="removeSpecificMovie('${movie.slug}', '${movie.name}')" style="background:#f44336;">Remove</button>
+            </div>
+          `).join('');
+          
+          document.getElementById('movies-list').innerHTML = moviesHtml;
+        }
+        
+        addTestResult('success', `📚 Loaded ${movies.length} saved movies`);
+      } catch (error) {
+        document.getElementById('movies-count').innerHTML = `❌ Load failed: ${error.message}`;
+        document.getElementById('movies-count').className = 'status error';
+        addTestResult('error', `❌ Load movies failed: ${error.message}`);
+      }
+    }
+    
+    async function removeSpecificMovie(slug, name) {
+      try {
+        const success = await window.movieComments.removeSavedMovie(slug);
+        if (success) {
+          addTestResult('success', `✅ Removed: ${name}`);
+          await loadSavedMovies();
+        }
+      } catch (error) {
+        addTestResult('error', `❌ Remove failed: ${error.message}`);
+      }
+    }
+    
+    async function clearAllMovies() {
+      if (!confirm('Are you sure you want to clear ALL saved movies?')) return;
+      
+      try {
+        const count = await window.movieComments.clearAllSavedMovies();
+        addTestResult('success', `✅ Cleared ${count} movies`);
+        await loadSavedMovies();
+      } catch (error) {
+        addTestResult('error', `❌ Clear failed: ${error.message}`);
+      }
+    }
+    
+    async function testMultipleDevices() {
+      addTestResult('info', '📱 Multi-device test simulation:');
+      addTestResult('info', '1. Save a movie on this device');
+      addTestResult('info', '2. Open this page on another device/browser');
+      addTestResult('info', '3. Check if the movie appears in the list');
+      addTestResult('info', '4. Try removing it from the other device');
+      addTestResult('info', '5. Refresh this page to see if it\'s gone');
+      
+      // Save a test movie for multi-device testing
+      await testSaveMovie();
+    }
+    
+    function addTestResult(type, message) {
+      const timestamp = new Date().toLocaleTimeString();
+      testResults.unshift({ type, message, timestamp });
+      
+      // Keep only last 20 results
+      if (testResults.length > 20) {
+        testResults = testResults.slice(0, 20);
+      }
+      
+      const resultsHtml = testResults.map(result => `
+        <div class="status ${result.type}">
+          <strong>[${result.timestamp}]</strong> ${result.message}
+        </div>
+      `).join('');
+      
+      document.getElementById('test-results').innerHTML = resultsHtml;
+    }
+  </script>
+</body>
+</html>
