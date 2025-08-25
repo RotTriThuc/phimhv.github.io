@@ -1,49 +1,73 @@
 {
-  "lastUpdate": "2025-08-24T11:19:02.774Z",
-  "totalMovies": 24009,
+  "lastUpdate": "2025-08-25T14:21:40.534Z",
+  "totalMovies": 24024,
   "stats": {
-    "newMovies": 1,
-    "newEpisodes": 21,
-    "updatedMovies": 8
+    "newMovies": 6,
+    "newEpisodes": 8,
+    "updatedMovies": 1
   },
   "recentMovies": [
     {
-      "name": "Mười Hai Con Giáp",
-      "slug": "muoi-hai-con-giap",
+      "name": "Bách Yêu Phổ (Phần 5)",
+      "slug": "bach-yeu-pho-phan-5",
       "year": 2025,
-      "added": "2025-08-24T11:19:02.682Z"
+      "added": "2025-08-25T14:21:40.434Z"
+    },
+    {
+      "name": "Bách Yêu Phổ (Phần 3)",
+      "slug": "bach-yeu-pho-phan-3",
+      "year": 2022,
+      "added": "2025-08-25T14:21:40.434Z"
+    },
+    {
+      "name": "Bách Yêu Phổ (Phần 2)",
+      "slug": "bach-yeu-pho-phan-2",
+      "year": 2021,
+      "added": "2025-08-25T14:21:40.434Z"
+    },
+    {
+      "name": "Bách Yêu Phổ (Phần 1)",
+      "slug": "bach-yeu-pho-phan-1",
+      "year": 2020,
+      "added": "2025-08-25T14:21:40.434Z"
+    },
+    {
+      "name": "Bình Minh Rực Lửa (Phần 2)",
+      "slug": "binh-minh-ruc-lua-phan-2",
+      "year": 2025,
+      "added": "2025-08-25T14:21:40.434Z"
     }
   ],
   "recentEpisodes": [
     {
-      "name": "Thám Tử Lừng Danh Conan",
-      "slug": "tham-tu-lung-danh-conan",
-      "episode": "Tập 1172",
-      "updated": "2025-08-24T18:12:41.000Z"
+      "name": "Cẩm Tú Trạch Tâm",
+      "slug": "cam-tu-trach-tam",
+      "episode": "Hoàn Tất (26/26)",
+      "updated": "2025-08-25T20:42:39.000Z"
     },
     {
-      "name": "Tại Hạ Anh Đài",
-      "slug": "tai-ha-anh-dai",
-      "episode": "Tập 9",
-      "updated": "2025-08-24T18:12:11.000Z"
+      "name": "Bách Yêu Phổ (Phần 4)",
+      "slug": "bach-yeu-pho-phan-4",
+      "episode": "Hoàn Tất (12/12)",
+      "updated": "2025-08-25T18:36:46.000Z"
     },
     {
-      "name": "Song Nhẫn",
-      "slug": "song-nhan",
-      "episode": "Hoàn Tất (23/23)",
-      "updated": "2025-08-24T18:11:47.000Z"
-    },
-    {
-      "name": "Quy Tắc Hắc Nguyệt Quang",
-      "slug": "quy-tac-hac-nguyet-quang",
-      "episode": "Tập 15",
-      "updated": "2025-08-24T18:11:13.000Z"
+      "name": "Tử Dạ Quy",
+      "slug": "tu-da-quy",
+      "episode": "Tập 19",
+      "updated": "2025-08-25T18:16:52.000Z"
     },
     {
       "name": "Ớt Nhỏ Thập Niên 80",
       "slug": "ot-nho-thap-nien-80",
-      "episode": "Tập 23",
-      "updated": "2025-08-24T18:10:44.000Z"
+      "episode": "Hoàn Tất (24/24)",
+      "updated": "2025-08-25T18:16:33.000Z"
+    },
+    {
+      "name": "Đấu Trí Ký Ức",
+      "slug": "dau-tri-ky-uc",
+      "episode": "Tập 11",
+      "updated": "2025-08-25T18:15:52.000Z"
     }
   ]
 }

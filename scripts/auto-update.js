@@ -407,7 +407,7 @@ class AutoUpdater {
     try {
       console.log('🔄 Checking for Git changes...');
       const hasChanges = await this.checkGitStatus();
-      
+
       if (!hasChanges) {
         console.log('📝 No Git changes detected, skipping push');
         return false;
@@ -420,6 +420,10 @@ class AutoUpdater {
       console.log('🔄 Syncing with remote repository...');
       await this.syncWithRemote(projectRoot);
 
+      // Preserve CNAME file to prevent GitHub Pages 404 errors
+      console.log('🔧 Preserving GitHub Pages configuration...');
+      await this.preserveGitHubPagesConfig(projectRoot);
+
       console.log('📦 Adding files to Git...');
       execSync('git add .', { cwd: projectRoot, stdio: 'inherit' });
 
@@ -430,11 +434,12 @@ class AutoUpdater {
       execSync('git push origin main', { cwd: projectRoot, stdio: 'inherit' });
 
       console.log('✅ Successfully pushed to GitHub!');
+      console.log('⏰ GitHub Pages will update in 1-2 minutes');
       return true;
 
     } catch (error) {
       console.error('❌ Failed to push to GitHub:', error.message);
-      
+
       // Check specific error types
       if (error.message.includes('nothing to commit')) {
         console.log('📝 Nothing to commit, working tree clean');
@@ -444,21 +449,54 @@ class AutoUpdater {
       } else if (error.message.includes('not a git repository')) {
         console.error('📁 Not a Git repository or no Git installed');
       }
-      
+
       return false;
+    }
+  }
+
+  // Preserve GitHub Pages configuration to prevent 404 errors
+  async preserveGitHubPagesConfig(projectRoot) {
+    try {
+      const cnameFile = path.join(projectRoot, 'CNAME');
+
+      // Ensure CNAME file exists with correct domain
+      if (await fs.access(cnameFile).then(() => true).catch(() => false)) {
+        const currentContent = await fs.readFile(cnameFile, 'utf8');
+        const expectedDomain = 'phimhv.site';
+
+        if (currentContent.trim() !== expectedDomain) {
+          console.log(`🔧 Fixing CNAME file: "${currentContent.trim()}" → "${expectedDomain}"`);
+          await fs.writeFile(cnameFile, expectedDomain);
+        } else {
+          console.log('✅ CNAME file is correct');
+        }
+      } else {
+        console.log('🔧 Creating missing CNAME file...');
+        await fs.writeFile(cnameFile, 'phimhv.site');
+      }
+
+      // Ensure .nojekyll file exists (prevents Jekyll processing)
+      const nojekyllFile = path.join(projectRoot, '.nojekyll');
+      if (!await fs.access(nojekyllFile).then(() => true).catch(() => false)) {
+        console.log('🔧 Creating .nojekyll file...');
+        await fs.writeFile(nojekyllFile, '');
+      }
+
+    } catch (error) {
+      console.warn('⚠️ Failed to preserve GitHub Pages config:', error.message);
     }
   }
 
   async syncWithRemote(projectRoot) {
     try {
       // Check if there are uncommitted changes first
-      const statusOutput = execSync('git status --porcelain', { 
-        encoding: 'utf8', 
-        cwd: projectRoot 
+      const statusOutput = execSync('git status --porcelain', {
+        encoding: 'utf8',
+        cwd: projectRoot
       });
-      
+
       const hasUncommittedChanges = statusOutput.trim().length > 0;
-      
+
       if (hasUncommittedChanges) {
         console.log('📋 Stashing local changes before sync...');
         execSync('git stash push -m "Auto-stash before sync"', { cwd: projectRoot, stdio: 'inherit' });
@@ -467,34 +505,34 @@ class AutoUpdater {
       // Check if we need to pull
       try {
         execSync('git fetch origin', { cwd: projectRoot, stdio: 'pipe' });
-        
-        const behindCount = execSync('git rev-list HEAD..origin/main --count', { 
-          encoding: 'utf8', 
-          cwd: projectRoot 
+
+        const behindCount = execSync('git rev-list HEAD..origin/main --count', {
+          encoding: 'utf8',
+          cwd: projectRoot
         }).trim();
-        
+
         if (parseInt(behindCount) > 0) {
           console.log(`📥 Pulling ${behindCount} commits from remote...`);
           execSync('git pull origin main --no-edit', { cwd: projectRoot, stdio: 'inherit' });
         } else {
           console.log('✅ Already up to date with remote');
         }
-        
+
       } catch (pullError) {
         console.warn('⚠️ Pull failed, trying to handle conflicts...');
-        
+
         // If pull failed due to conflicts, try to merge automatically
         try {
           execSync('git merge --abort', { cwd: projectRoot, stdio: 'pipe' });
         } catch (e) {
           // Ignore if no merge in progress
         }
-        
+
         // Force pull with rebase to avoid conflicts
         console.log('🔄 Using rebase strategy to resolve conflicts...');
         execSync('git pull origin main --rebase', { cwd: projectRoot, stdio: 'inherit' });
       }
-      
+
       // Restore stashed changes if any
       if (hasUncommittedChanges) {
         try {
@@ -505,7 +543,7 @@ class AutoUpdater {
           console.log('💡 You may need to manually resolve this later');
         }
       }
-      
+
     } catch (error) {
       console.warn('⚠️ Sync with remote failed:', error.message);
       console.log('💡 Continuing with local push attempt...');
