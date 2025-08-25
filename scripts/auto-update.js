@@ -1,6 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const { execSync } = require('child_process');
+const fetch = require('node-fetch');
 
 class AutoUpdater {
   constructor() {
@@ -20,6 +21,12 @@ class AutoUpdater {
       autoPushToGit: true, // Tự động push lên GitHub
       gitCommitMessage: 'Auto-update: {updateSummary}' // Template commit message
     };
+    
+    // Validate config
+    if (this.config.updateInterval < 60000) {
+      console.warn('⚠️ Update interval too short, setting to minimum 1 minute');
+      this.config.updateInterval = 60000;
+    }
     
     this.stats = {
       lastUpdate: null,
@@ -59,9 +66,26 @@ class AutoUpdater {
   async fetchWithRetry(url, retries = this.config.maxRetries) {
     for (let i = 0; i < retries; i++) {
       try {
-        const response = await fetch(url);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+        
+        const response = await fetch(url, {
+          signal: controller.signal,
+          timeout: 30000
+        });
+        
+        clearTimeout(timeoutId);
+        
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
+        
+        const data = await response.json();
+        
+        // Validate response structure
+        if (!data || typeof data !== 'object') {
+          throw new Error('Invalid response structure');
+        }
+        
+        return data;
       } catch (error) {
         console.warn(`⚠️ Attempt ${i + 1}/${retries} failed for ${url}: ${error.message}`);
         if (i === retries - 1) throw error;
