@@ -135,7 +135,7 @@ class MovieCommentSystem {
       throw new Error('Vui lòng nhập nội dung bình luận (tối thiểu 3 ký tự)');
     }
 
-         const comment = {
+    const comment = {
        movieSlug: movieSlug,
        content: content.trim().substring(0, 500),
        authorId: userId,
