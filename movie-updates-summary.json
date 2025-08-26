@@ -1,25 +1,42 @@
 {
-  "lastUpdate": "2025-08-25T16:24:58.475Z",
+  "lastUpdate": "2025-08-26T03:34:00.987Z",
   "totalMovies": 24025,
   "stats": {
-    "newMovies": 1,
-    "newEpisodes": 1,
-    "updatedMovies": 0
+    "newMovies": 0,
+    "newEpisodes": 8,
+    "updatedMovies": 1
   },
-  "recentMovies": [
-    {
-      "name": "Bên Người Gió Cũng Ngọt Ngào",
-      "slug": "ben-nguoi-gio-cung-ngot-ngao",
-      "year": 2023,
-      "added": "2025-08-25T16:24:58.390Z"
-    }
-  ],
+  "recentMovies": [],
   "recentEpisodes": [
     {
-      "name": "Lữ Trình Thanh Xuân",
-      "slug": "lu-trinh-thanh-xuan",
-      "episode": "Tập 8",
-      "updated": "2025-08-25T21:54:25.000Z"
+      "name": "Tại Nhân Gian",
+      "slug": "tai-nhan-gian",
+      "episode": "Hoàn Tất (8/8)",
+      "updated": "2025-08-26T09:45:45.000Z"
+    },
+    {
+      "name": "Vợ Hiền Mới Ác",
+      "slug": "vo-hien-moi-ac",
+      "episode": "Hoàn Tất (7/7)",
+      "updated": "2025-08-26T09:44:32.000Z"
+    },
+    {
+      "name": "Thử Thách Thần Tượng",
+      "slug": "thu-thach-than-tuong",
+      "episode": "Tập 766",
+      "updated": "2025-08-26T09:44:01.000Z"
+    },
+    {
+      "name": "Giai Điệu Của Định Mệnh",
+      "slug": "giai-dieu-cua-dinh-menh",
+      "episode": "Tập 21",
+      "updated": "2025-08-26T09:18:24.000Z"
+    },
+    {
+      "name": "Học Viện",
+      "slug": "hoc-vien",
+      "episode": "Hoàn Tất (8/8)",
+      "updated": "2025-08-26T09:17:17.000Z"
     }
   ]
 }
