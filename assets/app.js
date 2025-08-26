@@ -20,7 +20,7 @@ class AdvancedAPICache {
     this.cache = new Map();
     this.requestsInFlight = new Map(); // Prevent duplicate requests
     this.priorities = new Map(); // Track access frequency
-    this.maxSize = 100; // Increased cache size
+    this.maxSize = 50; // Reduced cache size for better memory usage
     
     // Different cache durations for different types
     this.cacheDurations = {
@@ -1189,6 +1189,30 @@ function renderError(message, onRetry) {
   return wrap;
 }
 
+// Optimized image setup helper
+function setupImageElement(imgEl, container) {
+  if (!imgEl) return;
+
+  imgEl.referrerPolicy = 'no-referrer';
+  imgEl.loading = 'lazy';
+  imgEl.style.opacity = '0';
+
+  requestAnimationFrame(() => {
+    if (!document.contains(imgEl)) return;
+
+    try {
+      const rect = container.getBoundingClientRect();
+      if (rect.top < window.innerHeight + 300) {
+        imageLoader.loadImage(imgEl);
+      } else {
+        imageLoader.observe(imgEl);
+      }
+    } catch (error) {
+      imageLoader.observe(imgEl);
+    }
+  });
+}
+
 function movieCard(movie) {
   const poster = movie.poster_url || movie.thumb_url || '';
   const languages = movie.lang || movie.language || '';
@@ -1198,30 +1222,25 @@ function movieCard(movie) {
 
   const card = createEl('article', 'card');
   
-  // Check if movie is saved and has progress (async)
-  let isSaved = false;
-  let progress = null;
+  // Check if movie is saved and has progress (async) - optimized
+  Promise.allSettled([
+    Storage.isMovieSaved(slug),
+    Storage.getMovieProgress(slug)
+  ]).then(([savedResult, progressResult]) => {
+    if (savedResult.status === 'fulfilled' && savedResult.value && !card.querySelector('.card__badge--saved')) {
+      const savedBadge = createEl('span', 'card__badge card__badge--saved', '❤️');
+      card.appendChild(savedBadge);
+    }
 
-  try {
-    // These are now async, but we'll handle them in the background
-    Storage.isMovieSaved(slug).then(saved => {
-      if (saved && !card.querySelector('.card__badge--saved')) {
-        const savedBadge = createEl('span', 'card__badge card__badge--saved', '❤️');
-        card.appendChild(savedBadge);
-      }
-    });
-
-    Storage.getMovieProgress(slug).then(prog => {
-      if (prog && !card.querySelector('.card__badge--progress')) {
-        // Format episode name để hiển thị rõ ràng trên badge
-        const displayName = formatEpisodeName(prog.episodeName, prog.episodeSlug);
-        const progressBadge = createEl('span', 'card__badge card__badge--progress', `▶ ${displayName}`);
-        card.appendChild(progressBadge);
-      }
-    });
-  } catch (error) {
+    if (progressResult.status === 'fulfilled' && progressResult.value && !card.querySelector('.card__badge--progress')) {
+      const prog = progressResult.value;
+      const displayName = formatEpisodeName(prog.episodeName, prog.episodeSlug);
+      const progressBadge = createEl('span', 'card__badge card__badge--progress', `▶ ${displayName}`);
+      card.appendChild(progressBadge);
+    }
+  }).catch(error => {
     console.warn('⚠️ Error checking movie status:', error);
-  }
+  });
   
   const badges = [];
   if (languages) badges.push(`<span class="card__badge">${languages}</span>`);
@@ -1237,55 +1256,29 @@ function movieCard(movie) {
     </div>
   `;
   
+  // Optimized image loading
   const imgEl = card.querySelector('.card__img');
   if (imgEl && poster) {
-    imgEl.referrerPolicy = 'no-referrer';
-    imgEl.loading = 'lazy'; // Native lazy loading as backup
-    imgEl.style.opacity = '0'; // Start hidden
-    
-    // Ensure DOM is fully ready before image loading
-    requestAnimationFrame(() => {
-      // Double-check element is still in DOM
-      if (!document.contains(imgEl)) {
-        console.warn('🚨 Image element removed from DOM before loading');
-        return;
-      }
-      
-      // Immediate load if likely to be visible
-      try {
-        const rect = card.getBoundingClientRect();
-        if (rect.top < window.innerHeight + 300) {
-          // Likely visible - load immediately
-          imageLoader.loadImage(imgEl);
-        } else {
-          // Use intersection observer for below-fold images
-          imageLoader.observe(imgEl);
-        }
-      } catch (error) {
-        console.warn('🚨 Error in image loading setup:', error);
-        // Fallback to intersection observer
-        imageLoader.observe(imgEl);
-      }
-    });
+    setupImageElement(imgEl, card);
   }
   card.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!slug) {
       console.warn('⚠️ No slug found for movie:', movie);
       return;
     }
-    
-    // Add visual feedback
+
+    // Immediate navigation without delay for better responsiveness
+    navigateTo(`#/phim/${slug}`);
+
+    // Add visual feedback after navigation starts
     card.style.transform = 'scale(0.98)';
     card.style.transition = 'transform 0.1s ease';
-    
-    // Navigate with slight delay for better UX
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       card.style.transform = '';
-      navigateTo(`#/phim/${slug}`);
-    }, 100);
+    });
   });
   return card;
 }
@@ -1771,8 +1764,14 @@ async function renderMoreMovies(root, type) {
           loadMoreBtn.disabled = true;
           loadMoreBtn.textContent = 'Đang tải...';
           currentPage++;
-          await loadPage(currentPage);
-          loadMoreBtn.remove();
+          try {
+            await loadPage(currentPage);
+            loadMoreBtn.remove();
+          } catch (error) {
+            loadMoreBtn.disabled = false;
+            loadMoreBtn.textContent = 'Thử lại';
+            console.error('Load more failed:', error);
+          }
         });
         moviesContainer.appendChild(loadMoreBtn);
       }
@@ -2456,18 +2455,39 @@ async function renderYear(root, year, params) {
   }
 }
 
-/* Bind header controls */
+/* Optimized header controls with event delegation */
 function bindHeader() {
-  const homeBtn = $('#homeBtn');
-  homeBtn?.addEventListener('click', () => navigateTo('#/'));
+  // Use event delegation for better performance
+  document.addEventListener('click', (e) => {
+    const target = e.target;
 
-  document.querySelectorAll('.nav__btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    // Home button
+    if (target.id === 'homeBtn' || target.closest('#homeBtn')) {
+      e.preventDefault();
+      navigateTo('#/');
+      return;
+    }
+
+    // Quick nav buttons
+    if (target.classList.contains('nav__btn') || target.closest('.nav__btn')) {
+      e.preventDefault();
+      const btn = target.classList.contains('nav__btn') ? target : target.closest('.nav__btn');
       const type = btn.getAttribute('data-quick');
-      navigateTo(`#/loc?type_list=${encodeURIComponent(type)}`);
-    });
+      if (type) {
+        navigateTo(`#/loc?type_list=${encodeURIComponent(type)}`);
+      }
+      return;
+    }
+
+    // Theme toggle
+    if (target.id === 'themeToggle' || target.closest('#themeToggle')) {
+      e.preventDefault();
+      toggleTheme();
+      return;
+    }
   });
 
+  // Search form
   const form = $('#searchForm');
   const input = $('#searchInput');
   form?.addEventListener('submit', (e) => {
@@ -2477,8 +2497,6 @@ function bindHeader() {
     const params = new URLSearchParams({ keyword: q, page: '1' });
     navigateTo(`#/tim-kiem?${params.toString()}`);
   });
-
-  $('#themeToggle')?.addEventListener('click', toggleTheme);
 }
 
 async function populateFilters() {
@@ -3027,8 +3045,13 @@ async function renderSavedMovies(root) {
 
 /* App bootstrap */
 let isRouting = false;
+let routingQueue = [];
+
 async function router() {
+  // Queue navigation if already routing
   if (isRouting) {
+    const { path, params } = parseHash();
+    routingQueue.push({ path, params, timestamp: Date.now() });
     return;
   }
   isRouting = true;
@@ -3114,6 +3137,18 @@ async function router() {
   }
   root.textContent = 'Trang không tồn tại.';
   isRouting = false;
+
+  // Process queued navigation if any
+  if (routingQueue.length > 0) {
+    const nextRoute = routingQueue.shift();
+    // Only process if it's recent (within 2 seconds)
+    if (Date.now() - nextRoute.timestamp < 2000) {
+      setTimeout(() => router(), 50);
+    } else {
+      // Clear old queued routes
+      routingQueue = [];
+    }
+  }
 }
 
 (function main() {
