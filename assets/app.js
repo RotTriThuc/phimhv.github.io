@@ -2354,18 +2354,26 @@ async function renderWatch(root, slug, params) {
 
 async function renderCategory(root, slug, params) {
   const page = Number(params.get('page') || '1');
+  const year = params.get('year') || '';
+  const country = params.get('country') || '';
+
   root.innerHTML = '';
-  
+
   const category = Categories.findBySlug(slug);
   const categoryName = category ? category.name : slug;
-  
-  root.appendChild(sectionHeader(`Thể loại: ${categoryName}`));
-  
+
+  // Tạo title với filters
+  let title = `Thể loại: ${categoryName}`;
+  if (year) title += ` - Năm ${year}`;
+  if (country) title += ` - ${country}`;
+
+  root.appendChild(sectionHeader(title));
+
   const loading = renderLoadingCards(12);
   root.appendChild(loading);
-  
+
   try {
-    const data = await Api.listByCategory({ slug, page, limit: 24 });
+    const data = await Api.listByCategory({ slug, page, year, country, limit: 24 });
     safeRemove(loading);
     const items = extractItems(data);
     
@@ -2409,21 +2417,48 @@ async function renderCategory(root, slug, params) {
 
 async function renderCountry(root, slug, params) {
   const page = Number(params.get('page') || '1');
+  const year = params.get('year') || '';
+  const category = params.get('category') || '';
+
   root.innerHTML = '';
-  root.appendChild(sectionHeader(`Quốc gia: ${slug}`));
+
+  // Tạo title với filters
+  let title = `Quốc gia: ${slug}`;
+  if (year) title += ` - Năm ${year}`;
+  if (category) title += ` - ${category}`;
+
+  root.appendChild(sectionHeader(title));
   const loading = renderLoadingCards(12);
   root.appendChild(loading);
   try {
-    const data = await Api.listByCountry({ slug, page });
+    const data = await Api.listByCountry({ slug, page, year, category });
     safeRemove(loading);
     const items = extractItems(data);
+
+    // Hiển thị số lượng phim
+    const totalItems = data?.data?.params?.pagination?.totalItems || data?.paginate?.totalItems || data?.totalItems || data?.pagination?.totalItems;
+    const currentPage = data?.data?.params?.pagination?.currentPage || page;
+    const totalPages = data?.data?.params?.pagination?.totalPages || data?.paginate?.totalPages || data?.totalPages || data?.pagination?.totalPages || 1;
+
+    if (totalItems) {
+      const countInfo = createEl('div', '', `Tìm thấy ${totalItems} phim từ ${slug} - Trang ${currentPage}/${totalPages}`);
+      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
+      root.appendChild(countInfo);
+    } else if (items.length > 0) {
+      const countInfo = createEl('div', '', `Hiển thị ${items.length} phim - Trang ${currentPage}`);
+      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
+      root.appendChild(countInfo);
+    }
+
     root.appendChild(listGrid(items));
-    const totalPages = data?.paginate?.totalPages || data?.totalPages || page;
-    const pager = buildPager(page, totalPages, (nextPage) => {
-      params.set('page', String(nextPage));
-      navigateTo(`#/quoc-gia/${slug}?${params.toString()}`);
-    });
-    root.appendChild(pager);
+
+    if (totalPages > 1) {
+      const pager = buildPager(page, totalPages, (nextPage) => {
+        params.set('page', String(nextPage));
+        navigateTo(`#/quoc-gia/${slug}?${params.toString()}`);
+      });
+      root.appendChild(pager);
+    }
   } catch (e) {
     console.error(e);
     root.innerHTML = '';
@@ -2433,21 +2468,48 @@ async function renderCountry(root, slug, params) {
 
 async function renderYear(root, year, params) {
   const page = Number(params.get('page') || '1');
+  const category = params.get('category') || '';
+  const country = params.get('country') || '';
+
   root.innerHTML = '';
-  root.appendChild(sectionHeader(`Năm: ${year}`));
+
+  // Tạo title với filters
+  let title = `Năm: ${year}`;
+  if (category) title += ` - ${category}`;
+  if (country) title += ` - ${country}`;
+
+  root.appendChild(sectionHeader(title));
   const loading = renderLoadingCards(12);
   root.appendChild(loading);
   try {
-    const data = await Api.listByYear({ year, page });
+    const data = await Api.listByYear({ year, page, category, country });
     safeRemove(loading);
     const items = extractItems(data);
+
+    // Hiển thị số lượng phim
+    const totalItems = data?.data?.params?.pagination?.totalItems || data?.paginate?.totalItems || data?.totalItems || data?.pagination?.totalItems;
+    const currentPage = data?.data?.params?.pagination?.currentPage || page;
+    const totalPages = data?.data?.params?.pagination?.totalPages || data?.paginate?.totalPages || data?.totalPages || data?.pagination?.totalPages || 1;
+
+    if (totalItems) {
+      const countInfo = createEl('div', '', `Tìm thấy ${totalItems} phim năm ${year} - Trang ${currentPage}/${totalPages}`);
+      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
+      root.appendChild(countInfo);
+    } else if (items.length > 0) {
+      const countInfo = createEl('div', '', `Hiển thị ${items.length} phim - Trang ${currentPage}`);
+      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
+      root.appendChild(countInfo);
+    }
+
     root.appendChild(listGrid(items));
-    const totalPages = data?.paginate?.totalPages || data?.totalPages || page;
-    const pager = buildPager(page, totalPages, (nextPage) => {
-      params.set('page', String(nextPage));
-      navigateTo(`#/nam/${year}?${params.toString()}`);
-    });
-    root.appendChild(pager);
+
+    if (totalPages > 1) {
+      const pager = buildPager(page, totalPages, (nextPage) => {
+        params.set('page', String(nextPage));
+        navigateTo(`#/nam/${year}?${params.toString()}`);
+      });
+      root.appendChild(pager);
+    }
   } catch (e) {
     console.error(e);
     root.innerHTML = '';
@@ -2499,6 +2561,75 @@ function bindHeader() {
   });
 }
 
+// Smart navigation helper để giữ context khi chọn filters
+function getSmartNavigationUrl(filterType, filterValue) {
+  const { path, params } = parseHash();
+
+  if (path.startsWith('/the-loai/')) {
+    // Đang ở trang thể loại - giữ thể loại và thêm filter
+    const slug = path.split('/')[2];
+    if (filterType === 'year') {
+      params.set('year', filterValue);
+    } else if (filterType === 'country') {
+      params.set('country', filterValue);
+    }
+    return `#/the-loai/${slug}?${params.toString()}`;
+  } else if (path.startsWith('/quoc-gia/')) {
+    // Đang ở trang quốc gia - giữ quốc gia và thêm filter
+    const slug = path.split('/')[2];
+    if (filterType === 'year') {
+      params.set('year', filterValue);
+    } else if (filterType === 'category') {
+      params.set('category', filterValue);
+    }
+    return `#/quoc-gia/${slug}?${params.toString()}`;
+  } else if (path.startsWith('/nam/')) {
+    // Đang ở trang năm - giữ năm và thêm filter
+    const year = path.split('/')[2];
+    if (filterType === 'country') {
+      params.set('country', filterValue);
+    } else if (filterType === 'category') {
+      params.set('category', filterValue);
+    }
+    return `#/nam/${year}?${params.toString()}`;
+  }
+
+  // Default behavior - navigate to specific filter page
+  if (filterType === 'year') {
+    return `#/nam/${encodeURIComponent(filterValue)}`;
+  } else if (filterType === 'country') {
+    return `#/quoc-gia/${encodeURIComponent(filterValue)}`;
+  }
+
+  return '#/';
+}
+
+// Sync dropdown values với URL parameters
+function syncDropdownsWithURL() {
+  const { path, params } = parseHash();
+  const countrySelect = $('#countrySelect');
+  const yearSelect = $('#yearSelect');
+
+  // Reset dropdowns
+  if (countrySelect) countrySelect.value = '';
+  if (yearSelect) yearSelect.value = '';
+
+  // Set values based on current URL
+  if (path.startsWith('/quoc-gia/')) {
+    const slug = path.split('/')[2];
+    if (countrySelect) countrySelect.value = slug;
+  } else if (params.get('country')) {
+    if (countrySelect) countrySelect.value = params.get('country');
+  }
+
+  if (path.startsWith('/nam/')) {
+    const year = path.split('/')[2];
+    if (yearSelect) yearSelect.value = year;
+  } else if (params.get('year')) {
+    if (yearSelect) yearSelect.value = params.get('year');
+  }
+}
+
 async function populateFilters() {
   const countrySelect = $('#countrySelect');
   const yearSelect = $('#yearSelect');
@@ -2525,11 +2656,17 @@ async function populateFilters() {
 
     countrySelect?.addEventListener('change', () => {
       const v = countrySelect.value;
-      if (v) navigateTo(`#/quoc-gia/${encodeURIComponent(v)}`);
+      if (v) {
+        const url = getSmartNavigationUrl('country', v);
+        navigateTo(url);
+      }
     });
     yearSelect?.addEventListener('change', () => {
       const v = yearSelect.value;
-      if (v) navigateTo(`#/nam/${encodeURIComponent(v)}`);
+      if (v) {
+        const url = getSmartNavigationUrl('year', v);
+        navigateTo(url);
+      }
     });
   } catch (e) {
     console.warn('Không tải được bộ lọc', e);
@@ -3080,6 +3217,9 @@ async function router() {
     isRouting = false;
     return;
   }
+
+  // Sync dropdown values với URL hiện tại
+  syncDropdownsWithURL();
   if (path === '/' || path === '') {
     await renderHome(root);
     isRouting = false;
