@@ -380,23 +380,27 @@ class MovieCommentSystem {
   // Auto-detect and suggest sync if needed
   async _checkAndSuggestSync() {
     try {
-      // Check if we're on GitHub Pages and have no saved movies
       const isGitHub = window.location.hostname.includes('github.io');
       const isLocalhost = window.location.hostname.includes('localhost');
 
       if (isGitHub) {
-        // Check if we have any saved movies
+        console.log('🌐 GitHub Pages detected - checking sync options');
+
+        // Priority 1: Auto-sync between browsers on same device (seamless)
+        // This runs automatically in background via _checkSeamlessAutoSync()
+
+        // Priority 2: Manual sync for cross-device (PC ↔ phone) only if no data
         const movies = await this.getSavedMovies();
         const progress = await this.getAllWatchProgress();
 
         if (movies.length === 0 && progress.length === 0) {
-          console.log('🔄 GitHub Pages detected with no data - checking for sync options');
+          console.log('🔄 No data found - checking for cross-device sync options');
 
-          // Check if there's a shared User ID available
+          // Check environment sync (localhost ↔ GitHub Pages)
           const sharedUserId = this._getUserIdFromSharedStorage();
           if (sharedUserId && sharedUserId !== this.getUserId()) {
-            console.log('💡 Found potential User ID from localhost, suggesting sync');
-            this._showAutoSyncSuggestion(sharedUserId);
+            console.log('💡 Found potential User ID from localhost');
+            this._showEnvironmentSyncSuggestion(sharedUserId);
           }
         }
       }
@@ -411,13 +415,13 @@ class MovieCommentSystem {
     }
   }
 
-  // Show auto-sync suggestion
-  _showAutoSyncSuggestion(suggestedUserId) {
+  // Show environment sync suggestion (localhost ↔ GitHub Pages)
+  _showEnvironmentSyncSuggestion(suggestedUserId) {
     // Only show if not already dismissed
-    const dismissed = localStorage.getItem('auto_sync_dismissed');
+    const dismissed = localStorage.getItem('environment_sync_dismissed');
     if (dismissed) return;
 
-    console.log('💡 Showing auto-sync suggestion');
+    console.log('💡 Showing environment sync suggestion (localhost ↔ GitHub Pages)');
 
     // Create notification
     const notification = document.createElement('div');
@@ -433,7 +437,7 @@ class MovieCommentSystem {
 
     notification.innerHTML = `
       <div style="display: flex; align-items: center; margin-bottom: 10px;">
-        <span style="font-size: 18px; margin-right: 8px;">🔄</span>
+        <span style="font-size: 18px; margin-right: 8px;">🏠</span>
         <strong>Sync dữ liệu từ localhost?</strong>
       </div>
       <div style="margin-bottom: 15px; opacity: 0.9;">
@@ -444,10 +448,13 @@ class MovieCommentSystem {
                 style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
           ✅ Đồng bộ
         </button>
-        <button onclick="this.parentElement.parentElement.remove(); localStorage.setItem('auto_sync_dismissed', Date.now())"
+        <button onclick="this.parentElement.parentElement.remove(); localStorage.setItem('environment_sync_dismissed', Date.now())"
                 style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
           ❌ Bỏ qua
         </button>
+      </div>
+      <div style="margin-top: 10px; font-size: 11px; opacity: 0.7;">
+        💡 Sync giữa trình duyệt sẽ tự động, không cần mã code
       </div>
     `;
 
@@ -640,29 +647,54 @@ class MovieCommentSystem {
     const currentUserName = this.getUserName();
 
     dialog.innerHTML = `
-      <div style="background: #1e1e1e; border-radius: 12px; padding: 30px; max-width: 400px; width: 90%; color: #fff;">
-        <h3 style="margin: 0 0 20px 0; text-align: center; color: #6c5ce7;">🔄 Đồng bộ thiết bị</h3>
+      <div style="background: #1e1e1e; border-radius: 12px; padding: 30px; max-width: 450px; width: 90%; color: #fff;">
+        <h3 style="margin: 0 0 20px 0; text-align: center; color: #6c5ce7;">🔄 Đồng bộ dữ liệu</h3>
 
         <div style="background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
           <div style="font-size: 14px; color: #888; margin-bottom: 5px;">Thiết bị hiện tại:</div>
           <div style="font-weight: 500;">${currentUserName}</div>
           <div style="font-size: 12px; color: #666; word-break: break-all;">${currentUserId}</div>
+          <div style="font-size: 12px; color: #888; margin-top: 5px;">Trình duyệt: ${this._getBrowserInfo()}</div>
         </div>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-          <button id="generate-sync-code" style="flex: 1; padding: 12px; background: #6c5ce7; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
-            📤 Tạo mã sync
-          </button>
-          <button id="use-sync-code" style="flex: 1; padding: 12px; background: #00b894; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
-            📥 Nhập mã sync
-          </button>
+        <!-- Auto-Sync Info -->
+        <div style="background: linear-gradient(135deg, #00b894, #00cec9); padding: 15px; border-radius: 8px; margin-bottom: 20px; color: white;">
+          <div style="display: flex; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 18px; margin-right: 8px;">🚀</span>
+            <strong>Auto-Sync giữa trình duyệt</strong>
+          </div>
+          <div style="font-size: 13px; opacity: 0.9;">
+            Dữ liệu tự động đồng bộ giữa Edge, Chrome, Opera, Firefox trên cùng thiết bị - không cần mã code!
+          </div>
+        </div>
+
+        <!-- Manual Sync for Cross-Device -->
+        <div style="background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #6c5ce7;">
+          <div style="display: flex; align-items: center; margin-bottom: 10px;">
+            <span style="font-size: 16px; margin-right: 8px;">📱</span>
+            <strong style="color: #6c5ce7;">Sync PC ↔ Điện thoại</strong>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+            <button id="generate-sync-code" style="flex: 1; padding: 10px; background: #6c5ce7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+              📤 Tạo mã
+            </button>
+            <button id="use-sync-code" style="flex: 1; padding: 10px; background: #a29bfe; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+              📥 Nhập mã
+            </button>
+          </div>
+
+          <div style="font-size: 11px; color: #888;">
+            Dùng mã sync để đồng bộ giữa PC và điện thoại
+          </div>
         </div>
 
         <div id="sync-content" style="min-height: 80px; text-align: center; color: #888; padding: 20px; background: #2a2a2a; border-radius: 8px;">
-          <div style="font-size: 16px; margin-bottom: 10px;">📱</div>
-          <div>Chọn một tùy chọn để đồng bộ dữ liệu giữa các thiết bị</div>
-          <div style="font-size: 12px; margin-top: 10px; color: #666;">
-            Phim đã lưu sẽ được sync trên tất cả thiết bị
+          <div style="font-size: 16px; margin-bottom: 10px;">💡</div>
+          <div><strong>Hướng dẫn sử dụng:</strong></div>
+          <div style="font-size: 12px; margin-top: 10px; line-height: 1.4;">
+            • <strong>Trình duyệt khác:</strong> Tự động sync, không cần làm gì<br>
+            • <strong>PC ↔ Điện thoại:</strong> Dùng mã sync ở trên
           </div>
         </div>
 
@@ -674,18 +706,20 @@ class MovieCommentSystem {
 
     document.body.appendChild(dialog);
 
-    // Event handlers
+    // Event handlers for Cross-Device Sync (PC ↔ Phone)
     document.getElementById('generate-sync-code').onclick = () => {
       const syncCode = this.generateSyncCode();
       document.getElementById('sync-content').innerHTML = `
         <div style="text-align: center;">
+          <div style="color: #6c5ce7; font-size: 16px; margin-bottom: 10px;">📱 Cross-Device Sync Code</div>
           <div style="font-size: 24px; font-weight: bold; color: #6c5ce7; margin-bottom: 15px; letter-spacing: 2px;">${syncCode}</div>
           <div style="font-size: 14px; color: #888; margin-bottom: 15px;">
-            📱 Nhập mã này trên thiết bị khác
+            📱 Nhập mã này trên PC hoặc điện thoại khác
           </div>
           <div style="font-size: 12px; color: #666; background: #333; padding: 10px; border-radius: 6px;">
             ⏰ Mã có hiệu lực trong 24 giờ<br>
-            🔒 Mã chỉ sử dụng được 1 lần
+            🔒 Dùng để sync giữa PC ↔ điện thoại<br>
+            💡 Sync giữa trình duyệt sẽ tự động
           </div>
         </div>
       `;
@@ -694,16 +728,18 @@ class MovieCommentSystem {
     document.getElementById('use-sync-code').onclick = () => {
       document.getElementById('sync-content').innerHTML = `
         <div>
+          <div style="color: #6c5ce7; font-size: 16px; margin-bottom: 10px; text-align: center;">📱 Nhập Cross-Device Sync Code</div>
           <div style="font-size: 14px; color: #888; margin-bottom: 10px; text-align: center;">
-            Nhập mã sync từ thiết bị khác:
+            Nhập mã sync từ PC hoặc điện thoại khác:
           </div>
           <input type="text" id="sync-code-input" placeholder="Nhập mã 6 số" maxlength="6"
-                 style="width: 100%; padding: 15px; border: 1px solid #555; border-radius: 6px; background: #333; color: #fff; text-align: center; font-size: 20px; margin-bottom: 15px; letter-spacing: 2px;">
-          <button id="apply-sync-code" style="width: 100%; padding: 12px; background: #00b894; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
-            🔄 Đồng bộ ngay
+                 style="width: 100%; padding: 15px; border: 1px solid #6c5ce7; border-radius: 6px; background: #333; color: #fff; text-align: center; font-size: 20px; margin-bottom: 15px; letter-spacing: 2px;">
+          <button id="apply-sync-code" style="width: 100%; padding: 12px; background: #6c5ce7; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+            📱 Sync Cross-Device
           </button>
           <div style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">
-            Sau khi đồng bộ, trang sẽ tự động tải lại
+            Sync dữ liệu giữa PC và điện thoại<br>
+            <span style="color: #00b894;">💡 Sync giữa trình duyệt sẽ tự động</span>
           </div>
         </div>
       `;
