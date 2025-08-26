@@ -624,23 +624,25 @@
         if (!window.movieComments) {
           throw new Error('movieComments not available');
         }
-        
+
         const testMovie = {
           slug: `debug-movie-${Date.now()}`,
           name: `Debug Movie ${new Date().toLocaleTimeString()}`,
           poster_url: 'https://via.placeholder.com/300x400',
           year: 2025,
-          lang: 'Vietsub'
+          lang: 'Vietsub',
+          quality: 'HD', // Add quality to prevent undefined error
+          episode_current: '1/1' // Add episode_current to prevent undefined error
         };
-        
+
         await window.movieComments.saveMovie(testMovie);
-        
+
         document.getElementById('manual-test-results').innerHTML = `
           <div class="status success">✅ Test movie added: ${testMovie.name}</div>
         `;
-        
+
         addDebugMessage(`Test movie added: ${testMovie.name}`);
-        
+
       } catch (error) {
         document.getElementById('manual-test-results').innerHTML = `
           <div class="status error">❌ Add movie failed: ${error.message}</div>

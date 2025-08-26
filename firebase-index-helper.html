@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Index Helper</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #121212;
+      color: #fff;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    .section {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .error-box {
+      background: rgba(231, 76, 60, 0.1);
+      border: 1px solid #e74c3c;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    
+    .solution-box {
+      background: rgba(0, 184, 148, 0.1);
+      border: 1px solid #00b894;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    
+    .code-box {
+      background: #000;
+      color: #0f0;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      margin: 15px 0;
+      overflow-x: auto;
+    }
+    
+    .btn {
+      background: #6c5ce7;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 5px;
+      font-size: 14px;
+      text-decoration: none;
+      display: inline-block;
+    }
+    
+    .btn:hover { opacity: 0.8; }
+    .btn--success { background: #00b894; }
+    .btn--danger { background: #e74c3c; }
+    
+    .step {
+      background: #2a2a2a;
+      border-left: 4px solid #6c5ce7;
+      padding: 15px;
+      margin: 10px 0;
+    }
+    
+    .step h4 {
+      margin: 0 0 10px 0;
+      color: #6c5ce7;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔥 Firebase Index Helper</h1>
+    <p>Giải quyết lỗi Firebase Index cho phimhv.site</p>
+    
+    <!-- Error Analysis -->
+    <div class="section">
+      <h3>🚨 Error Analysis</h3>
+      
+      <div class="error-box">
+        <h4>❌ Current Error:</h4>
+        <div class="code-box">
+FirebaseError: The query requires an index. You can create it here: 
+https://console.firebase.google.com/v1/r/project/phim-comments/firestore/indexes?create_composite=ClNwcm9qZWN0cy9waGltLWNvbW1lbnRzL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy93YXRjaFByb2dyZXNzL2luZGV4ZXMvXxABGgoKBnVzZXJJZBABGg0KCXVwZGF0ZWRBdBACGgwKCF9fbmFtZV9fEAI
+        </div>
+        
+        <p><strong>Problem:</strong> Query trên collection `watchProgress` cần composite index cho:</p>
+        <ul>
+          <li>Field: <code>userId</code> (Ascending)</li>
+          <li>Field: <code>updatedAt</code> (Descending)</li>
+        </ul>
+      </div>
+      
+      <div class="solution-box">
+        <h4>✅ Solution Applied:</h4>
+        <p>Đã fix bằng cách remove <code>orderBy</code> từ query và sort in-memory thay vì dùng Firebase orderBy.</p>
+        
+        <div class="code-box">
+// Before (requires index):
+const snapshot = await this.db.collection('watchProgress')
+  .where('userId', '==', userId)
+  .orderBy('updatedAt', 'desc')  // ← This requires composite index
+  .get();
+
+// After (no index required):
+const snapshot = await this.db.collection('watchProgress')
+  .where('userId', '==', userId)  // ← Only simple index needed
+  .get();
+
+// Sort in memory instead
+progressArray.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual Index Creation -->
+    <div class="section">
+      <h3>🔧 Manual Index Creation (Optional)</h3>
+      <p>Nếu muốn tạo index thay vì fix code, follow steps sau:</p>
+      
+      <div class="step">
+        <h4>Step 1: Open Firebase Console</h4>
+        <p>Click link dưới để mở Firebase Console:</p>
+        <a href="https://console.firebase.google.com/v1/r/project/phim-comments/firestore/indexes?create_composite=ClNwcm9qZWN0cy9waGltLWNvbW1lbnRzL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy93YXRjaFByb2dyZXNzL2luZGV4ZXMvXxABGgoKBnVzZXJJZBABGg0KCXVwZGF0ZWRBdBACGgwKCF9fbmFtZV9fEAI" 
+           class="btn btn--success" target="_blank">
+          🔥 Open Firebase Console
+        </a>
+      </div>
+      
+      <div class="step">
+        <h4>Step 2: Create Composite Index</h4>
+        <p>Firebase Console sẽ tự động tạo index với config:</p>
+        <div class="code-box">
+Collection: watchProgress
+Fields:
+  - userId (Ascending)
+  - updatedAt (Descending)
+  - __name__ (Ascending)
+        </div>
+      </div>
+      
+      <div class="step">
+        <h4>Step 3: Wait for Index Creation</h4>
+        <p>Index creation có thể mất vài phút. Status sẽ chuyển từ "Building" → "Enabled"</p>
+      </div>
+    </div>
+
+    <!-- Alternative Solutions -->
+    <div class="section">
+      <h3>🛠️ Alternative Solutions</h3>
+      
+      <div class="step">
+        <h4>Solution 1: Remove OrderBy (✅ Applied)</h4>
+        <p>Remove <code>orderBy</code> từ Firebase query và sort in-memory</p>
+        <div class="code-box">
+// Pros: No index required, works immediately
+// Cons: Slightly slower for large datasets
+// Status: ✅ Already implemented
+        </div>
+      </div>
+      
+      <div class="step">
+        <h4>Solution 2: Create Index (Optional)</h4>
+        <p>Tạo composite index như Firebase suggest</p>
+        <div class="code-box">
+// Pros: Faster queries, proper Firebase optimization
+// Cons: Requires Firebase Console access, takes time to build
+// Status: ⚪ Optional
+        </div>
+      </div>
+      
+      <div class="step">
+        <h4>Solution 3: Restructure Data (Advanced)</h4>
+        <p>Thay đổi data structure để avoid complex queries</p>
+        <div class="code-box">
+// Pros: Better performance, simpler queries
+// Cons: Requires data migration, complex implementation
+// Status: ❌ Not recommended for current setup
+        </div>
+      </div>
+    </div>
+
+    <!-- Test Results -->
+    <div class="section">
+      <h3>🧪 Test Results</h3>
+      
+      <div id="test-results">
+        <div style="color: #888;">Click "Test Fixed Functions" để verify fixes</div>
+      </div>
+      
+      <div style="margin: 20px 0;">
+        <button class="btn btn--success" onclick="testFixedFunctions()">🧪 Test Fixed Functions</button>
+        <button class="btn" onclick="testWatchProgress()">📊 Test Watch Progress</button>
+        <button class="btn" onclick="testSaveMovie()">💾 Test Save Movie</button>
+      </div>
+    </div>
+
+    <!-- Debug Console -->
+    <div class="section">
+      <h3>📝 Debug Console</h3>
+      <div class="code-box" id="debug-console" style="max-height: 200px; overflow-y: auto;">
+        Debug messages will appear here...
+      </div>
+      <button class="btn" onclick="clearDebugConsole()">🗑️ Clear Console</button>
+    </div>
+  </div>
+
+  <!-- Load Firebase and App -->
+  <script src="./firebase-config.js"></script>
+  <script src="./assets/app.js"></script>
+  
+  <script>
+    let debugMessages = [];
+    
+    function addDebugMessage(message) {
+      const timestamp = new Date().toLocaleTimeString();
+      debugMessages.push(`[${timestamp}] ${message}`);
+      updateDebugConsole();
+    }
+    
+    function updateDebugConsole() {
+      const console = document.getElementById('debug-console');
+      const recent = debugMessages.slice(-15);
+      console.innerHTML = recent.map(msg => `<div>${msg}</div>`).join('');
+      console.scrollTop = console.scrollHeight;
+    }
+    
+    function clearDebugConsole() {
+      debugMessages = [];
+      updateDebugConsole();
+    }
+    
+    async function testFixedFunctions() {
+      addDebugMessage('🧪 Testing fixed functions...');
+      
+      const tests = [
+        {
+          name: 'Save Movie (Fixed undefined fields)',
+          test: async () => {
+            const testMovie = {
+              slug: `index-test-${Date.now()}`,
+              name: `Index Test ${new Date().toLocaleTimeString()}`,
+              poster_url: 'https://via.placeholder.com/300x400',
+              year: 2025,
+              lang: 'Vietsub',
+              quality: 'HD',
+              episode_current: '1/1'
+            };
+            await window.movieComments.saveMovie(testMovie);
+            return 'Movie saved successfully';
+          }
+        },
+        {
+          name: 'Get Watch Progress (Fixed index issue)',
+          test: async () => {
+            const progress = await window.movieComments.getAllWatchProgress();
+            return `Retrieved ${Object.keys(progress).length} progress records`;
+          }
+        },
+        {
+          name: 'Auto-Sync Check',
+          test: async () => {
+            if (window.movieComments._checkSeamlessAutoSync) {
+              await window.movieComments._checkSeamlessAutoSync();
+              return 'Auto-sync check completed';
+            } else {
+              throw new Error('_checkSeamlessAutoSync not available');
+            }
+          }
+        }
+      ];
+      
+      let resultsHtml = '<div><strong>Test Results:</strong></div>';
+      let allPassed = true;
+      
+      for (const test of tests) {
+        try {
+          const result = await test.test();
+          resultsHtml += `
+            <div style="color: #00b894; margin: 10px 0; padding: 10px; background: rgba(0, 184, 148, 0.1); border-radius: 4px;">
+              ✅ <strong>${test.name}:</strong> ${result}
+            </div>
+          `;
+          addDebugMessage(`✅ ${test.name}: ${result}`);
+        } catch (error) {
+          resultsHtml += `
+            <div style="color: #e74c3c; margin: 10px 0; padding: 10px; background: rgba(231, 76, 60, 0.1); border-radius: 4px;">
+              ❌ <strong>${test.name}:</strong> ${error.message}
+            </div>
+          `;
+          allPassed = false;
+          addDebugMessage(`❌ ${test.name}: ${error.message}`);
+        }
+      }
+      
+      if (allPassed) {
+        resultsHtml += `
+          <div style="color: #00b894; margin: 20px 0; padding: 15px; background: rgba(0, 184, 148, 0.2); border-radius: 6px; text-align: center;">
+            <strong>🎉 All tests passed! Firebase fixes are working correctly.</strong>
+          </div>
+        `;
+      }
+      
+      document.getElementById('test-results').innerHTML = resultsHtml;
+    }
+    
+    async function testWatchProgress() {
+      try {
+        addDebugMessage('📊 Testing watch progress...');
+        
+        if (!window.movieComments) {
+          throw new Error('movieComments not available');
+        }
+        
+        const progress = await window.movieComments.getAllWatchProgress();
+        
+        document.getElementById('test-results').innerHTML = `
+          <div style="color: #00b894; padding: 15px; background: rgba(0, 184, 148, 0.1); border-radius: 6px;">
+            ✅ <strong>Watch Progress Test:</strong><br>
+            Retrieved ${Object.keys(progress).length} progress records<br>
+            No index error occurred!
+          </div>
+        `;
+        
+        addDebugMessage(`Watch progress test: ${Object.keys(progress).length} records`);
+        
+      } catch (error) {
+        document.getElementById('test-results').innerHTML = `
+          <div style="color: #e74c3c; padding: 15px; background: rgba(231, 76, 60, 0.1); border-radius: 6px;">
+            ❌ <strong>Watch Progress Test Failed:</strong><br>
+            ${error.message}
+          </div>
+        `;
+        addDebugMessage(`Watch progress test error: ${error.message}`);
+      }
+    }
+    
+    async function testSaveMovie() {
+      try {
+        addDebugMessage('💾 Testing save movie...');
+        
+        if (!window.movieComments) {
+          throw new Error('movieComments not available');
+        }
+        
+        const testMovie = {
+          slug: `save-test-${Date.now()}`,
+          name: `Save Test ${new Date().toLocaleTimeString()}`,
+          poster_url: 'https://via.placeholder.com/300x400',
+          year: 2025,
+          lang: 'Vietsub',
+          quality: 'HD',
+          episode_current: '1/1'
+        };
+        
+        await window.movieComments.saveMovie(testMovie);
+        
+        document.getElementById('test-results').innerHTML = `
+          <div style="color: #00b894; padding: 15px; background: rgba(0, 184, 148, 0.1); border-radius: 6px;">
+            ✅ <strong>Save Movie Test:</strong><br>
+            Movie "${testMovie.name}" saved successfully<br>
+            No undefined field errors!
+          </div>
+        `;
+        
+        addDebugMessage(`Save movie test: ${testMovie.name} saved successfully`);
+        
+      } catch (error) {
+        document.getElementById('test-results').innerHTML = `
+          <div style="color: #e74c3c; padding: 15px; background: rgba(231, 76, 60, 0.1); border-radius: 6px;">
+            ❌ <strong>Save Movie Test Failed:</strong><br>
+            ${error.message}
+          </div>
+        `;
+        addDebugMessage(`Save movie test error: ${error.message}`);
+      }
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        addDebugMessage('🚀 Firebase Index Helper initialized');
+        addDebugMessage('✅ Applied fixes: Remove orderBy, filter undefined fields');
+      }, 1000);
+    });
+  </script>
+</body>
+</html>

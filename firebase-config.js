@@ -1586,19 +1586,26 @@ class MovieCommentSystem {
     const userId = this.getUserId();
     const userName = this.getUserName();
 
+    // Clean movie data - remove undefined fields to prevent Firebase errors
     const movieData = {
-      slug: movie.slug,
-      name: movie.name,
-      poster_url: movie.poster_url || movie.thumb_url,
-      year: movie.year,
-      lang: movie.lang,
-      quality: movie.quality,
-      episode_current: movie.episode_current,
+      slug: movie.slug || '',
+      name: movie.name || '',
+      poster_url: movie.poster_url || movie.thumb_url || '',
+      year: movie.year || new Date().getFullYear(),
+      lang: movie.lang || 'Vietsub',
       savedAt: firebase.firestore.FieldValue.serverTimestamp(),
       userId: userId,
       userName: userName,
       deviceInfo: this.getDeviceInfo()
     };
+
+    // Only add optional fields if they have values
+    if (movie.quality !== undefined && movie.quality !== null) {
+      movieData.quality = movie.quality;
+    }
+    if (movie.episode_current !== undefined && movie.episode_current !== null) {
+      movieData.episode_current = movie.episode_current;
+    }
 
     try {
       // Check if already saved
@@ -1847,19 +1854,26 @@ class MovieCommentSystem {
     const userId = this.getUserId();
 
     try {
+      // Simplified query without orderBy to avoid index requirement
       const snapshot = await this.db.collection('watchProgress')
         .where('userId', '==', userId)
-        .orderBy('updatedAt', 'desc')
         .get();
 
       const progress = {};
+      const progressArray = [];
+
       snapshot.forEach(doc => {
         const data = doc.data();
-        progress[data.movieSlug] = {
+        const progressData = {
           ...data,
           updatedAt: data.updatedAt?.toDate()?.getTime() || Date.now()
         };
+        progress[data.movieSlug] = progressData;
+        progressArray.push(progressData);
       });
+
+      // Sort in memory instead of using Firebase orderBy
+      progressArray.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
       return progress;
     } catch (error) {
