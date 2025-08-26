@@ -377,6 +377,20 @@ class MovieCommentSystem {
     return `movie_shared_user_${Math.abs(hash).toString(36)}`;
   }
 
+  // Get browser info for display and sync tracking
+  _getBrowserInfo() {
+    const ua = navigator.userAgent;
+    let browser = 'Unknown';
+
+    if (ua.includes('Edg/')) browser = 'Microsoft Edge';
+    else if (ua.includes('OPR/') || ua.includes('Opera/')) browser = 'Opera';
+    else if (ua.includes('Chrome/') && !ua.includes('Edg/')) browser = 'Chrome';
+    else if (ua.includes('Firefox/')) browser = 'Firefox';
+    else if (ua.includes('Safari/') && !ua.includes('Chrome/')) browser = 'Safari';
+
+    return browser;
+  }
+
   // Auto-detect and suggest sync if needed
   async _checkAndSuggestSync() {
     try {
