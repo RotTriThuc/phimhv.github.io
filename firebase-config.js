@@ -377,44 +377,26 @@ class MovieCommentSystem {
     return `movie_shared_user_${Math.abs(hash).toString(36)}`;
   }
 
-  // Get browser info for display and sync tracking
-  _getBrowserInfo() {
-    const ua = navigator.userAgent;
-    let browser = 'Unknown';
-
-    if (ua.includes('Edg/')) browser = 'Microsoft Edge';
-    else if (ua.includes('OPR/') || ua.includes('Opera/')) browser = 'Opera';
-    else if (ua.includes('Chrome/') && !ua.includes('Edg/')) browser = 'Chrome';
-    else if (ua.includes('Firefox/')) browser = 'Firefox';
-    else if (ua.includes('Safari/') && !ua.includes('Chrome/')) browser = 'Safari';
-
-    return browser;
-  }
-
   // Auto-detect and suggest sync if needed
   async _checkAndSuggestSync() {
     try {
+      // Check if we're on GitHub Pages and have no saved movies
       const isGitHub = window.location.hostname.includes('github.io');
       const isLocalhost = window.location.hostname.includes('localhost');
 
       if (isGitHub) {
-        console.log('🌐 GitHub Pages detected - checking sync options');
-
-        // Priority 1: Auto-sync between browsers on same device (seamless)
-        await this._checkSeamlessAutoSync();
-
-        // Priority 2: Manual sync for cross-device (PC ↔ phone) only if no data
+        // Check if we have any saved movies
         const movies = await this.getSavedMovies();
         const progress = await this.getAllWatchProgress();
 
         if (movies.length === 0 && progress.length === 0) {
-          console.log('🔄 No data found - checking for cross-device sync options');
+          console.log('🔄 GitHub Pages detected with no data - checking for sync options');
 
-          // Check environment sync (localhost ↔ GitHub Pages)
+          // Check if there's a shared User ID available
           const sharedUserId = this._getUserIdFromSharedStorage();
           if (sharedUserId && sharedUserId !== this.getUserId()) {
-            console.log('💡 Found potential User ID from localhost');
-            this._showEnvironmentSyncSuggestion(sharedUserId);
+            console.log('💡 Found potential User ID from localhost, suggesting sync');
+            this._showAutoSyncSuggestion(sharedUserId);
           }
         }
       }
@@ -429,13 +411,13 @@ class MovieCommentSystem {
     }
   }
 
-  // Show environment sync suggestion (localhost ↔ GitHub Pages)
-  _showEnvironmentSyncSuggestion(suggestedUserId) {
+  // Show auto-sync suggestion
+  _showAutoSyncSuggestion(suggestedUserId) {
     // Only show if not already dismissed
-    const dismissed = localStorage.getItem('environment_sync_dismissed');
+    const dismissed = localStorage.getItem('auto_sync_dismissed');
     if (dismissed) return;
 
-    console.log('💡 Showing environment sync suggestion (localhost ↔ GitHub Pages)');
+    console.log('💡 Showing auto-sync suggestion');
 
     // Create notification
     const notification = document.createElement('div');
@@ -451,7 +433,7 @@ class MovieCommentSystem {
 
     notification.innerHTML = `
       <div style="display: flex; align-items: center; margin-bottom: 10px;">
-        <span style="font-size: 18px; margin-right: 8px;">🏠</span>
+        <span style="font-size: 18px; margin-right: 8px;">🔄</span>
         <strong>Sync dữ liệu từ localhost?</strong>
       </div>
       <div style="margin-bottom: 15px; opacity: 0.9;">
@@ -462,13 +444,10 @@ class MovieCommentSystem {
                 style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
           ✅ Đồng bộ
         </button>
-        <button onclick="this.parentElement.parentElement.remove(); localStorage.setItem('environment_sync_dismissed', Date.now())"
+        <button onclick="this.parentElement.parentElement.remove(); localStorage.setItem('auto_sync_dismissed', Date.now())"
                 style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
           ❌ Bỏ qua
         </button>
-      </div>
-      <div style="margin-top: 10px; font-size: 11px; opacity: 0.7;">
-        💡 Sync giữa trình duyệt sẽ tự động, không cần mã code
       </div>
     `;
 
@@ -641,216 +620,6 @@ class MovieCommentSystem {
     }
   }
 
-  // Check for seamless auto-sync opportunities from other browsers
-  async _checkSeamlessAutoSync() {
-    try {
-      if (!this.initialized) {
-        console.log('⚠️ Firebase not initialized yet, skipping seamless sync check');
-        return;
-      }
-
-      const deviceId = this._getSeamlessDeviceId();
-      const currentBrowser = this._getBrowserInfo();
-
-      console.log('🚀 Checking seamless auto-sync for device:', deviceId);
-
-      // Check Firebase for existing sync data
-      const doc = await this.db.collection('seamlessSync').doc(deviceId).get();
-
-      if (doc.exists) {
-        const syncData = doc.data();
-        const browsers = Object.keys(syncData.browsers || {});
-
-        // Check if there are other browsers with data
-        const otherBrowsers = browsers.filter(browser => browser !== currentBrowser);
-
-        if (otherBrowsers.length > 0 && syncData.userId !== this.getUserId()) {
-          console.log('🚀 Found seamless sync data from other browsers:', otherBrowsers);
-
-          // Check if current user has no data
-          const movies = await this.getSavedMovies();
-          const progress = await this.getAllWatchProgress();
-
-          if (movies.length === 0 && progress.length === 0) {
-            console.log('💡 Auto-syncing seamlessly from other browsers');
-            await this._performSeamlessAutoSync(syncData);
-          }
-        }
-      } else {
-        // No existing sync data, create one for future cross-browser sync
-        console.log('💾 Creating seamless sync registry for future cross-browser sync');
-        await this._registerForSeamlessSync(this.getUserId());
-      }
-
-    } catch (error) {
-      console.warn('⚠️ Seamless auto-sync check failed:', error);
-    }
-  }
-
-  // Get seamless device ID (stable across browsers on same device)
-  _getSeamlessDeviceId() {
-    // Use ultra-stable characteristics that don't change between browsers
-    const stableCharacteristics = [
-      // Screen characteristics (identical across browsers)
-      screen.width,
-      screen.height,
-      screen.colorDepth,
-
-      // System characteristics (identical across browsers)
-      navigator.language,
-      new Date().getTimezoneOffset(),
-
-      // Hardware characteristics (when available)
-      navigator.hardwareConcurrency || 4,
-      navigator.deviceMemory || 4,
-
-      // Additional stable characteristics
-      navigator.maxTouchPoints || 0,
-      screen.pixelDepth || 24
-    ].join('|');
-
-    // Create stable hash
-    let hash = 0;
-    for (let i = 0; i < stableCharacteristics.length; i++) {
-      const char = stableCharacteristics.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-
-    return `device_${Math.abs(hash).toString(36)}`;
-  }
-
-  // Register User ID for seamless sync across browsers
-  async _registerForSeamlessSync(userId) {
-    try {
-      if (!this.initialized) return;
-
-      const deviceId = this._getSeamlessDeviceId();
-      const browserInfo = this._getBrowserInfo();
-
-      console.log('🚀 Registering for seamless sync:', { deviceId, browserInfo });
-
-      // Save to Firebase for cross-browser access
-      await this.db.collection('seamlessSync').doc(deviceId).set({
-        userId: userId,
-        userName: this.getUserName(),
-        deviceId: deviceId,
-        browsers: {
-          [browserInfo]: {
-            lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-            userAgent: navigator.userAgent.substring(0, 200)
-          }
-        },
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-
-      console.log('✅ Registered for seamless sync successfully');
-
-    } catch (error) {
-      console.error('❌ Failed to register for seamless sync:', error);
-    }
-  }
-
-  // Perform seamless auto-sync without user intervention
-  async _performSeamlessAutoSync(syncData) {
-    try {
-      console.log('🚀 Performing seamless auto-sync...');
-
-      const currentUserId = this.getUserId();
-      const syncUserId = syncData.userId;
-
-      if (currentUserId !== syncUserId) {
-        // Update User ID silently
-        this._saveUserIdToAllStorage(syncUserId);
-
-        // Update user name if available
-        if (syncData.userName) {
-          this.setUserName(syncData.userName);
-        }
-
-        console.log('✅ Seamless auto-sync completed silently');
-
-        // Show subtle notification
-        this._showSeamlessSyncNotification(syncData);
-
-        // Refresh data in background
-        setTimeout(() => {
-          this._refreshDataAfterSeamlessSync();
-        }, 1000);
-      }
-
-    } catch (error) {
-      console.error('❌ Seamless auto-sync failed:', error);
-    }
-  }
-
-  // Show subtle notification for seamless sync
-  _showSeamlessSyncNotification(syncData) {
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-      position: fixed; bottom: 20px; right: 20px; z-index: 10000;
-      background: linear-gradient(135deg, #00b894, #00cec9);
-      color: white; padding: 12px 16px; border-radius: 6px;
-      box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);
-      font-family: system-ui, -apple-system, sans-serif;
-      font-size: 13px; max-width: 300px;
-      animation: slideInUp 0.3s ease-out;
-      opacity: 0.95;
-    `;
-
-    const browsers = Object.keys(syncData.browsers || {});
-    const otherBrowsers = browsers.filter(b => b !== this._getBrowserInfo());
-
-    notification.innerHTML = `
-      <div style="display: flex; align-items: center;">
-        <span style="font-size: 16px; margin-right: 8px;">🚀</span>
-        <div>
-          <div style="font-weight: 500;">Đã đồng bộ tự động</div>
-          <div style="font-size: 11px; opacity: 0.8; margin-top: 2px;">
-            Từ ${otherBrowsers[0] || 'trình duyệt khác'}
-          </div>
-        </div>
-      </div>
-    `;
-
-    // Add animation
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes slideInUp {
-        from { transform: translateY(100%); opacity: 0; }
-        to { transform: translateY(0); opacity: 0.95; }
-      }
-    `;
-    document.head.appendChild(style);
-
-    document.body.appendChild(notification);
-
-    // Auto-hide after 4 seconds
-    setTimeout(() => {
-      if (notification.parentElement) {
-        notification.style.animation = 'slideInUp 0.3s ease-out reverse';
-        setTimeout(() => notification.remove(), 300);
-      }
-    }, 4000);
-  }
-
-  // Refresh data after seamless sync
-  async _refreshDataAfterSeamlessSync() {
-    try {
-      // Trigger data refresh events
-      const refreshEvent = new CustomEvent('seamlessSync', {
-        detail: { type: 'dataRefresh' }
-      });
-      window.dispatchEvent(refreshEvent);
-
-      console.log('🔄 Data refresh triggered after seamless sync');
-
-    } catch (error) {
-      console.warn('⚠️ Failed to refresh data after seamless sync:', error);
-    }
-  }
-
   // Show sync UI dialog
   showSyncDialog() {
     const existingDialog = document.querySelector('.sync-dialog');
@@ -871,54 +640,29 @@ class MovieCommentSystem {
     const currentUserName = this.getUserName();
 
     dialog.innerHTML = `
-      <div style="background: #1e1e1e; border-radius: 12px; padding: 30px; max-width: 450px; width: 90%; color: #fff;">
-        <h3 style="margin: 0 0 20px 0; text-align: center; color: #6c5ce7;">🔄 Đồng bộ dữ liệu</h3>
+      <div style="background: #1e1e1e; border-radius: 12px; padding: 30px; max-width: 400px; width: 90%; color: #fff;">
+        <h3 style="margin: 0 0 20px 0; text-align: center; color: #6c5ce7;">🔄 Đồng bộ thiết bị</h3>
 
         <div style="background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
           <div style="font-size: 14px; color: #888; margin-bottom: 5px;">Thiết bị hiện tại:</div>
           <div style="font-weight: 500;">${currentUserName}</div>
           <div style="font-size: 12px; color: #666; word-break: break-all;">${currentUserId}</div>
-          <div style="font-size: 12px; color: #888; margin-top: 5px;">Trình duyệt: ${this._getBrowserInfo()}</div>
         </div>
 
-        <!-- Auto-Sync Info -->
-        <div style="background: linear-gradient(135deg, #00b894, #00cec9); padding: 15px; border-radius: 8px; margin-bottom: 20px; color: white;">
-          <div style="display: flex; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 18px; margin-right: 8px;">🚀</span>
-            <strong>Auto-Sync giữa trình duyệt</strong>
-          </div>
-          <div style="font-size: 13px; opacity: 0.9;">
-            Dữ liệu tự động đồng bộ giữa Edge, Chrome, Opera, Firefox trên cùng thiết bị - không cần mã code!
-          </div>
-        </div>
-
-        <!-- Manual Sync for Cross-Device -->
-        <div style="background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #6c5ce7;">
-          <div style="display: flex; align-items: center; margin-bottom: 10px;">
-            <span style="font-size: 16px; margin-right: 8px;">📱</span>
-            <strong style="color: #6c5ce7;">Sync PC ↔ Điện thoại</strong>
-          </div>
-
-          <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-            <button id="generate-sync-code" style="flex: 1; padding: 10px; background: #6c5ce7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-              📤 Tạo mã
-            </button>
-            <button id="use-sync-code" style="flex: 1; padding: 10px; background: #a29bfe; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-              📥 Nhập mã
-            </button>
-          </div>
-
-          <div style="font-size: 11px; color: #888;">
-            Dùng mã sync để đồng bộ giữa PC và điện thoại
-          </div>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+          <button id="generate-sync-code" style="flex: 1; padding: 12px; background: #6c5ce7; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+            📤 Tạo mã sync
+          </button>
+          <button id="use-sync-code" style="flex: 1; padding: 12px; background: #00b894; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+            📥 Nhập mã sync
+          </button>
         </div>
 
         <div id="sync-content" style="min-height: 80px; text-align: center; color: #888; padding: 20px; background: #2a2a2a; border-radius: 8px;">
-          <div style="font-size: 16px; margin-bottom: 10px;">💡</div>
-          <div><strong>Hướng dẫn sử dụng:</strong></div>
-          <div style="font-size: 12px; margin-top: 10px; line-height: 1.4;">
-            • <strong>Trình duyệt khác:</strong> Tự động sync, không cần làm gì<br>
-            • <strong>PC ↔ Điện thoại:</strong> Dùng mã sync ở trên
+          <div style="font-size: 16px; margin-bottom: 10px;">📱</div>
+          <div>Chọn một tùy chọn để đồng bộ dữ liệu giữa các thiết bị</div>
+          <div style="font-size: 12px; margin-top: 10px; color: #666;">
+            Phim đã lưu sẽ được sync trên tất cả thiết bị
           </div>
         </div>
 
@@ -930,20 +674,18 @@ class MovieCommentSystem {
 
     document.body.appendChild(dialog);
 
-    // Event handlers for Cross-Device Sync (PC ↔ Phone)
+    // Event handlers
     document.getElementById('generate-sync-code').onclick = () => {
       const syncCode = this.generateSyncCode();
       document.getElementById('sync-content').innerHTML = `
         <div style="text-align: center;">
-          <div style="color: #6c5ce7; font-size: 16px; margin-bottom: 10px;">📱 Cross-Device Sync Code</div>
           <div style="font-size: 24px; font-weight: bold; color: #6c5ce7; margin-bottom: 15px; letter-spacing: 2px;">${syncCode}</div>
           <div style="font-size: 14px; color: #888; margin-bottom: 15px;">
-            📱 Nhập mã này trên PC hoặc điện thoại khác
+            📱 Nhập mã này trên thiết bị khác
           </div>
           <div style="font-size: 12px; color: #666; background: #333; padding: 10px; border-radius: 6px;">
             ⏰ Mã có hiệu lực trong 24 giờ<br>
-            🔒 Dùng để sync giữa PC ↔ điện thoại<br>
-            💡 Sync giữa trình duyệt sẽ tự động
+            🔒 Mã chỉ sử dụng được 1 lần
           </div>
         </div>
       `;
@@ -952,18 +694,16 @@ class MovieCommentSystem {
     document.getElementById('use-sync-code').onclick = () => {
       document.getElementById('sync-content').innerHTML = `
         <div>
-          <div style="color: #6c5ce7; font-size: 16px; margin-bottom: 10px; text-align: center;">📱 Nhập Cross-Device Sync Code</div>
           <div style="font-size: 14px; color: #888; margin-bottom: 10px; text-align: center;">
-            Nhập mã sync từ PC hoặc điện thoại khác:
+            Nhập mã sync từ thiết bị khác:
           </div>
           <input type="text" id="sync-code-input" placeholder="Nhập mã 6 số" maxlength="6"
-                 style="width: 100%; padding: 15px; border: 1px solid #6c5ce7; border-radius: 6px; background: #333; color: #fff; text-align: center; font-size: 20px; margin-bottom: 15px; letter-spacing: 2px;">
-          <button id="apply-sync-code" style="width: 100%; padding: 12px; background: #6c5ce7; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
-            📱 Sync Cross-Device
+                 style="width: 100%; padding: 15px; border: 1px solid #555; border-radius: 6px; background: #333; color: #fff; text-align: center; font-size: 20px; margin-bottom: 15px; letter-spacing: 2px;">
+          <button id="apply-sync-code" style="width: 100%; padding: 12px; background: #00b894; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+            🔄 Đồng bộ ngay
           </button>
           <div style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">
-            Sync dữ liệu giữa PC và điện thoại<br>
-            <span style="color: #00b894;">💡 Sync giữa trình duyệt sẽ tự động</span>
+            Sau khi đồng bộ, trang sẽ tự động tải lại
           </div>
         </div>
       `;
@@ -1586,26 +1326,19 @@ class MovieCommentSystem {
     const userId = this.getUserId();
     const userName = this.getUserName();
 
-    // Clean movie data - remove undefined fields to prevent Firebase errors
     const movieData = {
-      slug: movie.slug || '',
-      name: movie.name || '',
-      poster_url: movie.poster_url || movie.thumb_url || '',
-      year: movie.year || new Date().getFullYear(),
-      lang: movie.lang || 'Vietsub',
+      slug: movie.slug,
+      name: movie.name,
+      poster_url: movie.poster_url || movie.thumb_url,
+      year: movie.year,
+      lang: movie.lang,
+      quality: movie.quality,
+      episode_current: movie.episode_current,
       savedAt: firebase.firestore.FieldValue.serverTimestamp(),
       userId: userId,
       userName: userName,
       deviceInfo: this.getDeviceInfo()
     };
-
-    // Only add optional fields if they have values
-    if (movie.quality !== undefined && movie.quality !== null) {
-      movieData.quality = movie.quality;
-    }
-    if (movie.episode_current !== undefined && movie.episode_current !== null) {
-      movieData.episode_current = movie.episode_current;
-    }
 
     try {
       // Check if already saved
@@ -1854,26 +1587,19 @@ class MovieCommentSystem {
     const userId = this.getUserId();
 
     try {
-      // Simplified query without orderBy to avoid index requirement
       const snapshot = await this.db.collection('watchProgress')
         .where('userId', '==', userId)
+        .orderBy('updatedAt', 'desc')
         .get();
 
       const progress = {};
-      const progressArray = [];
-
       snapshot.forEach(doc => {
         const data = doc.data();
-        const progressData = {
+        progress[data.movieSlug] = {
           ...data,
           updatedAt: data.updatedAt?.toDate()?.getTime() || Date.now()
         };
-        progress[data.movieSlug] = progressData;
-        progressArray.push(progressData);
       });
-
-      // Sort in memory instead of using Firebase orderBy
-      progressArray.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
       return progress;
     } catch (error) {
