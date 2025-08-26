@@ -1651,20 +1651,31 @@ function parseHash() {
 }
 
 function navigateTo(hash) {
+  console.log('🧭 Navigating to:', hash);
+
   if (location.hash === hash) {
     window.dispatchEvent(new HashChangeEvent('hashchange'));
   } else {
     location.hash = hash;
   }
-  
+
+  // Fallback: If routing gets stuck, force it after 2 seconds
+  setTimeout(() => {
+    if (isRouting && location.hash === hash) {
+      console.warn('⚠️ Routing stuck, forcing completion');
+      isRouting = false;
+      router();
+    }
+  }, 2000);
+
   // Ensure scroll to top after navigation (fallback)
   requestAnimationFrame(() => {
     if (window.scrollY > 50) {
       try {
-        window.scrollTo({ 
-          top: 0, 
-          left: 0, 
-          behavior: window.scrollY > 500 ? 'instant' : 'smooth' 
+        window.scrollTo({
+          top: 0,
+          left: 0,
+          behavior: window.scrollY > 500 ? 'instant' : 'smooth'
         });
       } catch (e) {
         // Fallback for older browsers
@@ -3184,14 +3195,35 @@ async function renderSavedMovies(root) {
 let isRouting = false;
 let routingQueue = [];
 
+// Process queued navigation
+function processRoutingQueue() {
+  if (routingQueue.length === 0) return;
+
+  // Get the most recent navigation (ignore older ones)
+  const latestRoute = routingQueue[routingQueue.length - 1];
+  routingQueue = []; // Clear queue
+
+  // Only process if it's recent (within 5 seconds)
+  if (Date.now() - latestRoute.timestamp < 5000) {
+    console.log('⚡ Processing queued navigation:', latestRoute.path);
+    setTimeout(() => router(), 10);
+  } else {
+    console.log('⏰ Discarded old queued navigation:', latestRoute.path);
+  }
+}
+
 async function router() {
   // Queue navigation if already routing
   if (isRouting) {
     const { path, params } = parseHash();
-    routingQueue.push({ path, params, timestamp: Date.now() });
+    const queueItem = { path, params, timestamp: Date.now() };
+    routingQueue.push(queueItem);
+    console.log('🔄 Queued navigation:', path);
     return;
   }
   isRouting = true;
+
+  console.log('🚀 Router started for:', parseHash().path);
   
   // Smart scroll to top on navigation
   const currentScrollY = window.scrollY;
@@ -3223,72 +3255,76 @@ async function router() {
   if (path === '/' || path === '') {
     await renderHome(root);
     isRouting = false;
+    processRoutingQueue();
     return;
   }
   if (path.startsWith('/tim-kiem')) {
     await renderSearch(root, params);
     isRouting = false;
+    processRoutingQueue();
     return;
   }
   if (path.startsWith('/loc')) {
     await renderFilterList(root, params);
     isRouting = false;
+    processRoutingQueue();
     return;
   }
   if (path === '/the-loai' || path === '/the-loai/') {
     await renderAllCategories(root);
     isRouting = false;
+    processRoutingQueue();
     return;
   }
   if (path === '/phim-da-luu' || path === '/phim-da-luu/') {
+    console.log('📺 Rendering saved movies page');
     await renderSavedMovies(root);
     isRouting = false;
+    processRoutingQueue();
     return;
   }
   if (path.startsWith('/the-loai/')) {
     const slug = decodeURIComponent(path.split('/')[2] || '');
     await renderCategory(root, slug, params);
     isRouting = false;
+    processRoutingQueue();
     return;
   }
   if (path.startsWith('/quoc-gia/')) {
     const slug = decodeURIComponent(path.split('/')[2] || '');
     await renderCountry(root, slug, params);
     isRouting = false;
+    processRoutingQueue();
     return;
   }
   if (path.startsWith('/nam/')) {
     const year = decodeURIComponent(path.split('/')[2] || '');
     await renderYear(root, year, params);
     isRouting = false;
+    processRoutingQueue();
     return;
   }
   if (path.startsWith('/phim/')) {
     const slug = decodeURIComponent(path.split('/')[2] || '');
     await renderDetail(root, slug);
     isRouting = false;
+    processRoutingQueue();
     return;
   }
   if (path.startsWith('/xem/')) {
     const slug = decodeURIComponent(path.split('/')[2] || '');
     await renderWatch(root, slug, params);
     isRouting = false;
+    processRoutingQueue();
     return;
   }
   root.textContent = 'Trang không tồn tại.';
   isRouting = false;
 
+  console.log('✅ Router completed for:', parseHash().path);
+
   // Process queued navigation if any
-  if (routingQueue.length > 0) {
-    const nextRoute = routingQueue.shift();
-    // Only process if it's recent (within 2 seconds)
-    if (Date.now() - nextRoute.timestamp < 2000) {
-      setTimeout(() => router(), 50);
-    } else {
-      // Clear old queued routes
-      routingQueue = [];
-    }
-  }
+  processRoutingQueue();
 }
 
 (function main() {
