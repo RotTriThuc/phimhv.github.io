@@ -401,7 +401,7 @@ class MovieCommentSystem {
         console.log('🌐 GitHub Pages detected - checking sync options');
 
         // Priority 1: Auto-sync between browsers on same device (seamless)
-        // This runs automatically in background via _checkSeamlessAutoSync()
+        await this._checkSeamlessAutoSync();
 
         // Priority 2: Manual sync for cross-device (PC ↔ phone) only if no data
         const movies = await this.getSavedMovies();
@@ -638,6 +638,216 @@ class MovieCommentSystem {
     } catch (error) {
       console.error('❌ Sync code failed:', error);
       throw error;
+    }
+  }
+
+  // Check for seamless auto-sync opportunities from other browsers
+  async _checkSeamlessAutoSync() {
+    try {
+      if (!this.initialized) {
+        console.log('⚠️ Firebase not initialized yet, skipping seamless sync check');
+        return;
+      }
+
+      const deviceId = this._getSeamlessDeviceId();
+      const currentBrowser = this._getBrowserInfo();
+
+      console.log('🚀 Checking seamless auto-sync for device:', deviceId);
+
+      // Check Firebase for existing sync data
+      const doc = await this.db.collection('seamlessSync').doc(deviceId).get();
+
+      if (doc.exists) {
+        const syncData = doc.data();
+        const browsers = Object.keys(syncData.browsers || {});
+
+        // Check if there are other browsers with data
+        const otherBrowsers = browsers.filter(browser => browser !== currentBrowser);
+
+        if (otherBrowsers.length > 0 && syncData.userId !== this.getUserId()) {
+          console.log('🚀 Found seamless sync data from other browsers:', otherBrowsers);
+
+          // Check if current user has no data
+          const movies = await this.getSavedMovies();
+          const progress = await this.getAllWatchProgress();
+
+          if (movies.length === 0 && progress.length === 0) {
+            console.log('💡 Auto-syncing seamlessly from other browsers');
+            await this._performSeamlessAutoSync(syncData);
+          }
+        }
+      } else {
+        // No existing sync data, create one for future cross-browser sync
+        console.log('💾 Creating seamless sync registry for future cross-browser sync');
+        await this._registerForSeamlessSync(this.getUserId());
+      }
+
+    } catch (error) {
+      console.warn('⚠️ Seamless auto-sync check failed:', error);
+    }
+  }
+
+  // Get seamless device ID (stable across browsers on same device)
+  _getSeamlessDeviceId() {
+    // Use ultra-stable characteristics that don't change between browsers
+    const stableCharacteristics = [
+      // Screen characteristics (identical across browsers)
+      screen.width,
+      screen.height,
+      screen.colorDepth,
+
+      // System characteristics (identical across browsers)
+      navigator.language,
+      new Date().getTimezoneOffset(),
+
+      // Hardware characteristics (when available)
+      navigator.hardwareConcurrency || 4,
+      navigator.deviceMemory || 4,
+
+      // Additional stable characteristics
+      navigator.maxTouchPoints || 0,
+      screen.pixelDepth || 24
+    ].join('|');
+
+    // Create stable hash
+    let hash = 0;
+    for (let i = 0; i < stableCharacteristics.length; i++) {
+      const char = stableCharacteristics.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+
+    return `device_${Math.abs(hash).toString(36)}`;
+  }
+
+  // Register User ID for seamless sync across browsers
+  async _registerForSeamlessSync(userId) {
+    try {
+      if (!this.initialized) return;
+
+      const deviceId = this._getSeamlessDeviceId();
+      const browserInfo = this._getBrowserInfo();
+
+      console.log('🚀 Registering for seamless sync:', { deviceId, browserInfo });
+
+      // Save to Firebase for cross-browser access
+      await this.db.collection('seamlessSync').doc(deviceId).set({
+        userId: userId,
+        userName: this.getUserName(),
+        deviceId: deviceId,
+        browsers: {
+          [browserInfo]: {
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+            userAgent: navigator.userAgent.substring(0, 200)
+          }
+        },
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      console.log('✅ Registered for seamless sync successfully');
+
+    } catch (error) {
+      console.error('❌ Failed to register for seamless sync:', error);
+    }
+  }
+
+  // Perform seamless auto-sync without user intervention
+  async _performSeamlessAutoSync(syncData) {
+    try {
+      console.log('🚀 Performing seamless auto-sync...');
+
+      const currentUserId = this.getUserId();
+      const syncUserId = syncData.userId;
+
+      if (currentUserId !== syncUserId) {
+        // Update User ID silently
+        this._saveUserIdToAllStorage(syncUserId);
+
+        // Update user name if available
+        if (syncData.userName) {
+          this.setUserName(syncData.userName);
+        }
+
+        console.log('✅ Seamless auto-sync completed silently');
+
+        // Show subtle notification
+        this._showSeamlessSyncNotification(syncData);
+
+        // Refresh data in background
+        setTimeout(() => {
+          this._refreshDataAfterSeamlessSync();
+        }, 1000);
+      }
+
+    } catch (error) {
+      console.error('❌ Seamless auto-sync failed:', error);
+    }
+  }
+
+  // Show subtle notification for seamless sync
+  _showSeamlessSyncNotification(syncData) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed; bottom: 20px; right: 20px; z-index: 10000;
+      background: linear-gradient(135deg, #00b894, #00cec9);
+      color: white; padding: 12px 16px; border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 13px; max-width: 300px;
+      animation: slideInUp 0.3s ease-out;
+      opacity: 0.95;
+    `;
+
+    const browsers = Object.keys(syncData.browsers || {});
+    const otherBrowsers = browsers.filter(b => b !== this._getBrowserInfo());
+
+    notification.innerHTML = `
+      <div style="display: flex; align-items: center;">
+        <span style="font-size: 16px; margin-right: 8px;">🚀</span>
+        <div>
+          <div style="font-weight: 500;">Đã đồng bộ tự động</div>
+          <div style="font-size: 11px; opacity: 0.8; margin-top: 2px;">
+            Từ ${otherBrowsers[0] || 'trình duyệt khác'}
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideInUp {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 0.95; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    document.body.appendChild(notification);
+
+    // Auto-hide after 4 seconds
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.style.animation = 'slideInUp 0.3s ease-out reverse';
+        setTimeout(() => notification.remove(), 300);
+      }
+    }, 4000);
+  }
+
+  // Refresh data after seamless sync
+  async _refreshDataAfterSeamlessSync() {
+    try {
+      // Trigger data refresh events
+      const refreshEvent = new CustomEvent('seamlessSync', {
+        detail: { type: 'dataRefresh' }
+      });
+      window.dispatchEvent(refreshEvent);
+
+      console.log('🔄 Data refresh triggered after seamless sync');
+
+    } catch (error) {
+      console.warn('⚠️ Failed to refresh data after seamless sync:', error);
     }
   }
 
