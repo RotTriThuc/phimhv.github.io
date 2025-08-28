@@ -1,0 +1,12 @@
+{
+  "message": "Không có cập nhật mới",
+  "timestamp": "2025-08-28T07:25:00.000Z",
+  "stats": {
+    "lastUpdate": "2025-08-28T07:25:00.000Z",
+    "newMovies": 0,
+    "newEpisodes": 0,
+    "updatedMovies": 0,
+    "totalChecked": 72
+  },
+  "hasUpdates": false
+}

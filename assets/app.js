@@ -2886,25 +2886,70 @@ async function renderWatch(root, slug, params) {
       const hasNative = video.canPlayType('application/vnd.apple.mpegurl');
       const hasHls = await ensureHls();
 
-      if (hasNative) {
-        video.src = url;
-        player.appendChild(video);
-        return true;
-      }
-      if (hasHls && window.Hls?.isSupported()) {
-        const HlsClass = window.Hls;
-        const hls = new HlsClass({ enableWorker: true, lowLatencyMode: true });
-        hls.loadSource(url);
-        hls.attachMedia(video);
-        hls.on(HlsClass.Events.ERROR, (_evt, data) => {
-          if (data.fatal && fallbackEmbed) {
-            player.innerHTML = '';
-            fallbackEmbed();
+      // Try CORS proxies for blocked URLs
+      const corsProxies = [
+        '', // Original URL first
+        'https://cors-anywhere.herokuapp.com/',
+        'https://api.allorigins.win/raw?url=',
+        'https://corsproxy.io/?'
+      ];
+
+      for (let i = 0; i < corsProxies.length; i++) {
+        const proxyUrl = corsProxies[i] + (i === 0 ? url : encodeURIComponent(url));
+        
+        try {
+          if (hasNative) {
+            video.src = proxyUrl;
+            player.appendChild(video);
+            return true;
           }
-        });
-        player.appendChild(video);
-        return true;
+          if (hasHls && window.Hls?.isSupported()) {
+            const HlsClass = window.Hls;
+            const hls = new HlsClass({ 
+              enableWorker: true, 
+              lowLatencyMode: true,
+              xhrSetup: function(xhr, url) {
+                // Add headers to bypass CORS
+                xhr.setRequestHeader('Access-Control-Allow-Origin', '*');
+                xhr.setRequestHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+                xhr.setRequestHeader('Access-Control-Allow-Headers', 'Content-Type');
+              }
+            });
+            
+            hls.loadSource(proxyUrl);
+            hls.attachMedia(video);
+            
+            let errorCount = 0;
+            hls.on(HlsClass.Events.ERROR, (_evt, data) => {
+              errorCount++;
+              console.log(`🚨 HLS Error (attempt ${i + 1}):`, data);
+              
+              if (data.fatal) {
+                hls.destroy();
+                if (i < corsProxies.length - 1) {
+                  // Try next proxy
+                  return;
+                } else if (fallbackEmbed) {
+                  // All proxies failed, use embed fallback
+                  player.innerHTML = '';
+                  fallbackEmbed();
+                }
+              }
+            });
+            
+            hls.on(HlsClass.Events.MANIFEST_LOADED, () => {
+              console.log(`✅ HLS loaded successfully with proxy ${i + 1}`);
+            });
+            
+            player.appendChild(video);
+            return true;
+          }
+        } catch (error) {
+          console.log(`❌ Proxy ${i + 1} failed:`, error);
+          continue;
+        }
       }
+      
       return false;
     }
 
@@ -4061,8 +4106,12 @@ function createNotificationContainer() {
 
 async function checkForUpdates() {
   try {
-    const response = await fetch('./data/latest-notification.json');
-    if (!response.ok) return;
+    let response = await fetch('./data/latest-notification.json');
+    if (!response.ok) {
+      // Fallback to backup notification file
+      response = await fetch('./notification-backup.json');
+      if (!response.ok) return;
+    }
     
     const notification = await response.json();
     
