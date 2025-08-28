@@ -68,31 +68,18 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "Committed successfully" -ForegroundColor Green
 
-# Step 3: Check remote branch and push
+# Step 3: Push
 Write-Host ""
-Write-Host "Step 3: Checking remote branch..." -ForegroundColor Cyan
-$currentBranch = git branch --show-current
-Write-Host "Current branch: $currentBranch" -ForegroundColor Yellow
-
-Write-Host "Pushing to GitHub..." -ForegroundColor Cyan
-git push origin $currentBranch
+Write-Host "Step 3: Pushing to GitHub..." -ForegroundColor Cyan
+git push origin main
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Trying to push to main branch..." -ForegroundColor Yellow
-    git push origin main
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Trying to push to master branch..." -ForegroundColor Yellow
-        git push origin master
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "ERROR: Failed to push to GitHub!" -ForegroundColor Red
-            Write-Host "Check:" -ForegroundColor Yellow
-            Write-Host "- Internet connection" -ForegroundColor Yellow
-            Write-Host "- GitHub credentials" -ForegroundColor Yellow
-            Write-Host "- Repository URL" -ForegroundColor Yellow
-            Write-Host "- Branch name (current: $currentBranch)" -ForegroundColor Yellow
-            Read-Host "Press Enter to exit"
-            exit 1
-        }
-    }
+    Write-Host "ERROR: Failed to push to GitHub!" -ForegroundColor Red
+    Write-Host "Check:" -ForegroundColor Yellow
+    Write-Host "- Internet connection" -ForegroundColor Yellow
+    Write-Host "- GitHub credentials" -ForegroundColor Yellow
+    Write-Host "- Repository URL" -ForegroundColor Yellow
+    Read-Host "Press Enter to exit"
+    exit 1
 }
 
 Write-Host ""
@@ -102,7 +89,7 @@ Write-Host "========================================" -ForegroundColor Green
 Write-Host "Changes pushed to GitHub successfully!" -ForegroundColor Green
 Write-Host "Repository: https://github.com/RotTriThuc/phimhv.github.io" -ForegroundColor Blue
 Write-Host "Website: https://rottriThuc.github.io/phimhv.github.io/" -ForegroundColor Blue
-Write-Host "GitHub Pages will auto-deploy the website" -ForegroundColor Yellow
+Write-Host "GitHub Actions will auto-deploy the website" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Tip: Website will update in 1-2 minutes" -ForegroundColor Magenta
 Write-Host "========================================" -ForegroundColor Green

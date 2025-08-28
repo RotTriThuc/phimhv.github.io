@@ -20,7 +20,7 @@ class AdvancedAPICache {
     this.cache = new Map();
     this.requestsInFlight = new Map(); // Prevent duplicate requests
     this.priorities = new Map(); // Track access frequency
-    this.maxSize = 50; // Reduced cache size for better memory usage
+    this.maxSize = 100; // Increased cache size
     
     // Different cache durations for different types
     this.cacheDurations = {
@@ -1189,30 +1189,6 @@ function renderError(message, onRetry) {
   return wrap;
 }
 
-// Optimized image setup helper
-function setupImageElement(imgEl, container) {
-  if (!imgEl) return;
-
-  imgEl.referrerPolicy = 'no-referrer';
-  imgEl.loading = 'lazy';
-  imgEl.style.opacity = '0';
-
-  requestAnimationFrame(() => {
-    if (!document.contains(imgEl)) return;
-
-    try {
-      const rect = container.getBoundingClientRect();
-      if (rect.top < window.innerHeight + 300) {
-        imageLoader.loadImage(imgEl);
-      } else {
-        imageLoader.observe(imgEl);
-      }
-    } catch (error) {
-      imageLoader.observe(imgEl);
-    }
-  });
-}
-
 function movieCard(movie) {
   const poster = movie.poster_url || movie.thumb_url || '';
   const languages = movie.lang || movie.language || '';
@@ -1222,25 +1198,30 @@ function movieCard(movie) {
 
   const card = createEl('article', 'card');
   
-  // Check if movie is saved and has progress (async) - optimized
-  Promise.allSettled([
-    Storage.isMovieSaved(slug),
-    Storage.getMovieProgress(slug)
-  ]).then(([savedResult, progressResult]) => {
-    if (savedResult.status === 'fulfilled' && savedResult.value && !card.querySelector('.card__badge--saved')) {
-      const savedBadge = createEl('span', 'card__badge card__badge--saved', '❤️');
-      card.appendChild(savedBadge);
-    }
+  // Check if movie is saved and has progress (async)
+  let isSaved = false;
+  let progress = null;
 
-    if (progressResult.status === 'fulfilled' && progressResult.value && !card.querySelector('.card__badge--progress')) {
-      const prog = progressResult.value;
-      const displayName = formatEpisodeName(prog.episodeName, prog.episodeSlug);
-      const progressBadge = createEl('span', 'card__badge card__badge--progress', `▶ ${displayName}`);
-      card.appendChild(progressBadge);
-    }
-  }).catch(error => {
+  try {
+    // These are now async, but we'll handle them in the background
+    Storage.isMovieSaved(slug).then(saved => {
+      if (saved && !card.querySelector('.card__badge--saved')) {
+        const savedBadge = createEl('span', 'card__badge card__badge--saved', '❤️');
+        card.appendChild(savedBadge);
+      }
+    });
+
+    Storage.getMovieProgress(slug).then(prog => {
+      if (prog && !card.querySelector('.card__badge--progress')) {
+        // Format episode name để hiển thị rõ ràng trên badge
+        const displayName = formatEpisodeName(prog.episodeName, prog.episodeSlug);
+        const progressBadge = createEl('span', 'card__badge card__badge--progress', `▶ ${displayName}`);
+        card.appendChild(progressBadge);
+      }
+    });
+  } catch (error) {
     console.warn('⚠️ Error checking movie status:', error);
-  });
+  }
   
   const badges = [];
   if (languages) badges.push(`<span class="card__badge">${languages}</span>`);
@@ -1256,29 +1237,55 @@ function movieCard(movie) {
     </div>
   `;
   
-  // Optimized image loading
   const imgEl = card.querySelector('.card__img');
   if (imgEl && poster) {
-    setupImageElement(imgEl, card);
+    imgEl.referrerPolicy = 'no-referrer';
+    imgEl.loading = 'lazy'; // Native lazy loading as backup
+    imgEl.style.opacity = '0'; // Start hidden
+    
+    // Ensure DOM is fully ready before image loading
+    requestAnimationFrame(() => {
+      // Double-check element is still in DOM
+      if (!document.contains(imgEl)) {
+        console.warn('🚨 Image element removed from DOM before loading');
+        return;
+      }
+      
+      // Immediate load if likely to be visible
+      try {
+        const rect = card.getBoundingClientRect();
+        if (rect.top < window.innerHeight + 300) {
+          // Likely visible - load immediately
+          imageLoader.loadImage(imgEl);
+        } else {
+          // Use intersection observer for below-fold images
+          imageLoader.observe(imgEl);
+        }
+      } catch (error) {
+        console.warn('🚨 Error in image loading setup:', error);
+        // Fallback to intersection observer
+        imageLoader.observe(imgEl);
+      }
+    });
   }
   card.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-
+    
     if (!slug) {
       console.warn('⚠️ No slug found for movie:', movie);
       return;
     }
-
-    // Immediate navigation without delay for better responsiveness
-    navigateTo(`#/phim/${slug}`);
-
-    // Add visual feedback after navigation starts
+    
+    // Add visual feedback
     card.style.transform = 'scale(0.98)';
     card.style.transition = 'transform 0.1s ease';
-    requestAnimationFrame(() => {
+    
+    // Navigate with slight delay for better UX
+    setTimeout(() => {
       card.style.transform = '';
-    });
+      navigateTo(`#/phim/${slug}`);
+    }, 100);
   });
   return card;
 }
@@ -1651,31 +1658,20 @@ function parseHash() {
 }
 
 function navigateTo(hash) {
-  console.log('🧭 Navigating to:', hash);
-
   if (location.hash === hash) {
     window.dispatchEvent(new HashChangeEvent('hashchange'));
   } else {
     location.hash = hash;
   }
-
-  // Fallback: If routing gets stuck, force it after 2 seconds
-  setTimeout(() => {
-    if (isRouting && location.hash === hash) {
-      console.warn('⚠️ Routing stuck, forcing completion');
-      isRouting = false;
-      router();
-    }
-  }, 2000);
-
+  
   // Ensure scroll to top after navigation (fallback)
   requestAnimationFrame(() => {
     if (window.scrollY > 50) {
       try {
-        window.scrollTo({
-          top: 0,
-          left: 0,
-          behavior: window.scrollY > 500 ? 'instant' : 'smooth'
+        window.scrollTo({ 
+          top: 0, 
+          left: 0, 
+          behavior: window.scrollY > 500 ? 'instant' : 'smooth' 
         });
       } catch (e) {
         // Fallback for older browsers
@@ -1687,93 +1683,35 @@ function navigateTo(hash) {
 
 async function renderHome(root) {
   root.innerHTML = '';
-
-  // Hero Slider - Phim nổi bật
-  const heroContainer = createEl('div', 'hero-container');
-  root.appendChild(heroContainer);
-
-  try {
-    // Lấy pool phim lớn cho daily rotation
-    const heroMovies = await getDailyHeroMovies();
-
-    if (heroMovies.length > 0) {
-      new HeroSlider(heroContainer, heroMovies);
-    }
-  } catch (e) {
-    console.error('Không thể tải hero slider:', e);
-  }
-
-  // Movie Carousel 1: Phim mới cập nhật
-  const newMoviesContainer = createEl('div', 'carousel-section');
-  root.appendChild(newMoviesContainer);
-
+  
+  // Section 1: Phim mới cập nhật (chính)
+  root.appendChild(sectionHeader('🎬 Phim mới cập nhật'));
+  const loading1 = renderLoadingCards(8);
+  root.appendChild(loading1);
+  
   try {
     const data = await Api.getLatest(1);
-    const items = extractItems(data).slice(5, 25); // Bỏ qua 5 phim đầu đã dùng cho hero
-
-    if (items.length > 0) {
-      new MovieCarousel(newMoviesContainer, items, '🎬 Phim mới cập nhật');
-    }
-
+    const items = extractItems(data).slice(0, 8);
+    safeRemove(loading1);
+    root.appendChild(listGrid(items));
+    
+    // Button "Xem thêm" cho phim mới
+    const moreNewBtn = createEl('button', 'btn btn--more', 'Xem thêm phim mới');
+    moreNewBtn.addEventListener('click', () => {
+      renderMoreMovies(root, 'latest');
+    });
+    root.appendChild(moreNewBtn);
+    
   } catch (e) {
-    console.error('Không thể tải carousel phim mới:', e);
-    newMoviesContainer.appendChild(createEl('p', 'error-msg', 'Không thể tải phim mới'));
+    safeRemove(loading1);
+    root.appendChild(createEl('p', 'error-msg', 'Không thể tải phim mới'));
   }
-
-  // Movie Carousel 2: Phim bộ hot
-  const tvShowsContainer = createEl('div', 'carousel-section');
-  root.appendChild(tvShowsContainer);
-
-  try {
-    const data2 = await Api.listByType({ type_list: 'phim-bo', page: 1, limit: 20 });
-    const items2 = extractItems(data2);
-
-    if (items2.length > 0) {
-      new MovieCarousel(tvShowsContainer, items2, '📺 Phim bộ hot');
-    }
-
-  } catch (e) {
-    console.error('Không thể tải carousel phim bộ:', e);
-    tvShowsContainer.appendChild(createEl('p', 'error-msg', 'Không thể tải phim bộ'));
-  }
-
-  // Movie Carousel 3: Hoạt hình
-  const animeContainer = createEl('div', 'carousel-section');
-  root.appendChild(animeContainer);
-
-  try {
-    const data3 = await Api.listByType({ type_list: 'hoat-hinh', page: 1, limit: 20 });
-    const items3 = extractItems(data3);
-
-    if (items3.length > 0) {
-      new MovieCarousel(animeContainer, items3, '🎨 Hoạt hình');
-    }
-
-  } catch (e) {
-    console.error('Không thể tải carousel hoạt hình:', e);
-    animeContainer.appendChild(createEl('p', 'error-msg', 'Không thể tải hoạt hình'));
-  }
-
-  // Section cuối: Grid view cho những người muốn xem nhiều hơn
-  const moreLink = createEl('a', 'section__link', 'Xem tất cả');
-  moreLink.href = '#/tim-kiem';
-  root.appendChild(sectionHeader('🔥 Tất cả phim mới', moreLink));
-
-  const gridContainer = createEl('div', 'grid-section');
-  root.appendChild(gridContainer);
-
-  try {
-    const gridData = await Api.getLatest(2); // Trang 2 để tránh trùng lặp
-    const gridItems = extractItems(gridData).slice(0, 12);
-
-    if (gridItems.length > 0) {
-      gridContainer.appendChild(listGrid(gridItems));
-    }
-
-  } catch (e) {
-    console.error('Không thể tải grid phim:', e);
-    gridContainer.appendChild(createEl('p', 'error-msg', 'Không thể tải thêm phim'));
-  }
+  
+  // Section 2: Phim bộ hot
+  await addSimpleSection(root, 'Phim bộ hot', 'phim-bo', 6);
+  
+  // Section 3: Hoạt hình
+  await addSimpleSection(root, 'Hoạt hình', 'hoat-hinh', 6);
 }
 
 async function addSimpleSection(root, title, type, limit = 6) {
@@ -1833,14 +1771,8 @@ async function renderMoreMovies(root, type) {
           loadMoreBtn.disabled = true;
           loadMoreBtn.textContent = 'Đang tải...';
           currentPage++;
-          try {
-            await loadPage(currentPage);
-            loadMoreBtn.remove();
-          } catch (error) {
-            loadMoreBtn.disabled = false;
-            loadMoreBtn.textContent = 'Thử lại';
-            console.error('Load more failed:', error);
-          }
+          await loadPage(currentPage);
+          loadMoreBtn.remove();
         });
         moviesContainer.appendChild(loadMoreBtn);
       }
@@ -1859,585 +1791,6 @@ function sectionHeader(title, trailing) {
   wrap.appendChild(createEl('h2', 'section__title', title));
   if (trailing) wrap.appendChild(trailing);
   return wrap;
-}
-
-// Daily Hero Movies Rotation System
-async function getDailyHeroMovies() {
-  try {
-    // Lấy ngày hiện tại làm seed
-    const today = new Date();
-    const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
-
-    // Check cache trước
-    const cacheKey = `dailyHeroMovies_${dayOfYear}`;
-    const cached = localStorage.getItem(cacheKey);
-
-    if (cached) {
-      try {
-        const cachedMovies = JSON.parse(cached);
-        console.log(`🎬 Loaded cached daily movies for day ${dayOfYear}`);
-        return cachedMovies;
-      } catch (e) {
-        console.warn('Cache bị lỗi, sẽ load lại:', e);
-        localStorage.removeItem(cacheKey);
-      }
-    }
-
-    // Tạo pool phim từ nhiều nguồn
-    const moviePool = [];
-
-    // Lấy phim mới nhất (trang 1-3)
-    for (let page = 1; page <= 3; page++) {
-      try {
-        const latestData = await Api.getLatest(page);
-        const latestMovies = extractItems(latestData);
-        moviePool.push(...latestMovies);
-      } catch (e) {
-        console.warn(`Không thể lấy phim mới trang ${page}:`, e);
-      }
-    }
-
-    // Lấy phim hot (trang 1-2)
-    for (let page = 1; page <= 2; page++) {
-      try {
-        const hotData = await Api.getHot(page);
-        const hotMovies = extractItems(hotData);
-        moviePool.push(...hotMovies);
-      } catch (e) {
-        console.warn(`Không thể lấy phim hot trang ${page}:`, e);
-      }
-    }
-
-    // Loại bỏ duplicate dựa trên slug
-    const uniqueMovies = moviePool.filter((movie, index, self) =>
-      index === self.findIndex(m => m.slug === movie.slug)
-    );
-
-    // Shuffle array dựa trên ngày (deterministic)
-    const shuffled = shuffleArrayByDay(uniqueMovies, dayOfYear);
-
-    // Lấy 5 phim đầu tiên
-    const dailyMovies = shuffled.slice(0, 5);
-
-    // Lưu vào cache
-    try {
-      localStorage.setItem(cacheKey, JSON.stringify(dailyMovies));
-
-      // Cleanup cache cũ (giữ lại 7 ngày gần nhất)
-      cleanupOldCache(dayOfYear);
-
-    } catch (e) {
-      console.warn('Không thể lưu cache:', e);
-    }
-
-    console.log(`🎬 Daily Hero Movies (Day ${dayOfYear}):`, dailyMovies.map(m => m.name));
-
-    return dailyMovies;
-
-  } catch (error) {
-    console.error('Lỗi khi lấy daily hero movies:', error);
-
-    // Fallback: Lấy phim mới nhất
-    try {
-      const fallbackData = await Api.getLatest(1);
-      return extractItems(fallbackData).slice(0, 5);
-    } catch (fallbackError) {
-      console.error('Fallback cũng thất bại:', fallbackError);
-      return [];
-    }
-  }
-}
-
-// Shuffle array dựa trên ngày (deterministic)
-function shuffleArrayByDay(array, dayOfYear) {
-  const shuffled = [...array];
-
-  // Sử dụng dayOfYear làm seed cho random
-  let seed = dayOfYear;
-
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    // Linear congruential generator với seed
-    seed = (seed * 9301 + 49297) % 233280;
-    const randomValue = seed / 233280;
-
-    const j = Math.floor(randomValue * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-
-  return shuffled;
-}
-
-// Debug function để test daily rotation (chỉ dành cho dev)
-window.testDailyRotation = function(dayOffset = 0) {
-  const today = new Date();
-  const testDay = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24) + dayOffset;
-
-  console.log(`🧪 Testing daily rotation for day ${testDay} (offset: ${dayOffset})`);
-
-  // Clear cache for test day
-  const cacheKey = `dailyHeroMovies_${testDay}`;
-  localStorage.removeItem(cacheKey);
-
-  // Reload page to see new rotation
-  location.reload();
-};
-
-// Debug function để xem cache hiện tại
-window.viewDailyCache = function() {
-  const cacheKeys = [];
-
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith('dailyHeroMovies_')) {
-      cacheKeys.push(key);
-    }
-  }
-
-  console.log('📦 Daily Hero Movies Cache:', cacheKeys);
-
-  cacheKeys.forEach(key => {
-    try {
-      const data = JSON.parse(localStorage.getItem(key));
-      console.log(`${key}:`, data.map(m => m.name));
-    } catch (e) {
-      console.warn(`Lỗi đọc cache ${key}:`, e);
-    }
-  });
-};
-
-// Cleanup cache cũ để tiết kiệm storage
-function cleanupOldCache(currentDay) {
-  try {
-    const keysToRemove = [];
-
-    // Duyệt qua tất cả localStorage keys
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-
-      if (key && key.startsWith('dailyHeroMovies_')) {
-        const day = parseInt(key.split('_')[1]);
-
-        // Xóa cache cũ hơn 7 ngày
-        if (!isNaN(day) && (currentDay - day) > 7) {
-          keysToRemove.push(key);
-        }
-      }
-    }
-
-    // Xóa các cache cũ
-    keysToRemove.forEach(key => {
-      localStorage.removeItem(key);
-      console.log(`🗑️ Cleaned up old cache: ${key}`);
-    });
-
-  } catch (e) {
-    console.warn('Lỗi khi cleanup cache:', e);
-  }
-}
-
-// Hero Slider Component - Tương tự RoPhim
-class HeroSlider {
-  constructor(container, movies) {
-    this.container = container;
-    this.movies = movies.length >= 5 ? movies.slice(0, 5) : movies; // Đảm bảo có đúng 5 phim
-    this.currentIndex = 0;
-    this.autoPlayInterval = null;
-
-    // Log daily movies info
-    const today = new Date();
-    const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
-    console.log(`🎬 Hero Slider initialized with ${this.movies.length} movies for day ${dayOfYear}`);
-
-    // Show daily update notification (chỉ hiện 1 lần mỗi ngày)
-    this.showDailyUpdateNotification(dayOfYear);
-
-    this.init();
-  }
-
-  init() {
-    this.render();
-    this.bindEvents();
-    this.startAutoPlay();
-  }
-
-  render() {
-    const slider = createEl('div', 'hero-slider');
-
-    // Tạo slides
-    this.movies.forEach((movie, index) => {
-      const slide = this.createSlide(movie, index);
-      slider.appendChild(slide);
-    });
-
-    // Thumbnails preview (RoPhim style)
-    const thumbnails = createEl('div', 'hero-thumbnails');
-    this.movies.forEach((movie, index) => {
-      const thumbnail = createEl('div', 'hero-thumbnail');
-      if (index === 0) thumbnail.classList.add('active');
-
-      const img = createEl('img');
-      img.src = movie.poster_url || movie.thumb_url || '';
-      img.alt = movie.name || 'Thumbnail';
-      thumbnail.appendChild(img);
-
-      thumbnail.addEventListener('click', () => this.goToSlide(index));
-      thumbnails.appendChild(thumbnail);
-    });
-    slider.appendChild(thumbnails);
-
-    this.container.appendChild(slider);
-    this.slider = slider;
-  }
-
-  createSlide(movie, index) {
-    const slide = createEl('div', 'hero-slide');
-    if (index === 0) slide.classList.add('active');
-
-    // Background image
-    const posterUrl = movie.poster_url || movie.thumb_url || '';
-    if (posterUrl) {
-      slide.style.backgroundImage = `url(${posterUrl})`;
-    }
-
-    // Content
-    const content = createEl('div', 'hero-content');
-
-    const title = createEl('h1', 'hero-title', movie.name || movie.origin_name || 'Không tên');
-
-    const meta = createEl('div', 'hero-meta');
-    if (movie.year) {
-      const yearBadge = createEl('span', 'hero-badge', movie.year);
-      meta.appendChild(yearBadge);
-    }
-    if (movie.lang || movie.language) {
-      const langBadge = createEl('span', 'hero-badge', movie.lang || movie.language);
-      meta.appendChild(langBadge);
-    }
-    if (movie.quality) {
-      const qualityBadge = createEl('span', 'hero-badge', movie.quality);
-      meta.appendChild(qualityBadge);
-    }
-
-    const description = createEl('p', 'hero-description',
-      movie.content || movie.description || 'Một bộ phim hấp dẫn đang chờ bạn khám phá...'
-    );
-
-    const actions = createEl('div', 'hero-actions');
-
-    const playBtn = createEl('a', 'hero-play-btn');
-    playBtn.href = `#/phim/${movie.slug}`;
-    playBtn.innerHTML = '<span>▶</span>';
-    playBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      navigateTo(`#/phim/${movie.slug}`);
-    });
-
-    const infoBtn = createEl('button', 'hero-info-btn', '<span>ℹ</span>');
-    infoBtn.addEventListener('click', () => {
-      navigateTo(`#/phim/${movie.slug}`);
-    });
-
-    actions.appendChild(playBtn);
-    actions.appendChild(infoBtn);
-
-    content.appendChild(title);
-    content.appendChild(meta);
-    content.appendChild(description);
-    content.appendChild(actions);
-
-    slide.appendChild(content);
-    return slide;
-  }
-
-  nextSlide() {
-    this.goToSlide((this.currentIndex + 1) % this.movies.length);
-  }
-
-  prevSlide() {
-    this.goToSlide((this.currentIndex - 1 + this.movies.length) % this.movies.length);
-  }
-
-  goToSlide(index) {
-    if (index === this.currentIndex) return;
-
-    // Update slides
-    const slides = this.slider.querySelectorAll('.hero-slide');
-    const thumbnails = this.slider.querySelectorAll('.hero-thumbnail');
-
-    slides[this.currentIndex].classList.remove('active');
-    thumbnails[this.currentIndex].classList.remove('active');
-
-    this.currentIndex = index;
-
-    slides[this.currentIndex].classList.add('active');
-    thumbnails[this.currentIndex].classList.add('active');
-
-    // Restart autoplay
-    this.stopAutoPlay();
-    this.startAutoPlay();
-  }
-
-  startAutoPlay() {
-    this.autoPlayInterval = setInterval(() => {
-      this.nextSlide();
-    }, 5000); // 5 giây
-  }
-
-  stopAutoPlay() {
-    if (this.autoPlayInterval) {
-      clearInterval(this.autoPlayInterval);
-      this.autoPlayInterval = null;
-    }
-  }
-
-  bindEvents() {
-    // Keyboard navigation
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        this.prevSlide();
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        this.nextSlide();
-      }
-    });
-
-    // Touch/swipe support for mobile
-    let startX = 0;
-    let isDragging = false;
-
-    this.slider.addEventListener('touchstart', (e) => {
-      startX = e.touches[0].clientX;
-      isDragging = true;
-      this.stopAutoPlay();
-    });
-
-    this.slider.addEventListener('touchmove', (e) => {
-      if (!isDragging) return;
-      e.preventDefault();
-    });
-
-    this.slider.addEventListener('touchend', (e) => {
-      if (!isDragging) return;
-
-      const endX = e.changedTouches[0].clientX;
-      const diffX = startX - endX;
-
-      // Minimum swipe distance
-      if (Math.abs(diffX) > 50) {
-        if (diffX > 0) {
-          this.nextSlide();
-        } else {
-          this.prevSlide();
-        }
-      }
-
-      isDragging = false;
-      this.startAutoPlay();
-    });
-
-    // Pause autoplay on hover
-    this.slider.addEventListener('mouseenter', () => {
-      this.stopAutoPlay();
-    });
-
-    this.slider.addEventListener('mouseleave', () => {
-      this.startAutoPlay();
-    });
-  }
-
-  showDailyUpdateNotification(dayOfYear) {
-    const notificationKey = `dailyNotification_${dayOfYear}`;
-
-    // Chỉ hiện notification 1 lần mỗi ngày
-    if (!localStorage.getItem(notificationKey)) {
-      setTimeout(() => {
-        if (typeof showNotification === 'function') {
-          showNotification(
-            '🎬 Slide Hôm Nay',
-            `5 bộ phim mới đã được cập nhật cho ngày hôm nay! Khám phá ngay.`,
-            'info',
-            5000
-          );
-        }
-
-        // Đánh dấu đã hiện notification
-        localStorage.setItem(notificationKey, 'shown');
-
-        // Cleanup notification cũ
-        this.cleanupOldNotifications(dayOfYear);
-
-      }, 2000); // Delay 2s để trang load xong
-    }
-  }
-
-  cleanupOldNotifications(currentDay) {
-    try {
-      const keysToRemove = [];
-
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-
-        if (key && key.startsWith('dailyNotification_')) {
-          const day = parseInt(key.split('_')[1]);
-
-          // Xóa notification cũ hơn 3 ngày
-          if (!isNaN(day) && (currentDay - day) > 3) {
-            keysToRemove.push(key);
-          }
-        }
-      }
-
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-
-    } catch (e) {
-      console.warn('Lỗi khi cleanup notifications:', e);
-    }
-  }
-
-  destroy() {
-    this.stopAutoPlay();
-    if (this.slider) {
-      this.slider.remove();
-    }
-  }
-}
-
-// Movie Carousel Component
-class MovieCarousel {
-  constructor(container, movies, title) {
-    this.container = container;
-    this.movies = movies;
-    this.title = title;
-    this.currentIndex = 0;
-    this.itemsPerView = this.getItemsPerView();
-    this.init();
-  }
-
-  getItemsPerView() {
-    const width = window.innerWidth;
-    if (width >= 1200) return 7;
-    if (width >= 900) return 5;
-    if (width >= 640) return 4;
-    return 3;
-  }
-
-  init() {
-    this.render();
-    this.bindEvents();
-
-    // Update items per view on resize
-    window.addEventListener('resize', () => {
-      const newItemsPerView = this.getItemsPerView();
-      if (newItemsPerView !== this.itemsPerView) {
-        this.itemsPerView = newItemsPerView;
-        this.updateCarousel();
-      }
-    });
-  }
-
-  render() {
-    const carousel = createEl('div', 'movie-carousel');
-
-    // Header
-    const header = createEl('div', 'carousel-header');
-    const title = createEl('h2', 'carousel-title', this.title);
-
-    const nav = createEl('div', 'carousel-nav');
-    const prevBtn = createEl('button', 'carousel-btn', '‹');
-    const nextBtn = createEl('button', 'carousel-btn', '›');
-
-    prevBtn.addEventListener('click', () => this.prev());
-    nextBtn.addEventListener('click', () => this.next());
-
-    nav.appendChild(prevBtn);
-    nav.appendChild(nextBtn);
-
-    header.appendChild(title);
-    header.appendChild(nav);
-
-    // Container
-    const container = createEl('div', 'carousel-container');
-    const track = createEl('div', 'carousel-track');
-
-    this.movies.forEach(movie => {
-      const item = createEl('div', 'carousel-item');
-      item.appendChild(movieCard(movie));
-      track.appendChild(item);
-    });
-
-    container.appendChild(track);
-    carousel.appendChild(header);
-    carousel.appendChild(container);
-
-    this.container.appendChild(carousel);
-    this.carousel = carousel;
-    this.track = track;
-    this.prevBtn = prevBtn;
-    this.nextBtn = nextBtn;
-
-    this.updateButtons();
-  }
-
-  prev() {
-    if (this.currentIndex > 0) {
-      this.currentIndex--;
-      this.updateCarousel();
-    }
-  }
-
-  next() {
-    const maxIndex = Math.max(0, this.movies.length - this.itemsPerView);
-    if (this.currentIndex < maxIndex) {
-      this.currentIndex++;
-      this.updateCarousel();
-    }
-  }
-
-  updateCarousel() {
-    const itemWidth = 160 + 12; // width + gap
-    const translateX = -this.currentIndex * itemWidth;
-    this.track.style.transform = `translateX(${translateX}px)`;
-    this.updateButtons();
-  }
-
-  updateButtons() {
-    const maxIndex = Math.max(0, this.movies.length - this.itemsPerView);
-    this.prevBtn.disabled = this.currentIndex === 0;
-    this.nextBtn.disabled = this.currentIndex >= maxIndex;
-  }
-
-  bindEvents() {
-    // Touch/swipe support for mobile
-    let startX = 0;
-    let isDragging = false;
-
-    this.track.addEventListener('touchstart', (e) => {
-      startX = e.touches[0].clientX;
-      isDragging = true;
-    });
-
-    this.track.addEventListener('touchmove', (e) => {
-      if (!isDragging) return;
-      e.preventDefault();
-    });
-
-    this.track.addEventListener('touchend', (e) => {
-      if (!isDragging) return;
-      isDragging = false;
-
-      const endX = e.changedTouches[0].clientX;
-      const diff = startX - endX;
-
-      if (Math.abs(diff) > 50) { // Minimum swipe distance
-        if (diff > 0) {
-          this.next();
-        } else {
-          this.prev();
-        }
-      }
-    });
-  }
 }
 
 async function renderSearch(root, params) {
@@ -2876,141 +2229,6 @@ async function renderWatch(root, slug, params) {
 
     const player = createEl('section', 'player');
 
-    // Helper function to try a single proxy with improved error handling
-    async function tryProxy(proxyUrl, proxyIndex, hasNative, hasHls, video, player, fallbackEmbed) {
-      return new Promise((resolve) => {
-        let resolved = false;
-        let hls = null;
-        
-        const cleanup = () => {
-          if (hls) {
-            try {
-              hls.destroy();
-            } catch (e) {
-              // Ignore cleanup errors
-            }
-            hls = null;
-          }
-        };
-        
-        const resolveWith = (result) => {
-          if (!resolved) {
-            resolved = true;
-            cleanup();
-            resolve(result);
-          }
-        };
-        
-        // For native HLS support
-        if (hasNative) {
-          const testVideo = video.cloneNode();
-          testVideo.crossOrigin = 'anonymous';
-          testVideo.preload = 'metadata';
-          
-          const loadStartHandler = () => {
-            console.log(`✅ Native HLS loaded with proxy ${proxyIndex}`);
-            video.src = proxyUrl;
-            video.crossOrigin = 'anonymous';
-            player.appendChild(video);
-            resolveWith(true);
-          };
-          
-          const errorHandler = (e) => {
-            console.log(`❌ Native HLS failed with proxy ${proxyIndex}:`, e.type);
-            resolveWith(false);
-          };
-          
-          testVideo.addEventListener('loadstart', loadStartHandler, { once: true });
-          testVideo.addEventListener('error', errorHandler, { once: true });
-          testVideo.addEventListener('abort', errorHandler, { once: true });
-          
-          // Timeout after 4 seconds for native
-          setTimeout(() => {
-            if (!resolved) {
-              console.log(`⏰ Proxy ${proxyIndex} timeout (Native)`);
-              testVideo.removeEventListener('loadstart', loadStartHandler);
-              testVideo.removeEventListener('error', errorHandler);
-              testVideo.removeEventListener('abort', errorHandler);
-              resolveWith(false);
-            }
-          }, 4000);
-          
-          try {
-            testVideo.src = proxyUrl;
-          } catch (error) {
-            console.log(`❌ Failed to set src for proxy ${proxyIndex}:`, error);
-            resolveWith(false);
-          }
-          
-          return;
-        }
-        
-        // For HLS.js
-        if (hasHls && window.Hls?.isSupported()) {
-          const HlsClass = window.Hls;
-          
-          try {
-            hls = new HlsClass({
-              enableWorker: false,
-              lowLatencyMode: false,
-              maxBufferLength: 10,
-              maxMaxBufferLength: 30,
-              startLevel: -1,
-              capLevelToPlayerSize: true,
-              debug: false,
-              xhrSetup: function(xhr, url) {
-                xhr.withCredentials = false; // Disable credentials for CORS
-              }
-            });
-            
-            hls.on(HlsClass.Events.MANIFEST_LOADED, () => {
-              if (!resolved) {
-                console.log(`✅ HLS manifest loaded successfully with proxy ${proxyIndex}`);
-                player.appendChild(video);
-                resolveWith(true);
-              }
-            });
-            
-            hls.on(HlsClass.Events.ERROR, (_evt, data) => {
-              if (!resolved) {
-                console.log(`🚨 HLS Error (proxy ${proxyIndex}): ${data.type} ${data.details}`);
-                
-                if (data.fatal) {
-                  resolveWith(false);
-                } else if (data.type === 'networkError' &&
-                          (data.details === 'manifestLoadError' ||
-                           data.details === 'manifestParsingError' ||
-                           data.details === 'manifestLoadTimeOut')) {
-                  resolveWith(false);
-                }
-              }
-            });
-            
-            // Timeout after 6 seconds for HLS.js
-            setTimeout(() => {
-              if (!resolved) {
-                console.log(`⏰ Proxy ${proxyIndex} timeout (HLS.js)`);
-                resolveWith(false);
-              }
-            }, 6000);
-            
-            hls.loadSource(proxyUrl);
-            hls.attachMedia(video);
-            
-          } catch (loadError) {
-            console.log(`❌ Failed to initialize HLS with proxy ${proxyIndex}:`, loadError);
-            resolveWith(false);
-          }
-          
-          return;
-        }
-        
-        // No HLS support available
-        console.log(`❌ No HLS support available for proxy ${proxyIndex}`);
-        resolveWith(false);
-      });
-    }
-
     async function renderHls(url, fallbackEmbed) {
       const video = createEl('video');
       video.controls = true;
@@ -3020,156 +2238,26 @@ async function renderWatch(root, slug, params) {
 
       const hasNative = video.canPlayType('application/vnd.apple.mpegurl');
       const hasHls = await ensureHls();
-      
-      // Test URL accessibility first
-      console.log(`🔍 Testing URL accessibility: ${url}`);
 
-      // Try CORS proxies for blocked URLs - Updated with more reliable proxies
-      const corsProxies = [
-        '', // Original URL first
-        'https://api.codetabs.com/v1/proxy?quest=',
-        'https://api.allorigins.win/raw?url=',
-        'https://corsproxy.io/?',
-        'https://cors-anywhere.herokuapp.com/',
-        'https://cors.bridged.cc/',
-        'https://yacdn.org/proxy/',
-        'https://api.proxify.io/v1/proxy?url=',
-        'https://thingproxy.freeboard.io/fetch/'
-      ];
-      
-      // Quick CORS test function
-      const testCORS = async (testUrl) => {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3000);
-          
-          const response = await fetch(testUrl, {
-            method: 'HEAD',
-            mode: 'cors',
-            credentials: 'omit',
-            signal: controller.signal
-          });
-          
-          clearTimeout(timeoutId);
-          return response.ok;
-        } catch (error) {
-          console.log(`🚫 CORS test failed: ${error.message}`);
-          return false;
-        }
-      };
-
-      // Try each proxy sequentially with better error handling
-      for (let i = 0; i < corsProxies.length; i++) {
-        let proxyUrl;
-        
-        if (i === 0) {
-          // Direct URL first
-          proxyUrl = url;
-        } else {
-          // Apply proxy with proper formatting for different services
-          const proxy = corsProxies[i];
-          try {
-            // Special handling for different proxy formats
-            if (proxy.includes('cors-anywhere')) {
-              // cors-anywhere needs URL without protocol doubling
-              proxyUrl = proxy + url;
-            } else if (proxy.includes('cors.bridged.cc')) {
-              // cors.bridged.cc format
-              proxyUrl = proxy + url;
-            } else if (proxy.includes('thingproxy')) {
-              // thingproxy format
-              proxyUrl = proxy + url;
-            } else {
-              // Standard encoding for most proxies
-              proxyUrl = proxy + encodeURIComponent(url);
-            }
-          } catch (encodeError) {
-            console.log(`❌ Failed to encode URL for proxy ${i}:`, encodeError);
-            continue;
-          }
-        }
-        
-        console.log(`🔄 Trying proxy ${i + 1}/${corsProxies.length}: ${corsProxies[i] || 'Direct'}`);
-        console.log(`🔗 Full URL: ${proxyUrl.substring(0, 100)}${proxyUrl.length > 100 ? '...' : ''}`);
-        
-        try {
-          const result = await tryProxy(proxyUrl, i + 1, hasNative, hasHls, video, player, fallbackEmbed);
-          if (result) {
-            console.log(`🎉 Successfully loaded video with proxy ${i + 1}`);
-            return true;
-          }
-        } catch (error) {
-          console.log(`❌ Proxy ${i + 1} exception:`, error.message || error);
-          continue;
-        }
-        
-        // Small delay between proxy attempts to avoid overwhelming servers
-        if (i < corsProxies.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
+      if (hasNative) {
+        video.src = url;
+        player.appendChild(video);
+        return true;
       }
-      
-      // All proxies failed - show detailed error message
-      console.log(`❌ All ${corsProxies.length} proxies failed`);
-      
-      // Create error message element
-      const errorMsg = createEl('div', 'video-error');
-      errorMsg.style.cssText = `
-        padding: 20px;
-        text-align: center;
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        color: var(--text);
-      `;
-      errorMsg.innerHTML = `
-        <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
-        <h3 style="margin: 0 0 8px 0;">Không thể tải video</h3>
-        <p style="margin: 0 0 16px 0; color: var(--muted);">
-          Đã thử ${corsProxies.length} proxy nhưng không thành công. Có thể do:
-        </p>
-        <ul style="text-align: left; margin: 0 0 16px 0; color: var(--muted);">
-          <li>Server video đang bảo trì</li>
-          <li>Liên kết video đã hết hạn</li>
-          <li>Mạng internet không ổn định</li>
-          <li>Chặn CORS từ server gốc</li>
-        </ul>
-        <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-          <button class="btn btn--ghost retry-video-btn">🔄 Thử lại</button>
-          <button class="btn btn--ghost fallback-embed-btn">📺 Dùng embed</button>
-        </div>
-      `;
-      
-      // Add retry functionality
-      const retryBtn = errorMsg.querySelector('.retry-video-btn');
-      if (retryBtn) {
-        retryBtn.addEventListener('click', async () => {
-          retryBtn.disabled = true;
-          retryBtn.textContent = '⏳ Đang thử lại...';
-          
-          // Clear player and retry
-          player.innerHTML = '';
-          const retryResult = await renderHls(url, fallbackEmbed);
-          
-          if (!retryResult) {
-            retryBtn.disabled = false;
-            retryBtn.textContent = '🔄 Thử lại';
+      if (hasHls && window.Hls?.isSupported()) {
+        const HlsClass = window.Hls;
+        const hls = new HlsClass({ enableWorker: true, lowLatencyMode: true });
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        hls.on(HlsClass.Events.ERROR, (_evt, data) => {
+          if (data.fatal && fallbackEmbed) {
+            player.innerHTML = '';
+            fallbackEmbed();
           }
         });
+        player.appendChild(video);
+        return true;
       }
-      
-      // Add fallback embed button
-      const fallbackBtn = errorMsg.querySelector('.fallback-embed-btn');
-      if (fallbackBtn && fallbackEmbed) {
-        fallbackBtn.addEventListener('click', () => {
-          player.innerHTML = '';
-          fallbackEmbed();
-        });
-      } else if (fallbackBtn) {
-        fallbackBtn.style.display = 'none';
-      }
-      
-      player.appendChild(errorMsg);
       return false;
     }
 
@@ -3207,8 +2295,6 @@ async function renderWatch(root, slug, params) {
       serverName: server?.server_name || `Server ${serverIndex+1}`,
       movieName: movie.name
     });
-    
-    console.log(`✅ Watch progress saved: ${movie.name} ${displayEpisodeName}`);
 
     const h1 = createEl('h1', '', movie.name || 'Đang xem');
     const sub = createEl('div', 'detail__line', `Tập: <strong>${ep?.name || epSlug || ''}</strong> — Server: <strong>${server?.server_name || serverIndex+1}</strong>`);
@@ -3269,26 +2355,18 @@ async function renderWatch(root, slug, params) {
 
 async function renderCategory(root, slug, params) {
   const page = Number(params.get('page') || '1');
-  const year = params.get('year') || '';
-  const country = params.get('country') || '';
-
   root.innerHTML = '';
-
+  
   const category = Categories.findBySlug(slug);
   const categoryName = category ? category.name : slug;
-
-  // Tạo title với filters
-  let title = `Thể loại: ${categoryName}`;
-  if (year) title += ` - Năm ${year}`;
-  if (country) title += ` - ${country}`;
-
-  root.appendChild(sectionHeader(title));
-
+  
+  root.appendChild(sectionHeader(`Thể loại: ${categoryName}`));
+  
   const loading = renderLoadingCards(12);
   root.appendChild(loading);
-
+  
   try {
-    const data = await Api.listByCategory({ slug, page, year, country, limit: 24 });
+    const data = await Api.listByCategory({ slug, page, limit: 24 });
     safeRemove(loading);
     const items = extractItems(data);
     
@@ -3332,48 +2410,21 @@ async function renderCategory(root, slug, params) {
 
 async function renderCountry(root, slug, params) {
   const page = Number(params.get('page') || '1');
-  const year = params.get('year') || '';
-  const category = params.get('category') || '';
-
   root.innerHTML = '';
-
-  // Tạo title với filters
-  let title = `Quốc gia: ${slug}`;
-  if (year) title += ` - Năm ${year}`;
-  if (category) title += ` - ${category}`;
-
-  root.appendChild(sectionHeader(title));
+  root.appendChild(sectionHeader(`Quốc gia: ${slug}`));
   const loading = renderLoadingCards(12);
   root.appendChild(loading);
   try {
-    const data = await Api.listByCountry({ slug, page, year, category });
+    const data = await Api.listByCountry({ slug, page });
     safeRemove(loading);
     const items = extractItems(data);
-
-    // Hiển thị số lượng phim
-    const totalItems = data?.data?.params?.pagination?.totalItems || data?.paginate?.totalItems || data?.totalItems || data?.pagination?.totalItems;
-    const currentPage = data?.data?.params?.pagination?.currentPage || page;
-    const totalPages = data?.data?.params?.pagination?.totalPages || data?.paginate?.totalPages || data?.totalPages || data?.pagination?.totalPages || 1;
-
-    if (totalItems) {
-      const countInfo = createEl('div', '', `Tìm thấy ${totalItems} phim từ ${slug} - Trang ${currentPage}/${totalPages}`);
-      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
-      root.appendChild(countInfo);
-    } else if (items.length > 0) {
-      const countInfo = createEl('div', '', `Hiển thị ${items.length} phim - Trang ${currentPage}`);
-      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
-      root.appendChild(countInfo);
-    }
-
     root.appendChild(listGrid(items));
-
-    if (totalPages > 1) {
-      const pager = buildPager(page, totalPages, (nextPage) => {
-        params.set('page', String(nextPage));
-        navigateTo(`#/quoc-gia/${slug}?${params.toString()}`);
-      });
-      root.appendChild(pager);
-    }
+    const totalPages = data?.paginate?.totalPages || data?.totalPages || page;
+    const pager = buildPager(page, totalPages, (nextPage) => {
+      params.set('page', String(nextPage));
+      navigateTo(`#/quoc-gia/${slug}?${params.toString()}`);
+    });
+    root.appendChild(pager);
   } catch (e) {
     console.error(e);
     root.innerHTML = '';
@@ -3383,48 +2434,21 @@ async function renderCountry(root, slug, params) {
 
 async function renderYear(root, year, params) {
   const page = Number(params.get('page') || '1');
-  const category = params.get('category') || '';
-  const country = params.get('country') || '';
-
   root.innerHTML = '';
-
-  // Tạo title với filters
-  let title = `Năm: ${year}`;
-  if (category) title += ` - ${category}`;
-  if (country) title += ` - ${country}`;
-
-  root.appendChild(sectionHeader(title));
+  root.appendChild(sectionHeader(`Năm: ${year}`));
   const loading = renderLoadingCards(12);
   root.appendChild(loading);
   try {
-    const data = await Api.listByYear({ year, page, category, country });
+    const data = await Api.listByYear({ year, page });
     safeRemove(loading);
     const items = extractItems(data);
-
-    // Hiển thị số lượng phim
-    const totalItems = data?.data?.params?.pagination?.totalItems || data?.paginate?.totalItems || data?.totalItems || data?.pagination?.totalItems;
-    const currentPage = data?.data?.params?.pagination?.currentPage || page;
-    const totalPages = data?.data?.params?.pagination?.totalPages || data?.paginate?.totalPages || data?.totalPages || data?.pagination?.totalPages || 1;
-
-    if (totalItems) {
-      const countInfo = createEl('div', '', `Tìm thấy ${totalItems} phim năm ${year} - Trang ${currentPage}/${totalPages}`);
-      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
-      root.appendChild(countInfo);
-    } else if (items.length > 0) {
-      const countInfo = createEl('div', '', `Hiển thị ${items.length} phim - Trang ${currentPage}`);
-      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
-      root.appendChild(countInfo);
-    }
-
     root.appendChild(listGrid(items));
-
-    if (totalPages > 1) {
-      const pager = buildPager(page, totalPages, (nextPage) => {
-        params.set('page', String(nextPage));
-        navigateTo(`#/nam/${year}?${params.toString()}`);
-      });
-      root.appendChild(pager);
-    }
+    const totalPages = data?.paginate?.totalPages || data?.totalPages || page;
+    const pager = buildPager(page, totalPages, (nextPage) => {
+      params.set('page', String(nextPage));
+      navigateTo(`#/nam/${year}?${params.toString()}`);
+    });
+    root.appendChild(pager);
   } catch (e) {
     console.error(e);
     root.innerHTML = '';
@@ -3432,39 +2456,18 @@ async function renderYear(root, year, params) {
   }
 }
 
-/* Optimized header controls with event delegation */
+/* Bind header controls */
 function bindHeader() {
-  // Use event delegation for better performance
-  document.addEventListener('click', (e) => {
-    const target = e.target;
+  const homeBtn = $('#homeBtn');
+  homeBtn?.addEventListener('click', () => navigateTo('#/'));
 
-    // Home button
-    if (target.id === 'homeBtn' || target.closest('#homeBtn')) {
-      e.preventDefault();
-      navigateTo('#/');
-      return;
-    }
-
-    // Quick nav buttons
-    if (target.classList.contains('nav__btn') || target.closest('.nav__btn')) {
-      e.preventDefault();
-      const btn = target.classList.contains('nav__btn') ? target : target.closest('.nav__btn');
+  document.querySelectorAll('.nav__btn').forEach(btn => {
+    btn.addEventListener('click', () => {
       const type = btn.getAttribute('data-quick');
-      if (type) {
-        navigateTo(`#/loc?type_list=${encodeURIComponent(type)}`);
-      }
-      return;
-    }
-
-    // Theme toggle
-    if (target.id === 'themeToggle' || target.closest('#themeToggle')) {
-      e.preventDefault();
-      toggleTheme();
-      return;
-    }
+      navigateTo(`#/loc?type_list=${encodeURIComponent(type)}`);
+    });
   });
 
-  // Search form
   const form = $('#searchForm');
   const input = $('#searchInput');
   form?.addEventListener('submit', (e) => {
@@ -3474,75 +2477,8 @@ function bindHeader() {
     const params = new URLSearchParams({ keyword: q, page: '1' });
     navigateTo(`#/tim-kiem?${params.toString()}`);
   });
-}
 
-// Smart navigation helper để giữ context khi chọn filters
-function getSmartNavigationUrl(filterType, filterValue) {
-  const { path, params } = parseHash();
-
-  if (path.startsWith('/the-loai/')) {
-    // Đang ở trang thể loại - giữ thể loại và thêm filter
-    const slug = path.split('/')[2];
-    if (filterType === 'year') {
-      params.set('year', filterValue);
-    } else if (filterType === 'country') {
-      params.set('country', filterValue);
-    }
-    return `#/the-loai/${slug}?${params.toString()}`;
-  } else if (path.startsWith('/quoc-gia/')) {
-    // Đang ở trang quốc gia - giữ quốc gia và thêm filter
-    const slug = path.split('/')[2];
-    if (filterType === 'year') {
-      params.set('year', filterValue);
-    } else if (filterType === 'category') {
-      params.set('category', filterValue);
-    }
-    return `#/quoc-gia/${slug}?${params.toString()}`;
-  } else if (path.startsWith('/nam/')) {
-    // Đang ở trang năm - giữ năm và thêm filter
-    const year = path.split('/')[2];
-    if (filterType === 'country') {
-      params.set('country', filterValue);
-    } else if (filterType === 'category') {
-      params.set('category', filterValue);
-    }
-    return `#/nam/${year}?${params.toString()}`;
-  }
-
-  // Default behavior - navigate to specific filter page
-  if (filterType === 'year') {
-    return `#/nam/${encodeURIComponent(filterValue)}`;
-  } else if (filterType === 'country') {
-    return `#/quoc-gia/${encodeURIComponent(filterValue)}`;
-  }
-
-  return '#/';
-}
-
-// Sync dropdown values với URL parameters
-function syncDropdownsWithURL() {
-  const { path, params } = parseHash();
-  const countrySelect = $('#countrySelect');
-  const yearSelect = $('#yearSelect');
-
-  // Reset dropdowns
-  if (countrySelect) countrySelect.value = '';
-  if (yearSelect) yearSelect.value = '';
-
-  // Set values based on current URL
-  if (path.startsWith('/quoc-gia/')) {
-    const slug = path.split('/')[2];
-    if (countrySelect) countrySelect.value = slug;
-  } else if (params.get('country')) {
-    if (countrySelect) countrySelect.value = params.get('country');
-  }
-
-  if (path.startsWith('/nam/')) {
-    const year = path.split('/')[2];
-    if (yearSelect) yearSelect.value = year;
-  } else if (params.get('year')) {
-    if (yearSelect) yearSelect.value = params.get('year');
-  }
+  $('#themeToggle')?.addEventListener('click', toggleTheme);
 }
 
 async function populateFilters() {
@@ -3571,17 +2507,11 @@ async function populateFilters() {
 
     countrySelect?.addEventListener('change', () => {
       const v = countrySelect.value;
-      if (v) {
-        const url = getSmartNavigationUrl('country', v);
-        navigateTo(url);
-      }
+      if (v) navigateTo(`#/quoc-gia/${encodeURIComponent(v)}`);
     });
     yearSelect?.addEventListener('change', () => {
       const v = yearSelect.value;
-      if (v) {
-        const url = getSmartNavigationUrl('year', v);
-        navigateTo(url);
-      }
+      if (v) navigateTo(`#/nam/${encodeURIComponent(v)}`);
     });
   } catch (e) {
     console.warn('Không tải được bộ lọc', e);
@@ -4097,37 +3027,11 @@ async function renderSavedMovies(root) {
 
 /* App bootstrap */
 let isRouting = false;
-let routingQueue = [];
-
-// Process queued navigation
-function processRoutingQueue() {
-  if (routingQueue.length === 0) return;
-
-  // Get the most recent navigation (ignore older ones)
-  const latestRoute = routingQueue[routingQueue.length - 1];
-  routingQueue = []; // Clear queue
-
-  // Only process if it's recent (within 5 seconds)
-  if (Date.now() - latestRoute.timestamp < 5000) {
-    console.log('⚡ Processing queued navigation:', latestRoute.path);
-    setTimeout(() => router(), 10);
-  } else {
-    console.log('⏰ Discarded old queued navigation:', latestRoute.path);
-  }
-}
-
 async function router() {
-  // Queue navigation if already routing
   if (isRouting) {
-    const { path, params } = parseHash();
-    const queueItem = { path, params, timestamp: Date.now() };
-    routingQueue.push(queueItem);
-    console.log('🔄 Queued navigation:', path);
     return;
   }
   isRouting = true;
-
-  console.log('🚀 Router started for:', parseHash().path);
   
   // Smart scroll to top on navigation
   const currentScrollY = window.scrollY;
@@ -4153,82 +3057,63 @@ async function router() {
     isRouting = false;
     return;
   }
-
-  // Sync dropdown values với URL hiện tại
-  syncDropdownsWithURL();
   if (path === '/' || path === '') {
     await renderHome(root);
     isRouting = false;
-    processRoutingQueue();
     return;
   }
   if (path.startsWith('/tim-kiem')) {
     await renderSearch(root, params);
     isRouting = false;
-    processRoutingQueue();
     return;
   }
   if (path.startsWith('/loc')) {
     await renderFilterList(root, params);
     isRouting = false;
-    processRoutingQueue();
     return;
   }
   if (path === '/the-loai' || path === '/the-loai/') {
     await renderAllCategories(root);
     isRouting = false;
-    processRoutingQueue();
     return;
   }
   if (path === '/phim-da-luu' || path === '/phim-da-luu/') {
-    console.log('📺 Rendering saved movies page');
     await renderSavedMovies(root);
     isRouting = false;
-    processRoutingQueue();
     return;
   }
   if (path.startsWith('/the-loai/')) {
     const slug = decodeURIComponent(path.split('/')[2] || '');
     await renderCategory(root, slug, params);
     isRouting = false;
-    processRoutingQueue();
     return;
   }
   if (path.startsWith('/quoc-gia/')) {
     const slug = decodeURIComponent(path.split('/')[2] || '');
     await renderCountry(root, slug, params);
     isRouting = false;
-    processRoutingQueue();
     return;
   }
   if (path.startsWith('/nam/')) {
     const year = decodeURIComponent(path.split('/')[2] || '');
     await renderYear(root, year, params);
     isRouting = false;
-    processRoutingQueue();
     return;
   }
   if (path.startsWith('/phim/')) {
     const slug = decodeURIComponent(path.split('/')[2] || '');
     await renderDetail(root, slug);
     isRouting = false;
-    processRoutingQueue();
     return;
   }
   if (path.startsWith('/xem/')) {
     const slug = decodeURIComponent(path.split('/')[2] || '');
     await renderWatch(root, slug, params);
     isRouting = false;
-    processRoutingQueue();
     return;
   }
   root.textContent = 'Trang không tồn tại.';
   isRouting = false;
-
-  console.log('✅ Router completed for:', parseHash().path);
-
-  // Process queued navigation if any
-  processRoutingQueue();
 }
 
 (function main() {
@@ -4328,12 +3213,8 @@ function createNotificationContainer() {
 
 async function checkForUpdates() {
   try {
-    let response = await fetch('./data/latest-notification.json');
-    if (!response.ok) {
-      // Fallback to backup notification file
-      response = await fetch('./notification-backup.json');
-      if (!response.ok) return;
-    }
+    const response = await fetch('./data/latest-notification.json');
+    if (!response.ok) return;
     
     const notification = await response.json();
     

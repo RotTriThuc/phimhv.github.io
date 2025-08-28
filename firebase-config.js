@@ -1,7 +1,7 @@
 // 🔥 Firebase Comment System for GitHub Pages
 // Hoàn toàn miễn phí, không cần server backend
 
-// FIREBASE CONFIG - Fallback to hardcoded values for browser compatibility
+// FIREBASE CONFIG - Real configuration from Firebase Console
 const firebaseConfig = {
   apiKey: "AIzaSyC9GgPO41b0hmVVn5D-5LdGGSLnBsQWlPc",
   authDomain: "phim-comments.firebaseapp.com",
@@ -11,103 +11,27 @@ const firebaseConfig = {
   appId: "1:338411994257:web:870b6a7cd166a50bc75330"
 };
 
-// Configuration constants (inline for browser compatibility)
-const COMMENT_CONFIG = {
-  MAX_CONTENT_LENGTH: 500,
-  MIN_CONTENT_LENGTH: 3,
-  MAX_NAME_LENGTH: 30,
-  CACHE_TTL: 300000, // 5 minutes
-  DEFAULT_LIMIT: 30,
-  AUTO_APPROVE: false, // Security: require moderation
-  MODERATION_REQUIRED: true
-};
-
-const ERROR_MESSAGES = {
-  NETWORK_ERROR: 'Lỗi kết nối mạng. Vui lòng thử lại.',
-  FIREBASE_ERROR: 'Lỗi hệ thống. Vui lòng thử lại sau.',
-  VALIDATION_ERROR: 'Dữ liệu không hợp lệ.',
-  PERMISSION_DENIED: 'Không có quyền truy cập.',
-  COMMENT_TOO_SHORT: 'Bình luận quá ngắn (tối thiểu 3 ký tự).',
-  COMMENT_TOO_LONG: 'Bình luận quá dài (tối đa 500 ký tự).',
-  NAME_REQUIRED: 'Vui lòng nhập tên của bạn.'
-};
-
-const SUCCESS_MESSAGES = {
-  COMMENT_ADDED: 'Bình luận đã được gửi! Đang chờ admin duyệt.',
-  MOVIE_SAVED: 'Đã lưu phim vào danh sách yêu thích',
-  MOVIE_REMOVED: 'Đã xóa phim khỏi danh sách yêu thích'
-};
-
 // 💡 HƯỚNG DẪN LẤY CONFIG:
 // 1. https://console.firebase.google.com → [+ Add project]
 // 2. Tên project: "phim-comments" → Disable Analytics → Create
 // 3. "Firestore Database" → Create → Test mode → asia-southeast1  
 // 4. Project Overview → "</>" Web icon → App name → Copy config
 
-// Simple cache implementation for browser compatibility
-class SimpleCache {
-  constructor(maxSize = 50, ttl = 300000) {
-    this.cache = new Map();
-    this.maxSize = maxSize;
-    this.ttl = ttl;
-  }
-
-  set(key, value) {
-    // Remove oldest entries if cache is full
-    if (this.cache.size >= this.maxSize) {
-      const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
-    }
-
-    this.cache.set(key, {
-      value,
-      timestamp: Date.now()
-    });
-  }
-
-  get(key) {
-    const item = this.cache.get(key);
-    if (!item) return null;
-
-    // Check if expired
-    if (Date.now() - item.timestamp > this.ttl) {
-      this.cache.delete(key);
-      return null;
-    }
-
-    return item.value;
-  }
-
-  delete(key) {
-    return this.cache.delete(key);
-  }
-
-  clear() {
-    this.cache.clear();
-  }
-}
-
 class MovieCommentSystem {
   constructor() {
     this.db = null;
     this.initialized = false;
-    // Use simple cache for browser compatibility
-    this.cache = new SimpleCache(50, COMMENT_CONFIG.CACHE_TTL);
+    this.cache = new Map();
   }
 
   // Khởi tạo Firebase
   async init() {
     try {
-      // Enhanced logging for debugging GitHub Pages issues
-      console.log('🔥 Initializing Movie Comment System...');
-      console.log('🌐 Environment details:', {
-        hostname: window.location.hostname,
-        origin: window.location.origin,
-        isLocalhost: window.location.hostname.includes('localhost'),
-        isGitHub: window.location.hostname.includes('github.io'),
-        userAgent: navigator.userAgent.substring(0, 100) + '...'
-      });
-
+      // Only log in development
+      if (window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1')) {
+        console.log('🔥 Initializing Movie Comment System...');
+      }
+      
       // Validate config
       if (!this.validateConfig()) {
         throw new Error('Please update Firebase config in firebase-config.js');
@@ -115,24 +39,14 @@ class MovieCommentSystem {
 
       // Load Firebase SDK
       await this.loadFirebase();
-
-      // Verify Firebase is fully loaded
-      if (!window.firebase || !window.firebase.firestore) {
-        throw new Error('Firebase SDK not loaded properly. Please check network connection.');
-      }
-
+      
       // Initialize Firebase app
       if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
       }
-
-      // Verify firestore is available after app initialization
-      if (typeof firebase.firestore !== 'function') {
-        throw new Error('Firebase Firestore not available. Please check Firebase SDK loading.');
-      }
-
+      
       this.db = firebase.firestore();
-
+      
       // Enable offline support
       try {
         await this.db.enablePersistence({ synchronizeTabs: true });
@@ -140,23 +54,7 @@ class MovieCommentSystem {
       } catch (err) {
         console.warn('⚠️ Offline support failed:', err.code);
       }
-
-      // Debug User ID generation
-      const userId = this.getUserId();
-      const userName = this.getUserName();
-      console.log('🆔 User identification:', {
-        userId: userId.substring(0, 30) + '...',
-        userName: userName,
-        fingerprint: this._getBrowserFingerprint(),
-        storageAvailable: {
-          localStorage: !!localStorage.getItem('movie_commenter_id'),
-          sessionStorage: !!sessionStorage.getItem('movie_commenter_id')
-        }
-      });
-
-      // Auto-detect and suggest sync if needed
-      this._checkAndSuggestSync();
-
+      
       this.initialized = true;
       console.log('✅ Comment system ready!');
       return true;
@@ -169,24 +67,15 @@ class MovieCommentSystem {
   // Validate Firebase config
   validateConfig() {
     const required = ['apiKey', 'authDomain', 'projectId'];
-    const isValid = required.every(field =>
-      firebaseConfig[field] &&
-      !firebaseConfig[field].includes('your-') &&
-      !firebaseConfig[field].includes('_here')
+    return required.every(field => 
+      firebaseConfig[field] && 
+      !firebaseConfig[field].includes('your-')
     );
-
-    if (!isValid) {
-      console.error('❌ Invalid Firebase configuration. Please check your environment variables.');
-      console.log('Required fields:', required);
-      console.log('Current config keys:', Object.keys(firebaseConfig));
-    }
-
-    return isValid;
   }
 
   // Load Firebase SDK - Using v8 compat for easier integration
   async loadFirebase() {
-    if (window.firebase && window.firebase.firestore) {
+    if (window.firebase) {
       console.log('🔄 Firebase already loaded, skipping...');
       return;
     }
@@ -211,16 +100,6 @@ class MovieCommentSystem {
         document.head.appendChild(script);
       });
     }
-
-    // Wait a bit for Firebase to fully initialize
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Final verification
-    if (!window.firebase || !window.firebase.firestore) {
-      throw new Error('Firebase SDK failed to load completely');
-    }
-    
-    console.log('✅ Firebase SDK loaded successfully');
   }
 
   // 🔑 CROSS-BROWSER USER ID SYSTEM
@@ -230,21 +109,10 @@ class MovieCommentSystem {
     let userId = this._tryGetUserIdFromStorage();
 
     if (!userId) {
-      // Try to get User ID from cross-environment sync
-      userId = this._tryGetCrossEnvironmentUserId();
-
-      if (userId) {
-        console.log('🔄 Found cross-environment User ID, using it:', userId.substring(0, 30) + '...');
-        this._saveUserIdToAllStorage(userId);
-      } else {
-        // Generate new user ID with better entropy
-        userId = this._generateUserId();
-        this._saveUserIdToAllStorage(userId);
-        console.log('🆔 Generated new cross-browser User ID:', userId.substring(0, 30) + '...');
-
-        // Save for cross-environment sync
-        this._saveCrossEnvironmentUserId(userId);
-      }
+      // Generate new user ID with better entropy
+      userId = this._generateUserId();
+      this._saveUserIdToAllStorage(userId);
+      console.log('🆔 Generated new cross-browser User ID:', userId);
     }
 
     return userId;
@@ -253,19 +121,11 @@ class MovieCommentSystem {
   _tryGetUserIdFromStorage() {
     // Try localStorage first
     let userId = localStorage.getItem('movie_commenter_id');
-    if (userId) {
-      // Only log once per session to avoid spam
-      if (!this._userIdLogged) {
-        console.log('🆔 Found User ID in localStorage:', userId.substring(0, 20) + '...');
-        this._userIdLogged = true;
-      }
-      return userId;
-    }
+    if (userId) return userId;
 
     // Try sessionStorage
     userId = sessionStorage.getItem('movie_commenter_id');
     if (userId) {
-      console.log('🆔 Found User ID in sessionStorage, saving to localStorage');
       // Save back to localStorage for persistence
       localStorage.setItem('movie_commenter_id', userId);
       return userId;
@@ -274,12 +134,10 @@ class MovieCommentSystem {
     // Try IndexedDB (for cross-browser persistence)
     userId = this._getFromIndexedDB();
     if (userId) {
-      console.log('🆔 Found User ID in IndexedDB, saving to localStorage');
       localStorage.setItem('movie_commenter_id', userId);
       return userId;
     }
 
-    console.log('🆔 No existing User ID found, will generate new one');
     return null;
   }
 
@@ -288,39 +146,24 @@ class MovieCommentSystem {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2);
     const browserFingerprint = this._getBrowserFingerprint();
-    const userId = `user_${browserFingerprint}_${random}_${timestamp}`;
 
-    console.log('🆔 Generated new User ID:', {
-      fingerprint: browserFingerprint,
-      userId: userId.substring(0, 30) + '...',
-      domain: window.location.hostname,
-      userAgent: navigator.userAgent.substring(0, 50) + '...'
-    });
-
-    return userId;
+    return `user_${browserFingerprint}_${random}_${timestamp}`;
   }
 
   _getBrowserFingerprint() {
-    // Create semi-persistent browser fingerprint that works across domains
+    // Create semi-persistent browser fingerprint
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     ctx.textBaseline = 'top';
     ctx.font = '14px Arial';
     ctx.fillText('Browser fingerprint', 2, 2);
 
-    // Normalize user agent to remove domain-specific differences
-    const normalizedUserAgent = navigator.userAgent
-      .replace(/localhost:\d+/g, 'localhost')
-      .replace(/127\.0\.0\.1:\d+/g, 'localhost')
-      .replace(/\.github\.io/g, '.github.io'); // Normalize GitHub Pages domains
-
     const fingerprint = [
-      normalizedUserAgent,
+      navigator.userAgent,
       navigator.language,
       screen.width + 'x' + screen.height,
       new Date().getTimezoneOffset(),
-      // Use a more stable canvas fingerprint
-      this._getStableCanvasFingerprint()
+      canvas.toDataURL()
     ].join('|');
 
     // Create short hash from fingerprint
@@ -332,36 +175,6 @@ class MovieCommentSystem {
     }
 
     return Math.abs(hash).toString(36).substring(0, 8);
-  }
-
-  _getStableCanvasFingerprint() {
-    // Create a more stable canvas fingerprint
-    const canvas = document.createElement('canvas');
-    canvas.width = 200;
-    canvas.height = 50;
-    const ctx = canvas.getContext('2d');
-
-    // Use consistent rendering that's less likely to vary between environments
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = '#f60';
-    ctx.fillRect(125, 1, 62, 20);
-    ctx.fillStyle = '#069';
-    ctx.font = '11pt Arial';
-    ctx.fillText('Cross-browser fingerprint 🔑', 2, 15);
-    ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
-    ctx.font = '18pt Arial';
-    ctx.fillText('Stable ID', 4, 45);
-
-    // Return a hash of the canvas data instead of the full data URL
-    const imageData = canvas.toDataURL();
-    let canvasHash = 0;
-    for (let i = 0; i < imageData.length; i++) {
-      const char = imageData.charCodeAt(i);
-      canvasHash = ((canvasHash << 5) - canvasHash) + char;
-      canvasHash = canvasHash & canvasHash;
-    }
-
-    return Math.abs(canvasHash).toString(36).substring(0, 12);
   }
 
   _saveUserIdToAllStorage(userId) {
@@ -385,217 +198,6 @@ class MovieCommentSystem {
     // This is synchronous fallback - in real implementation would be async
     // For now, return null and let it generate new ID
     return null;
-  }
-
-  // 🔄 CROSS-ENVIRONMENT USER ID SYNC
-  // Try to get User ID from cross-environment storage
-  _tryGetCrossEnvironmentUserId() {
-    try {
-      // Try to get from URL hash (temporary sync)
-      const urlUserId = this._getUserIdFromURL();
-      if (urlUserId) {
-        console.log('🔗 Found User ID in URL hash');
-        return urlUserId;
-      }
-
-      // Try to get from shared storage key (based on browser fingerprint)
-      const sharedUserId = this._getUserIdFromSharedStorage();
-      if (sharedUserId) {
-        console.log('🔗 Found User ID in shared storage');
-        return sharedUserId;
-      }
-
-      return null;
-    } catch (error) {
-      console.warn('⚠️ Cross-environment sync failed:', error);
-      return null;
-    }
-  }
-
-  // Save User ID for cross-environment access
-  _saveCrossEnvironmentUserId(userId) {
-    try {
-      // Save with shared key based on browser characteristics
-      const sharedKey = this._getSharedStorageKey();
-      localStorage.setItem(sharedKey, userId);
-
-      // Also save with timestamp for cleanup
-      const timestampKey = `${sharedKey}_timestamp`;
-      localStorage.setItem(timestampKey, Date.now().toString());
-
-      console.log('💾 Saved User ID for cross-environment sync');
-    } catch (error) {
-      console.warn('⚠️ Failed to save cross-environment User ID:', error);
-    }
-  }
-
-  // Get User ID from URL hash (for temporary sync)
-  _getUserIdFromURL() {
-    const hash = window.location.hash;
-    const match = hash.match(/[?&]userId=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : null;
-  }
-
-  // Get User ID from shared storage
-  _getUserIdFromSharedStorage() {
-    const sharedKey = this._getSharedStorageKey();
-    const userId = localStorage.getItem(sharedKey);
-
-    if (userId) {
-      // Check if not too old (7 days)
-      const timestampKey = `${sharedKey}_timestamp`;
-      const timestamp = localStorage.getItem(timestampKey);
-      const age = Date.now() - parseInt(timestamp || '0');
-      const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
-
-      if (age < maxAge) {
-        return userId;
-      } else {
-        // Clean up old data
-        localStorage.removeItem(sharedKey);
-        localStorage.removeItem(timestampKey);
-      }
-    }
-
-    return null;
-  }
-
-  // Generate shared storage key based on stable browser characteristics
-  _getSharedStorageKey() {
-    // Use stable characteristics that don't change between localhost/GitHub
-    const stableFingerprint = [
-      navigator.language,
-      screen.width + 'x' + screen.height,
-      new Date().getTimezoneOffset(),
-      navigator.platform || 'unknown'
-    ].join('|');
-
-    // Create hash
-    let hash = 0;
-    for (let i = 0; i < stableFingerprint.length; i++) {
-      const char = stableFingerprint.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-
-    return `movie_shared_user_${Math.abs(hash).toString(36)}`;
-  }
-
-  // Auto-detect and suggest sync if needed
-  async _checkAndSuggestSync() {
-    try {
-      // Check if we're on GitHub Pages and have no saved movies
-      const isGitHub = window.location.hostname.includes('github.io');
-      const isLocalhost = window.location.hostname.includes('localhost');
-
-      if (isGitHub) {
-        // Check if we have any saved movies
-        const movies = await this.getSavedMovies();
-        const progress = await this.getAllWatchProgress();
-
-        if (movies.length === 0 && progress.length === 0) {
-          console.log('🔄 GitHub Pages detected with no data - checking for sync options');
-
-          // Check if there's a shared User ID available
-          const sharedUserId = this._getUserIdFromSharedStorage();
-          if (sharedUserId && sharedUserId !== this.getUserId()) {
-            console.log('💡 Found potential User ID from localhost, suggesting sync');
-            this._showAutoSyncSuggestion(sharedUserId);
-          }
-        }
-      }
-
-      // If on localhost, save User ID for GitHub Pages sync
-      if (isLocalhost) {
-        this._saveCrossEnvironmentUserId(this.getUserId());
-      }
-
-    } catch (error) {
-      console.warn('⚠️ Auto-sync check failed:', error);
-    }
-  }
-
-  // Show auto-sync suggestion
-  _showAutoSyncSuggestion(suggestedUserId) {
-    // Only show if not already dismissed
-    const dismissed = localStorage.getItem('auto_sync_dismissed');
-    if (dismissed) return;
-
-    console.log('💡 Showing auto-sync suggestion');
-
-    // Create notification
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-      position: fixed; top: 20px; right: 20px; z-index: 10000;
-      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-      color: white; padding: 15px 20px; border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(108, 92, 231, 0.3);
-      font-family: system-ui, -apple-system, sans-serif;
-      max-width: 350px; font-size: 14px; line-height: 1.4;
-      animation: slideIn 0.3s ease-out;
-    `;
-
-    notification.innerHTML = `
-      <div style="display: flex; align-items: center; margin-bottom: 10px;">
-        <span style="font-size: 18px; margin-right: 8px;">🔄</span>
-        <strong>Sync dữ liệu từ localhost?</strong>
-      </div>
-      <div style="margin-bottom: 15px; opacity: 0.9;">
-        Phát hiện bạn có dữ liệu phim đã lưu từ localhost. Muốn đồng bộ không?
-      </div>
-      <div style="display: flex; gap: 10px;">
-        <button onclick="this.parentElement.parentElement.remove(); window.movieComments._autoSyncFromLocalhost('${suggestedUserId}')"
-                style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
-          ✅ Đồng bộ
-        </button>
-        <button onclick="this.parentElement.parentElement.remove(); localStorage.setItem('auto_sync_dismissed', Date.now())"
-                style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
-          ❌ Bỏ qua
-        </button>
-      </div>
-    `;
-
-    // Add animation
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-      }
-    `;
-    document.head.appendChild(style);
-
-    document.body.appendChild(notification);
-
-    // Auto-hide after 10 seconds
-    setTimeout(() => {
-      if (notification.parentElement) {
-        notification.style.animation = 'slideIn 0.3s ease-out reverse';
-        setTimeout(() => notification.remove(), 300);
-      }
-    }, 10000);
-  }
-
-  // Auto-sync from localhost
-  async _autoSyncFromLocalhost(localhostUserId) {
-    try {
-      console.log('🔄 Auto-syncing from localhost User ID');
-
-      // Update current User ID
-      this._saveUserIdToAllStorage(localhostUserId);
-
-      // Clear current data to avoid conflicts
-      await this.clearAllSavedMovies();
-
-      // Reload the page to use new User ID
-      console.log('🔄 Reloading page with synced User ID...');
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-
-    } catch (error) {
-      console.error('❌ Auto-sync failed:', error);
-    }
   }
 
   _saveToIndexedDB(userId) {
@@ -921,60 +523,45 @@ class MovieCommentSystem {
   // Thêm comment mới
   async addComment(movieSlug, content) {
     if (!this.initialized) await this.init();
-
+    
     const userId = this.getUserId();
     const userName = this.getUserName();
-
-    // Enhanced validation using constants
-    if (!movieSlug || !content || content.trim().length < COMMENT_CONFIG.MIN_CONTENT_LENGTH) {
-      throw new Error(ERROR_MESSAGES.COMMENT_TOO_SHORT);
-    }
-
-    if (content.trim().length > COMMENT_CONFIG.MAX_CONTENT_LENGTH) {
-      throw new Error(ERROR_MESSAGES.COMMENT_TOO_LONG);
+    
+    if (!movieSlug || !content || content.trim().length < 3) {
+      throw new Error('Vui lòng nhập nội dung bình luận (tối thiểu 3 ký tự)');
     }
 
     const comment = {
        movieSlug: movieSlug,
-       content: content.trim().substring(0, COMMENT_CONFIG.MAX_CONTENT_LENGTH),
+       content: content.trim().substring(0, 500),
        authorId: userId,
        authorName: userName,
        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
        likes: 0,
        likedBy: [],
-       status: COMMENT_CONFIG.AUTO_APPROVE ? 'approved' : 'pending', // Security fix: use config
-       reports: 0,
-       moderationRequired: COMMENT_CONFIG.MODERATION_REQUIRED
+       status: 'approved', // AUTO-APPROVE for testing (change back to 'pending' for production)
+       reports: 0
      };
 
     try {
       const docRef = await this.db.collection('movieComments').add(comment);
-      this.cache.delete(movieSlug); // Clear cache for this movie
-
-      // Show appropriate success message
-      const message = COMMENT_CONFIG.AUTO_APPROVE
-        ? 'Bình luận đã được đăng!'
-        : SUCCESS_MESSAGES.COMMENT_ADDED;
-
-      console.log('✅ Comment added successfully:', docRef.id);
+      this.cache.delete(movieSlug); // Clear cache
+      // Comment added successfully
       return docRef.id;
     } catch (error) {
       console.error('❌ Add comment failed:', error);
-      throw new Error(ERROR_MESSAGES.FIREBASE_ERROR);
+      throw new Error('Không thể gửi bình luận. Vui lòng thử lại.');
     }
   }
 
   // Lấy comments cho phim
-  async getComments(movieSlug, limit = null) {
+  async getComments(movieSlug, limit = 30) {
     if (!this.initialized) await this.init();
-
-    const actualLimit = limit || COMMENT_CONFIG.DEFAULT_LIMIT;
-
-    // Check managed cache
+    
+    // Check cache
     const cached = this.cache.get(movieSlug);
-    if (cached) {
-      console.log(`📋 Cache hit for comments: ${movieSlug}`);
-      return cached;
+    if (cached && Date.now() - cached.time < 300000) { // 5 min cache
+      return cached.data;
     }
 
     try {
@@ -982,7 +569,7 @@ class MovieCommentSystem {
         .where('movieSlug', '==', movieSlug)
         .where('status', '==', 'approved')
         .orderBy('timestamp', 'desc')
-        .limit(actualLimit)
+        .limit(limit)
         .get();
 
       const comments = [];
@@ -994,10 +581,13 @@ class MovieCommentSystem {
         });
       });
 
-      // Cache results using managed cache
-      this.cache.set(movieSlug, comments);
+      // Cache results
+      this.cache.set(movieSlug, {
+        data: comments,
+        time: Date.now()
+      });
 
-      console.log(`📋 Loaded ${comments.length} comments for: ${movieSlug}`);
+      // Comments loaded successfully
       return comments;
     } catch (error) {
       console.error('❌ Get comments failed:', error);

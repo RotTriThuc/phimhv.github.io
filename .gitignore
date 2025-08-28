@@ -61,7 +61,4 @@ dist/
 .env.local
 .env.development.local
 .env.test.local
-.env.production.local
-
-# Submodule directories (to avoid orphaned submodule errors)
-ClaudeComputerCommander/ 
+.env.production.local 
