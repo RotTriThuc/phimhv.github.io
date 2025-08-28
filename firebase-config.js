@@ -1,7 +1,7 @@
 // 🔥 Firebase Comment System for GitHub Pages
 // Hoàn toàn miễn phí, không cần server backend
 
-// FIREBASE CONFIG - Real configuration from Firebase Console
+// FIREBASE CONFIG - Fallback to hardcoded values for browser compatibility
 const firebaseConfig = {
   apiKey: "AIzaSyC9GgPO41b0hmVVn5D-5LdGGSLnBsQWlPc",
   authDomain: "phim-comments.firebaseapp.com",
@@ -11,17 +11,88 @@ const firebaseConfig = {
   appId: "1:338411994257:web:870b6a7cd166a50bc75330"
 };
 
+// Configuration constants (inline for browser compatibility)
+const COMMENT_CONFIG = {
+  MAX_CONTENT_LENGTH: 500,
+  MIN_CONTENT_LENGTH: 3,
+  MAX_NAME_LENGTH: 30,
+  CACHE_TTL: 300000, // 5 minutes
+  DEFAULT_LIMIT: 30,
+  AUTO_APPROVE: false, // Security: require moderation
+  MODERATION_REQUIRED: true
+};
+
+const ERROR_MESSAGES = {
+  NETWORK_ERROR: 'Lỗi kết nối mạng. Vui lòng thử lại.',
+  FIREBASE_ERROR: 'Lỗi hệ thống. Vui lòng thử lại sau.',
+  VALIDATION_ERROR: 'Dữ liệu không hợp lệ.',
+  PERMISSION_DENIED: 'Không có quyền truy cập.',
+  COMMENT_TOO_SHORT: 'Bình luận quá ngắn (tối thiểu 3 ký tự).',
+  COMMENT_TOO_LONG: 'Bình luận quá dài (tối đa 500 ký tự).',
+  NAME_REQUIRED: 'Vui lòng nhập tên của bạn.'
+};
+
+const SUCCESS_MESSAGES = {
+  COMMENT_ADDED: 'Bình luận đã được gửi! Đang chờ admin duyệt.',
+  MOVIE_SAVED: 'Đã lưu phim vào danh sách yêu thích',
+  MOVIE_REMOVED: 'Đã xóa phim khỏi danh sách yêu thích'
+};
+
 // 💡 HƯỚNG DẪN LẤY CONFIG:
 // 1. https://console.firebase.google.com → [+ Add project]
 // 2. Tên project: "phim-comments" → Disable Analytics → Create
 // 3. "Firestore Database" → Create → Test mode → asia-southeast1  
 // 4. Project Overview → "</>" Web icon → App name → Copy config
 
+// Simple cache implementation for browser compatibility
+class SimpleCache {
+  constructor(maxSize = 50, ttl = 300000) {
+    this.cache = new Map();
+    this.maxSize = maxSize;
+    this.ttl = ttl;
+  }
+
+  set(key, value) {
+    // Remove oldest entries if cache is full
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+
+    this.cache.set(key, {
+      value,
+      timestamp: Date.now()
+    });
+  }
+
+  get(key) {
+    const item = this.cache.get(key);
+    if (!item) return null;
+
+    // Check if expired
+    if (Date.now() - item.timestamp > this.ttl) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return item.value;
+  }
+
+  delete(key) {
+    return this.cache.delete(key);
+  }
+
+  clear() {
+    this.cache.clear();
+  }
+}
+
 class MovieCommentSystem {
   constructor() {
     this.db = null;
     this.initialized = false;
-    this.cache = new Map();
+    // Use simple cache for browser compatibility
+    this.cache = new SimpleCache(50, COMMENT_CONFIG.CACHE_TTL);
   }
 
   // Khởi tạo Firebase
@@ -88,10 +159,19 @@ class MovieCommentSystem {
   // Validate Firebase config
   validateConfig() {
     const required = ['apiKey', 'authDomain', 'projectId'];
-    return required.every(field => 
-      firebaseConfig[field] && 
-      !firebaseConfig[field].includes('your-')
+    const isValid = required.every(field =>
+      firebaseConfig[field] &&
+      !firebaseConfig[field].includes('your-') &&
+      !firebaseConfig[field].includes('_here')
     );
+
+    if (!isValid) {
+      console.error('❌ Invalid Firebase configuration. Please check your environment variables.');
+      console.log('Required fields:', required);
+      console.log('Current config keys:', Object.keys(firebaseConfig));
+    }
+
+    return isValid;
   }
 
   // Load Firebase SDK - Using v8 compat for easier integration
@@ -154,7 +234,11 @@ class MovieCommentSystem {
     // Try localStorage first
     let userId = localStorage.getItem('movie_commenter_id');
     if (userId) {
-      console.log('🆔 Found User ID in localStorage:', userId.substring(0, 20) + '...');
+      // Only log once per session to avoid spam
+      if (!this._userIdLogged) {
+        console.log('🆔 Found User ID in localStorage:', userId.substring(0, 20) + '...');
+        this._userIdLogged = true;
+      }
       return userId;
     }
 
@@ -817,45 +901,60 @@ class MovieCommentSystem {
   // Thêm comment mới
   async addComment(movieSlug, content) {
     if (!this.initialized) await this.init();
-    
+
     const userId = this.getUserId();
     const userName = this.getUserName();
-    
-    if (!movieSlug || !content || content.trim().length < 3) {
-      throw new Error('Vui lòng nhập nội dung bình luận (tối thiểu 3 ký tự)');
+
+    // Enhanced validation using constants
+    if (!movieSlug || !content || content.trim().length < COMMENT_CONFIG.MIN_CONTENT_LENGTH) {
+      throw new Error(ERROR_MESSAGES.COMMENT_TOO_SHORT);
+    }
+
+    if (content.trim().length > COMMENT_CONFIG.MAX_CONTENT_LENGTH) {
+      throw new Error(ERROR_MESSAGES.COMMENT_TOO_LONG);
     }
 
     const comment = {
        movieSlug: movieSlug,
-       content: content.trim().substring(0, 500),
+       content: content.trim().substring(0, COMMENT_CONFIG.MAX_CONTENT_LENGTH),
        authorId: userId,
        authorName: userName,
        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
        likes: 0,
        likedBy: [],
-       status: 'approved', // AUTO-APPROVE for testing (change back to 'pending' for production)
-       reports: 0
+       status: COMMENT_CONFIG.AUTO_APPROVE ? 'approved' : 'pending', // Security fix: use config
+       reports: 0,
+       moderationRequired: COMMENT_CONFIG.MODERATION_REQUIRED
      };
 
     try {
       const docRef = await this.db.collection('movieComments').add(comment);
-      this.cache.delete(movieSlug); // Clear cache
-      // Comment added successfully
+      this.cache.delete(movieSlug); // Clear cache for this movie
+
+      // Show appropriate success message
+      const message = COMMENT_CONFIG.AUTO_APPROVE
+        ? 'Bình luận đã được đăng!'
+        : SUCCESS_MESSAGES.COMMENT_ADDED;
+
+      console.log('✅ Comment added successfully:', docRef.id);
       return docRef.id;
     } catch (error) {
       console.error('❌ Add comment failed:', error);
-      throw new Error('Không thể gửi bình luận. Vui lòng thử lại.');
+      throw new Error(ERROR_MESSAGES.FIREBASE_ERROR);
     }
   }
 
   // Lấy comments cho phim
-  async getComments(movieSlug, limit = 30) {
+  async getComments(movieSlug, limit = null) {
     if (!this.initialized) await this.init();
-    
-    // Check cache
+
+    const actualLimit = limit || COMMENT_CONFIG.DEFAULT_LIMIT;
+
+    // Check managed cache
     const cached = this.cache.get(movieSlug);
-    if (cached && Date.now() - cached.time < 300000) { // 5 min cache
-      return cached.data;
+    if (cached) {
+      console.log(`📋 Cache hit for comments: ${movieSlug}`);
+      return cached;
     }
 
     try {
@@ -863,7 +962,7 @@ class MovieCommentSystem {
         .where('movieSlug', '==', movieSlug)
         .where('status', '==', 'approved')
         .orderBy('timestamp', 'desc')
-        .limit(limit)
+        .limit(actualLimit)
         .get();
 
       const comments = [];
@@ -875,13 +974,10 @@ class MovieCommentSystem {
         });
       });
 
-      // Cache results
-      this.cache.set(movieSlug, {
-        data: comments,
-        time: Date.now()
-      });
+      // Cache results using managed cache
+      this.cache.set(movieSlug, comments);
 
-      // Comments loaded successfully
+      console.log(`📋 Loaded ${comments.length} comments for: ${movieSlug}`);
       return comments;
     } catch (error) {
       console.error('❌ Get comments failed:', error);

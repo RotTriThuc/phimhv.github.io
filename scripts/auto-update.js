@@ -1,24 +1,32 @@
-const fs = require('fs').promises;
-const path = require('path');
-const { execSync } = require('child_process');
+// Import shared utilities
+import { HttpClient } from '../utils/http-client.js';
+import { FileOperations } from '../utils/file-operations.js';
+import { CacheManager } from '../utils/cache-manager.js';
+import { API_CONFIG, UPDATE_CONFIG, FILE_PATHS, ERROR_MESSAGES } from '../config/constants.js';
+import { execSync } from 'child_process';
 
 class AutoUpdater {
   constructor() {
-    this.API_BASE = 'https://phimapi.com';
-    this.DATA_DIR = path.join(__dirname, '..', 'data');
-    this.MAIN_FILE = path.join(this.DATA_DIR, 'kho-phim.json');
-    this.UPDATES_FILE = path.join(this.DATA_DIR, 'updates-log.json');
-    this.CONFIG_FILE = path.join(this.DATA_DIR, 'auto-update-config.json');
-    
+    // Use centralized configuration
+    this.httpClient = new HttpClient({
+      baseURL: API_CONFIG.BASE_URL,
+      timeout: API_CONFIG.TIMEOUT,
+      retryAttempts: API_CONFIG.RETRY_ATTEMPTS
+    });
+
+    // Use standard file paths
+    this.filePaths = FileOperations.getStandardPaths();
+
+    // Use centralized config with fallbacks
     this.config = {
-      updateInterval: 5 * 60 * 1000, // 5 phút
-      maxRetries: 3,
-      batchSize: 24,
-      enableNotifications: true,
-      trackNewEpisodes: true,
-      trackNewMovies: true,
-      autoPushToGit: true, // Tự động push lên GitHub
-      gitCommitMessage: 'Auto-update: {updateSummary}' // Template commit message
+      updateInterval: UPDATE_CONFIG.INTERVAL,
+      maxRetries: UPDATE_CONFIG.MAX_RETRIES,
+      batchSize: UPDATE_CONFIG.BATCH_SIZE,
+      enableNotifications: UPDATE_CONFIG.ENABLE_NOTIFICATIONS,
+      trackNewEpisodes: UPDATE_CONFIG.TRACK_NEW_EPISODES,
+      trackNewMovies: UPDATE_CONFIG.TRACK_NEW_MOVIES,
+      autoPushToGit: UPDATE_CONFIG.AUTO_PUSH_TO_GIT,
+      gitCommitMessage: UPDATE_CONFIG.GIT_COMMIT_MESSAGE_TEMPLATE
     };
     
     this.stats = {
@@ -32,20 +40,20 @@ class AutoUpdater {
 
   async init() {
     try {
-      // Tạo thư mục data nếu chưa có
-      await fs.mkdir(this.DATA_DIR, { recursive: true });
-      
-      // Load config nếu có
+      // Ensure data directory exists using utility
+      await FileOperations.ensureDir(this.filePaths.dataDir);
+
+      // Load config using FileOperations
       try {
-        const configData = await fs.readFile(this.CONFIG_FILE, 'utf8');
-        this.config = { ...this.config, ...JSON.parse(configData) };
+        const configData = await FileOperations.readJSON(this.filePaths.configFile, {});
+        this.config = { ...this.config, ...configData };
       } catch (e) {
         await this.saveConfig();
       }
-      
+
       console.log('🚀 Auto-Updater initialized');
       console.log(`📊 Config: Update every ${this.config.updateInterval / 1000 / 60} minutes`);
-      
+
     } catch (error) {
       console.error('❌ Failed to initialize:', error.message);
       throw error;
@@ -53,22 +61,10 @@ class AutoUpdater {
   }
 
   async saveConfig() {
-    await fs.writeFile(this.CONFIG_FILE, JSON.stringify(this.config, null, 2));
+    await FileOperations.writeJSON(this.filePaths.configFile, this.config);
   }
 
-  async fetchWithRetry(url, retries = this.config.maxRetries) {
-    for (let i = 0; i < retries; i++) {
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
-      } catch (error) {
-        console.warn(`⚠️ Attempt ${i + 1}/${retries} failed for ${url}: ${error.message}`);
-        if (i === retries - 1) throw error;
-        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-      }
-    }
-  }
+  // Remove fetchWithRetry - now handled by HttpClient
 
   async loadExistingData() {
     try {

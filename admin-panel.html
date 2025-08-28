@@ -131,6 +131,298 @@
     
     .loading { text-align: center; padding: 40px; color: #888; }
     .empty { text-align: center; padding: 60px; color: #888; }
+
+    /* Notification Management Styles */
+    .notification-management {
+      max-width: 100%;
+    }
+
+    .notification-actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .notification-form-container {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+
+    .notification-form h3 {
+      color: #6c5ce7;
+      margin-bottom: 20px;
+      font-size: 18px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: #ccc;
+      font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #6c5ce7;
+      box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.2);
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-group input[type="checkbox"] {
+      width: auto;
+      margin-right: 8px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .notifications-list-container {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .notifications-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid #333;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .notifications-header h3 {
+      color: #6c5ce7;
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .list-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .list-controls select {
+      padding: 8px 12px;
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .notifications-list {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .notification-item {
+      display: flex;
+      align-items: center;
+      padding: 15px 20px;
+      border-bottom: 1px solid #333;
+      transition: background-color 0.2s;
+    }
+
+    .notification-item:hover {
+      background: #252525;
+    }
+
+    .notification-item:last-child {
+      border-bottom: none;
+    }
+
+    .notification-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .notification-title {
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .notification-message {
+      color: #ccc;
+      font-size: 14px;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .notification-meta {
+      display: flex;
+      gap: 15px;
+      font-size: 12px;
+      color: #888;
+      flex-wrap: wrap;
+    }
+
+    .notification-actions-item {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+
+    .type-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    .type-info { background: #3498db; color: white; }
+    .type-success { background: #2ecc71; color: white; }
+    .type-warning { background: #f39c12; color: white; }
+    .type-error { background: #e74c3c; color: white; }
+    .type-system { background: #9b59b6; color: white; }
+    .type-update { background: #1abc9c; color: white; }
+    .type-movie { background: #e67e22; color: white; }
+
+    .priority-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .priority-low { background: #95a5a6; color: white; }
+    .priority-normal { background: #3498db; color: white; }
+    .priority-high { background: #f39c12; color: white; }
+    .priority-urgent { background: #e74c3c; color: white; }
+
+    .status-toggle {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .status-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .status-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #444;
+      transition: .4s;
+      border-radius: 24px;
+    }
+
+    .status-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .status-slider {
+      background-color: #6c5ce7;
+    }
+
+    input:checked + .status-slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .notifications-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .list-controls {
+        width: 100%;
+      }
+
+      .list-controls select {
+        flex: 1;
+      }
+
+      .notification-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .notification-actions-item {
+        width: 100%;
+        justify-content: flex-end;
+      }
+
+      .notification-meta {
+        flex-direction: column;
+        gap: 5px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -167,6 +459,7 @@
       <button class="tab active" data-tab="pending">🕒 Chờ duyệt</button>
       <button class="tab" data-tab="approved">✅ Đã duyệt</button>
       <button class="tab" data-tab="reported">🚨 Báo cáo</button>
+      <button class="tab" data-tab="notifications">🔔 Quản lý thông báo</button>
     </div>
 
     <!-- Tab Contents -->
@@ -181,11 +474,557 @@
     <div class="tab-content" id="reported-content">
       <div class="loading">Đang tải bình luận bị báo cáo...</div>
     </div>
+
+    <div class="tab-content" id="notifications-content">
+      <!-- Notification Management Interface -->
+      <div class="notification-management">
+        <!-- Action Buttons -->
+        <div class="notification-actions">
+          <button class="btn btn-primary" id="create-notification-btn">
+            ➕ Tạo thông báo mới
+          </button>
+          <button class="btn btn-secondary" id="refresh-notifications-btn">
+            🔄 Làm mới
+          </button>
+          <button class="btn btn-info" id="notification-stats-btn">
+            📊 Thống kê
+          </button>
+          <button class="btn btn-secondary" id="scheduled-notifications-btn">
+            ⏰ Thông báo đã lập lịch
+          </button>
+        </div>
+
+        <!-- Notification Form (Hidden by default) -->
+        <div class="notification-form-container" id="notification-form-container" style="display: none;">
+          <div class="notification-form">
+            <h3 id="form-title">Tạo thông báo mới</h3>
+
+            <form id="notification-form">
+              <div class="form-group">
+                <label for="notification-title">Tiêu đề *</label>
+                <input type="text" id="notification-title" name="title" required maxlength="100"
+                       placeholder="Nhập tiêu đề thông báo...">
+              </div>
+
+              <div class="form-group">
+                <label for="notification-message">Nội dung *</label>
+                <textarea id="notification-message" name="message" required maxlength="500"
+                          placeholder="Nhập nội dung thông báo..." rows="4"></textarea>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="notification-type">Loại thông báo</label>
+                  <select id="notification-type" name="type">
+                    <option value="info">📢 Thông tin</option>
+                    <option value="success">✅ Thành công</option>
+                    <option value="warning">⚠️ Cảnh báo</option>
+                    <option value="error">❌ Lỗi</option>
+                    <option value="system">⚙️ Hệ thống</option>
+                    <option value="update">🔄 Cập nhật</option>
+                    <option value="movie">🎬 Phim mới</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="notification-priority">Độ ưu tiên</label>
+                  <select id="notification-priority" name="priority">
+                    <option value="low">Thấp</option>
+                    <option value="normal" selected>Bình thường</option>
+                    <option value="high">Cao</option>
+                    <option value="urgent">Khẩn cấp</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="notification-category">Danh mục</label>
+                  <select id="notification-category" name="category">
+                    <option value="general">Chung</option>
+                    <option value="system">Hệ thống</option>
+                    <option value="movie">Phim</option>
+                    <option value="promotion">Khuyến mãi</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>
+                    <input type="checkbox" id="notification-persistent" name="persistent">
+                    Thông báo quan trọng (không tự động ẩn)
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="notification-action-url">Link hành động (tùy chọn)</label>
+                <input type="url" id="notification-action-url" name="actionUrl"
+                       placeholder="https://example.com hoặc #/phim/slug">
+              </div>
+
+              <div class="form-group">
+                <label for="notification-action-text">Text nút hành động</label>
+                <input type="text" id="notification-action-text" name="actionText"
+                       placeholder="Xem chi tiết" maxlength="20">
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="notification-schedule">Lập lịch hiển thị (tùy chọn)</label>
+                  <input type="datetime-local" id="notification-schedule" name="scheduledAt">
+                  <small style="color: #888; font-size: 12px;">Để trống để hiển thị ngay lập tức</small>
+                </div>
+
+                <div class="form-group">
+                  <label for="notification-expires">Thời gian hết hạn (tùy chọn)</label>
+                  <input type="datetime-local" id="notification-expires" name="expiresAt">
+                  <small style="color: #888; font-size: 12px;">Thông báo sẽ tự động ẩn sau thời gian này</small>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                  💾 Lưu thông báo
+                </button>
+                <button type="button" class="btn btn-secondary" id="cancel-form-btn">
+                  ❌ Hủy
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Notifications List -->
+        <div class="notifications-list-container">
+          <div class="notifications-header">
+            <h3>Danh sách thông báo</h3>
+            <div class="list-controls">
+              <select id="filter-type">
+                <option value="">Tất cả loại</option>
+                <option value="info">Thông tin</option>
+                <option value="success">Thành công</option>
+                <option value="warning">Cảnh báo</option>
+                <option value="error">Lỗi</option>
+                <option value="system">Hệ thống</option>
+                <option value="update">Cập nhật</option>
+                <option value="movie">Phim mới</option>
+              </select>
+              <select id="filter-priority">
+                <option value="">Tất cả độ ưu tiên</option>
+                <option value="low">Thấp</option>
+                <option value="normal">Bình thường</option>
+                <option value="high">Cao</option>
+                <option value="urgent">Khẩn cấp</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="notifications-list" id="notifications-list">
+            <div class="loading">Đang tải danh sách thông báo...</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Firebase & Admin Logic -->
   <script src="./firebase-config.js"></script>
+
+  <!-- Notification System Bundle (CORS-free) -->
+  <script src="./assets/notification-admin-bundle.js"></script>
   <script>
+    // Notification Management UI Class
+    class AdminNotificationUI {
+      constructor() {
+        this.currentEditingId = null;
+        this.notifications = [];
+        this.filteredNotifications = [];
+        this.notificationDataManager = null;
+        this.adminNotificationManager = null;
+      }
+
+      async init() {
+        try {
+          // Wait for SimpleNotificationSystem to be available
+          await new Promise(resolve => {
+            if (window.SimpleNotificationSystem) {
+              resolve();
+            } else {
+              const checkSystem = () => {
+                if (window.SimpleNotificationSystem) {
+                  resolve();
+                } else {
+                  setTimeout(checkSystem, 100);
+                }
+              };
+              checkSystem();
+            }
+          });
+
+          this.notificationDataManager = window.SimpleNotificationSystem.dataManager;
+          this.adminNotificationManager = window.SimpleNotificationSystem.adminManager;
+
+          // Wait for data manager initialization
+          await new Promise(resolve => {
+            if (this.notificationDataManager.isInitialized) {
+              resolve();
+            } else {
+              const checkInit = () => {
+                if (this.notificationDataManager.isInitialized) {
+                  resolve();
+                } else {
+                  setTimeout(checkInit, 100);
+                }
+              };
+              checkInit();
+            }
+          });
+
+          this.bindEvents();
+          await this.loadNotifications();
+
+          console.log('✅ Admin Notification UI initialized');
+        } catch (error) {
+          console.error('❌ Failed to initialize Admin Notification UI:', error);
+          this.showError('Không thể khởi tạo hệ thống quản lý thông báo');
+        }
+      }
+
+      bindEvents() {
+        // Action buttons
+        document.getElementById('create-notification-btn').addEventListener('click', () => {
+          this.showCreateForm();
+        });
+
+        document.getElementById('refresh-notifications-btn').addEventListener('click', () => {
+          this.loadNotifications();
+        });
+
+        document.getElementById('notification-stats-btn').addEventListener('click', () => {
+          this.showStats();
+        });
+
+        document.getElementById('scheduled-notifications-btn').addEventListener('click', () => {
+          this.showScheduledNotifications();
+        });
+
+        // Form events
+        document.getElementById('notification-form').addEventListener('submit', (e) => {
+          this.handleFormSubmit(e);
+        });
+
+        document.getElementById('cancel-form-btn').addEventListener('click', () => {
+          this.hideForm();
+        });
+
+        // Filter events
+        document.getElementById('filter-type').addEventListener('change', () => {
+          this.applyFilters();
+        });
+
+        document.getElementById('filter-priority').addEventListener('change', () => {
+          this.applyFilters();
+        });
+      }
+
+      async loadNotifications() {
+        try {
+          const listContainer = document.getElementById('notifications-list');
+          listContainer.innerHTML = '<div class="loading">Đang tải danh sách thông báo...</div>';
+
+          // Get all notifications
+          this.notifications = this.notificationDataManager.getAllNotifications();
+
+          // Sort by timestamp (newest first)
+          this.notifications.sort((a, b) => b.timestamp - a.timestamp);
+
+          this.filteredNotifications = [...this.notifications];
+          this.renderNotificationsList();
+
+        } catch (error) {
+          console.error('❌ Failed to load notifications:', error);
+          document.getElementById('notifications-list').innerHTML =
+            '<div class="empty">Lỗi tải danh sách thông báo</div>';
+        }
+      }
+
+      applyFilters() {
+        const typeFilter = document.getElementById('filter-type').value;
+        const priorityFilter = document.getElementById('filter-priority').value;
+
+        this.filteredNotifications = this.notifications.filter(notification => {
+          const matchType = !typeFilter || notification.type === typeFilter;
+          const matchPriority = !priorityFilter || notification.priority === priorityFilter;
+          return matchType && matchPriority;
+        });
+
+        this.renderNotificationsList();
+      }
+
+      renderNotificationsList() {
+        const listContainer = document.getElementById('notifications-list');
+
+        if (this.filteredNotifications.length === 0) {
+          listContainer.innerHTML = '<div class="empty">Không có thông báo nào</div>';
+          return;
+        }
+
+        const html = this.filteredNotifications.map(notification => {
+          const typeEmoji = this.getTypeEmoji(notification.type);
+          const isActive = !notification.expiresAt || new Date(notification.expiresAt) > new Date();
+
+          return `
+            <div class="notification-item">
+              <div class="notification-content">
+                <div class="notification-title">
+                  ${typeEmoji} ${notification.title}
+                  <span class="type-badge type-${notification.type}">${notification.type}</span>
+                  <span class="priority-badge priority-${notification.priority}">${notification.priority}</span>
+                </div>
+                <div class="notification-message">${notification.message}</div>
+                <div class="notification-meta">
+                  <span>📅 ${new Date(notification.timestamp).toLocaleString('vi-VN')}</span>
+                  <span>👁️ ${notification.isRead ? 'Đã đọc' : 'Chưa đọc'}</span>
+                  ${notification.expiresAt ? `<span>⏰ Hết hạn: ${new Date(notification.expiresAt).toLocaleString('vi-VN')}</span>` : ''}
+                  ${notification.actionUrl ? `<span>🔗 Có link hành động</span>` : ''}
+                </div>
+              </div>
+              <div class="notification-actions-item">
+                <label class="status-toggle">
+                  <input type="checkbox" ${isActive ? 'checked' : ''}
+                         onchange="adminNotificationUI.toggleNotificationStatus('${notification.id}', this.checked)">
+                  <span class="status-slider"></span>
+                </label>
+                <button class="btn btn-small btn-secondary"
+                        onclick="adminNotificationUI.editNotification('${notification.id}')">
+                  ✏️ Sửa
+                </button>
+                <button class="btn btn-small btn-delete"
+                        onclick="adminNotificationUI.deleteNotification('${notification.id}')">
+                  🗑️ Xóa
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        listContainer.innerHTML = html;
+      }
+
+      getTypeEmoji(type) {
+        const emojis = {
+          info: '📢',
+          success: '✅',
+          warning: '⚠️',
+          error: '❌',
+          system: '⚙️',
+          update: '🔄',
+          movie: '🎬'
+        };
+        return emojis[type] || '📢';
+      }
+
+      showCreateForm() {
+        this.currentEditingId = null;
+        document.getElementById('form-title').textContent = 'Tạo thông báo mới';
+        document.getElementById('notification-form').reset();
+        document.getElementById('notification-form-container').style.display = 'block';
+        document.getElementById('notification-title').focus();
+      }
+
+      editNotification(id) {
+        const notification = this.notifications.find(n => n.id === id);
+        if (!notification) return;
+
+        this.currentEditingId = id;
+        document.getElementById('form-title').textContent = 'Chỉnh sửa thông báo';
+
+        // Fill form with notification data
+        document.getElementById('notification-title').value = notification.title;
+        document.getElementById('notification-message').value = notification.message;
+        document.getElementById('notification-type').value = notification.type;
+        document.getElementById('notification-priority').value = notification.priority;
+        document.getElementById('notification-category').value = notification.category || 'general';
+        document.getElementById('notification-persistent').checked = notification.persistent || false;
+        document.getElementById('notification-action-url').value = notification.actionUrl || '';
+        document.getElementById('notification-action-text').value = notification.actionText || '';
+
+        // Handle scheduled notifications (if they have future timestamp and haven't been shown yet)
+        if (notification.scheduledAt && notification.scheduledAt > Date.now()) {
+          const scheduleDate = new Date(notification.scheduledAt);
+          document.getElementById('notification-schedule').value = scheduleDate.toISOString().slice(0, 16);
+        }
+
+        if (notification.expiresAt) {
+          const date = new Date(notification.expiresAt);
+          document.getElementById('notification-expires').value = date.toISOString().slice(0, 16);
+        }
+
+        document.getElementById('notification-form-container').style.display = 'block';
+        document.getElementById('notification-title').focus();
+      }
+
+      hideForm() {
+        document.getElementById('notification-form-container').style.display = 'none';
+        this.currentEditingId = null;
+      }
+
+      async handleFormSubmit(e) {
+        e.preventDefault();
+
+        try {
+          const formData = new FormData(e.target);
+          const scheduledAt = formData.get('scheduledAt') ? new Date(formData.get('scheduledAt')).getTime() : null;
+
+          const notificationData = {
+            title: formData.get('title').trim(),
+            message: formData.get('message').trim(),
+            type: formData.get('type'),
+            priority: formData.get('priority'),
+            category: formData.get('category'),
+            persistent: formData.has('persistent'),
+            actionUrl: formData.get('actionUrl').trim() || null,
+            actionText: formData.get('actionText').trim() || null,
+            expiresAt: formData.get('expiresAt') ? new Date(formData.get('expiresAt')).getTime() : null
+          };
+
+          if (this.currentEditingId) {
+            // Update existing notification
+            await this.notificationDataManager.updateNotification(this.currentEditingId, notificationData);
+            this.showSuccess('Cập nhật thông báo thành công!');
+          } else {
+            // Check if this is a scheduled notification
+            if (scheduledAt && scheduledAt > Date.now()) {
+              // Schedule the notification
+              await this.adminNotificationManager.scheduleNotification(scheduledAt, notificationData);
+              this.showSuccess(`Đã lập lịch thông báo cho ${new Date(scheduledAt).toLocaleString('vi-VN')}`);
+            } else {
+              // Create immediate notification
+              await this.adminNotificationManager.createSystemNotification(notificationData);
+              this.showSuccess('Tạo thông báo mới thành công!');
+            }
+          }
+
+          this.hideForm();
+          await this.loadNotifications();
+
+        } catch (error) {
+          console.error('❌ Failed to save notification:', error);
+          this.showError('Lỗi lưu thông báo: ' + error.message);
+        }
+      }
+
+      async toggleNotificationStatus(id, isActive) {
+        try {
+          const notification = this.notifications.find(n => n.id === id);
+          if (!notification) return;
+
+          const updateData = {
+            expiresAt: isActive ? null : Date.now() - 1000 // Set to past if inactive
+          };
+
+          await this.notificationDataManager.updateNotification(id, updateData);
+          await this.loadNotifications();
+
+          this.showSuccess(isActive ? 'Đã kích hoạt thông báo' : 'Đã vô hiệu hóa thông báo');
+
+        } catch (error) {
+          console.error('❌ Failed to toggle notification status:', error);
+          this.showError('Lỗi thay đổi trạng thái thông báo');
+        }
+      }
+
+      async deleteNotification(id) {
+        if (!confirm('Bạn có chắc chắn muốn xóa thông báo này?')) return;
+
+        try {
+          await this.notificationDataManager.deleteNotification(id);
+          await this.loadNotifications();
+          this.showSuccess('Đã xóa thông báo');
+
+        } catch (error) {
+          console.error('❌ Failed to delete notification:', error);
+          this.showError('Lỗi xóa thông báo');
+        }
+      }
+
+      showStats() {
+        const stats = {
+          total: this.notifications.length,
+          unread: this.notifications.filter(n => !n.isRead).length,
+          active: this.notifications.filter(n => !n.expiresAt || new Date(n.expiresAt) > new Date()).length,
+          scheduled: this.getScheduledNotifications().length,
+          byType: {}
+        };
+
+        this.notifications.forEach(n => {
+          stats.byType[n.type] = (stats.byType[n.type] || 0) + 1;
+        });
+
+        const typeStats = Object.entries(stats.byType)
+          .map(([type, count]) => `${type}: ${count}`)
+          .join('\n');
+
+        alert(`📊 Thống kê thông báo:\n\nTổng số: ${stats.total}\nChưa đọc: ${stats.unread}\nĐang hoạt động: ${stats.active}\nĐã lập lịch: ${stats.scheduled}\n\nTheo loại:\n${typeStats}`);
+      }
+
+      getScheduledNotifications() {
+        try {
+          // Get scheduled notifications from admin notification manager
+          if (this.adminNotificationManager && this.adminNotificationManager.scheduledNotifications) {
+            return Array.from(this.adminNotificationManager.scheduledNotifications.values())
+              .filter(scheduled => scheduled.scheduledTime > Date.now());
+          }
+          return [];
+        } catch (error) {
+          console.error('Error getting scheduled notifications:', error);
+          return [];
+        }
+      }
+
+      showScheduledNotifications() {
+        const scheduled = this.getScheduledNotifications();
+
+        if (scheduled.length === 0) {
+          alert('⏰ Không có thông báo nào được lập lịch');
+          return;
+        }
+
+        const scheduledList = scheduled
+          .sort((a, b) => a.scheduledTime - b.scheduledTime)
+          .map(item => {
+            const date = new Date(item.scheduledTime).toLocaleString('vi-VN');
+            return `• ${item.notification.title} - ${date}`;
+          })
+          .join('\n');
+
+        alert(`⏰ Thông báo đã lập lịch (${scheduled.length}):\n\n${scheduledList}`);
+      }
+
+      showSuccess(message) {
+        this.showNotification(message, 'success');
+      }
+
+      showError(message) {
+        this.showNotification(message, 'error');
+      }
+
+      showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.textContent = message;
+        notification.style.cssText = `
+          position: fixed; top: 20px; right: 20px; z-index: 9999;
+          background: ${type === 'error' ? '#e74c3c' : '#4caf50'};
+          color: white; padding: 12px 20px;
+          border-radius: 6px; font-size: 14px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        `;
+
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+      }
+    }
+
     class MovieCommentsAdmin {
       constructor() {
         this.comments = { pending: [], approved: [], reported: [] };
@@ -212,24 +1051,7 @@
       }
 
       bindEvents() {
-        // Tab switching
-        document.querySelectorAll('.tab').forEach(tab => {
-          tab.addEventListener('click', (e) => {
-            this.switchTab(e.target.dataset.tab);
-          });
-        });
-      }
-
-      async switchTab(tabName) {
-        // Update UI
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        
-        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-        document.getElementById(`${tabName}-content`).classList.add('active');
-        
-        this.currentTab = tabName;
-        await this.loadComments(tabName);
+        // No tab switching here - handled globally
       }
 
       async loadStats() {
@@ -491,13 +1313,64 @@
       }
     }
 
+    // Global instances
+    let adminNotificationUI;
+    let movieCommentsAdmin;
+
     // Initialize admin panel
-    document.addEventListener('DOMContentLoaded', () => {
-      const admin = new MovieCommentsAdmin();
-      admin.init().catch(error => {
-        console.error('Admin panel failed:', error);
-      });
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        // Initialize movie comments admin
+        movieCommentsAdmin = new MovieCommentsAdmin();
+        await movieCommentsAdmin.init();
+
+        // Initialize notification UI
+        adminNotificationUI = new AdminNotificationUI();
+        await adminNotificationUI.init();
+
+        // Make notification UI globally accessible
+        window.adminNotificationUI = adminNotificationUI;
+
+        // Setup tab switching
+        setupTabSwitching();
+
+        console.log('✅ Admin panel fully initialized');
+
+      } catch (error) {
+        console.error('❌ Admin panel initialization failed:', error);
+      }
     });
+
+    // Tab switching functionality
+    function setupTabSwitching() {
+      const tabs = document.querySelectorAll('.tab');
+      const tabContents = document.querySelectorAll('.tab-content');
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const targetTab = tab.dataset.tab;
+
+          // Remove active class from all tabs and contents
+          tabs.forEach(t => t.classList.remove('active'));
+          tabContents.forEach(content => content.classList.remove('active'));
+
+          // Add active class to clicked tab and corresponding content
+          tab.classList.add('active');
+          document.getElementById(`${targetTab}-content`).classList.add('active');
+
+          // Load data for specific tabs
+          if (targetTab === 'notifications' && adminNotificationUI) {
+            adminNotificationUI.loadNotifications();
+          } else if (targetTab === 'pending' && movieCommentsAdmin) {
+            movieCommentsAdmin.loadComments('pending');
+          } else if (targetTab === 'approved' && movieCommentsAdmin) {
+            movieCommentsAdmin.loadComments('approved');
+          } else if (targetTab === 'reported' && movieCommentsAdmin) {
+            movieCommentsAdmin.loadComments('reported');
+          }
+        });
+      });
+    }
   </script>
 </body>
 </html> 

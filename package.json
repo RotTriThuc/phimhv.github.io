@@ -1,0 +1,37 @@
+{
+  "name": "web-xem-anime",
+  "version": "1.0.0",
+  "description": "Website xem phim deep try với auto-update system",
+  "type": "module",
+  "main": "index.html",
+  "scripts": {
+    "sync-catalog": "node scripts/sync-catalog.js",
+    "auto-update": "node scripts/auto-update.js",
+    "download-movies": "node scripts/download-movies.js",
+    "start": "node -e \"console.log('Open index.html in browser or use live server')\"",
+    "dev": "python -m http.server 8000",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "movie",
+    "anime",
+    "streaming",
+    "phim",
+    "auto-update"
+  ],
+  "author": "NGUYEN HOAI VU",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/web-xem-anime.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/web-xem-anime/issues"
+  },
+  "homepage": "https://your-username.github.io/web-xem-anime/"
+}

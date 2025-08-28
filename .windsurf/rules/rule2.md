@@ -1,5 +1,5 @@
 ---
-type: "always_apply"
+trigger: always_on
 ---
 
 - Before any question, please answer specifically which AI model and version you are using. Before coding please answer you can think like claude 4.1 opus thinking, think carefully
