@@ -2876,6 +2876,110 @@ async function renderWatch(root, slug, params) {
 
     const player = createEl('section', 'player');
 
+    // Helper function to try a single proxy
+    async function tryProxy(proxyUrl, proxyIndex, hasNative, hasHls, video, player, fallbackEmbed) {
+      return new Promise((resolve) => {
+        let resolved = false;
+        
+        const cleanup = () => {
+          if (!resolved) {
+            resolved = true;
+          }
+        };
+        
+        // For native HLS support
+        if (hasNative) {
+          const testVideo = video.cloneNode();
+          testVideo.src = proxyUrl;
+          
+          testVideo.addEventListener('loadstart', () => {
+            if (!resolved) {
+              resolved = true;
+              console.log(`✅ Native HLS loaded with proxy ${proxyIndex}`);
+              video.src = proxyUrl;
+              player.appendChild(video);
+              resolve(true);
+            }
+          });
+          
+          testVideo.addEventListener('error', () => {
+            if (!resolved) {
+              resolved = true;
+              console.log(`❌ Native HLS failed with proxy ${proxyIndex}`);
+              resolve(false);
+            }
+          });
+          
+          // Timeout after 3 seconds
+          setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              console.log(`⏰ Proxy ${proxyIndex} timeout (Native)`);
+              resolve(false);
+            }
+          }, 3000);
+          
+          return;
+        }
+        
+        // For HLS.js
+        if (hasHls && window.Hls?.isSupported()) {
+          const HlsClass = window.Hls;
+          const hls = new HlsClass({ 
+            enableWorker: false,
+            lowLatencyMode: false,
+            maxBufferLength: 10
+          });
+          
+          hls.on(HlsClass.Events.MANIFEST_LOADED, () => {
+            if (!resolved) {
+              resolved = true;
+              console.log(`✅ HLS loaded successfully with proxy ${proxyIndex}`);
+              player.appendChild(video);
+              resolve(true);
+            }
+          });
+          
+          hls.on(HlsClass.Events.ERROR, (_evt, data) => {
+            if (data.fatal && !resolved) {
+              resolved = true;
+              hls.destroy();
+              console.log(`🚨 HLS Error (proxy ${proxyIndex}):`, data.type, data.details);
+              resolve(false);
+            }
+          });
+          
+          // Timeout after 5 seconds
+          setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              hls.destroy();
+              console.log(`⏰ Proxy ${proxyIndex} timeout (HLS.js)`);
+              resolve(false);
+            }
+          }, 5000);
+          
+          try {
+            hls.loadSource(proxyUrl);
+            hls.attachMedia(video);
+          } catch (loadError) {
+            if (!resolved) {
+              resolved = true;
+              hls.destroy();
+              console.log(`❌ Failed to load source with proxy ${proxyIndex}:`, loadError);
+              resolve(false);
+            }
+          }
+          
+          return;
+        }
+        
+        // No HLS support available
+        resolved = true;
+        resolve(false);
+      });
+    }
+
     async function renderHls(url, fallbackEmbed) {
       const video = createEl('video');
       video.controls = true;
@@ -2889,65 +2993,32 @@ async function renderWatch(root, slug, params) {
       // Try CORS proxies for blocked URLs
       const corsProxies = [
         '', // Original URL first
-        'https://cors-anywhere.herokuapp.com/',
         'https://api.allorigins.win/raw?url=',
-        'https://corsproxy.io/?'
+        'https://corsproxy.io/?',
+        'https://cors-anywhere.herokuapp.com/'
       ];
 
+      // Try each proxy sequentially
       for (let i = 0; i < corsProxies.length; i++) {
         const proxyUrl = corsProxies[i] + (i === 0 ? url : encodeURIComponent(url));
+        console.log(`🔄 Trying proxy ${i + 1}/${corsProxies.length}: ${corsProxies[i] || 'Direct'}`);
         
         try {
-          if (hasNative) {
-            video.src = proxyUrl;
-            player.appendChild(video);
-            return true;
-          }
-          if (hasHls && window.Hls?.isSupported()) {
-            const HlsClass = window.Hls;
-            const hls = new HlsClass({ 
-              enableWorker: true, 
-              lowLatencyMode: true,
-              xhrSetup: function(xhr, url) {
-                // Add headers to bypass CORS
-                xhr.setRequestHeader('Access-Control-Allow-Origin', '*');
-                xhr.setRequestHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-                xhr.setRequestHeader('Access-Control-Allow-Headers', 'Content-Type');
-              }
-            });
-            
-            hls.loadSource(proxyUrl);
-            hls.attachMedia(video);
-            
-            let errorCount = 0;
-            hls.on(HlsClass.Events.ERROR, (_evt, data) => {
-              errorCount++;
-              console.log(`🚨 HLS Error (attempt ${i + 1}):`, data);
-              
-              if (data.fatal) {
-                hls.destroy();
-                if (i < corsProxies.length - 1) {
-                  // Try next proxy
-                  return;
-                } else if (fallbackEmbed) {
-                  // All proxies failed, use embed fallback
-                  player.innerHTML = '';
-                  fallbackEmbed();
-                }
-              }
-            });
-            
-            hls.on(HlsClass.Events.MANIFEST_LOADED, () => {
-              console.log(`✅ HLS loaded successfully with proxy ${i + 1}`);
-            });
-            
-            player.appendChild(video);
+          const result = await tryProxy(proxyUrl, i + 1, hasNative, hasHls, video, player, fallbackEmbed);
+          if (result) {
             return true;
           }
         } catch (error) {
-          console.log(`❌ Proxy ${i + 1} failed:`, error);
+          console.log(`❌ Proxy ${i + 1} exception:`, error);
           continue;
         }
+      }
+      
+      // All proxies failed
+      console.log(`❌ All ${corsProxies.length} proxies failed`);
+      if (fallbackEmbed) {
+        player.innerHTML = '';
+        fallbackEmbed();
       }
       
       return false;
