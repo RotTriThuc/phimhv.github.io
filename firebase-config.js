@@ -116,9 +116,19 @@ class MovieCommentSystem {
       // Load Firebase SDK
       await this.loadFirebase();
 
+      // Verify Firebase is fully loaded
+      if (!window.firebase || !window.firebase.firestore) {
+        throw new Error('Firebase SDK not loaded properly. Please check network connection.');
+      }
+
       // Initialize Firebase app
       if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
+      }
+
+      // Verify firestore is available after app initialization
+      if (typeof firebase.firestore !== 'function') {
+        throw new Error('Firebase Firestore not available. Please check Firebase SDK loading.');
       }
 
       this.db = firebase.firestore();
@@ -176,7 +186,7 @@ class MovieCommentSystem {
 
   // Load Firebase SDK - Using v8 compat for easier integration
   async loadFirebase() {
-    if (window.firebase) {
+    if (window.firebase && window.firebase.firestore) {
       console.log('🔄 Firebase already loaded, skipping...');
       return;
     }
@@ -201,6 +211,16 @@ class MovieCommentSystem {
         document.head.appendChild(script);
       });
     }
+
+    // Wait a bit for Firebase to fully initialize
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Final verification
+    if (!window.firebase || !window.firebase.firestore) {
+      throw new Error('Firebase SDK failed to load completely');
+    }
+    
+    console.log('✅ Firebase SDK loaded successfully');
   }
 
   // 🔑 CROSS-BROWSER USER ID SYSTEM

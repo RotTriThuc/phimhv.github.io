@@ -43,6 +43,8 @@ Hệ thống thông báo của XemPhim cung cấp một giải pháp hoàn chỉ
 
 Hệ thống sẽ tự động khởi tạo khi DOM ready. Notification button sẽ được thêm vào container `#notificationButtonContainer`.
 
+**Lưu ý**: Từ phiên bản hiện tại, hệ thống không còn tự động tạo các thông báo mặc định. Admin có thể tự tạo thông báo tùy chỉnh thông qua các functions có sẵn.
+
 ## 📱 Components
 
 ### NotificationButton

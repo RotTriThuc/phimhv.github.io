@@ -110,10 +110,8 @@ export async function initNotificationSystem() {
     notificationButton.unreadCount = initialUnreadCount;
     notificationButton.updateBadge();
     
-    // Add some sample notifications for demo (only if no notifications exist)
-    if (notificationDataManager.getAllNotifications().length === 0) {
-      await addSampleNotifications();
-    }
+    // Sample notifications removed - admin can now create custom notifications
+    // No default notifications will be created automatically
     
     console.log('✅ Notification system initialized successfully');
     
@@ -122,52 +120,7 @@ export async function initNotificationSystem() {
   }
 }
 
-/**
- * Add sample notifications for demo
- */
-async function addSampleNotifications() {
-  try {
-    const sampleNotifications = [
-      {
-        title: 'Chào mừng đến với XemPhim!',
-        message: 'Khám phá hàng ngàn bộ phim và anime hay nhất. Hãy bắt đầu trải nghiệm ngay!',
-        type: 'info',
-        category: 'system',
-        priority: 'normal',
-        persistent: true,
-        actionUrl: '#/',
-        actionText: 'Khám phá ngay'
-      },
-      {
-        title: 'Cập nhật hệ thống',
-        message: 'Hệ thống đã được cập nhật với nhiều tính năng mới và cải thiện hiệu suất.',
-        type: 'system',
-        category: 'system',
-        priority: 'normal',
-        timestamp: Date.now() - 2 * 60 * 60 * 1000 // 2 hours ago
-      },
-      {
-        title: 'Phim mới được thêm',
-        message: 'Đã thêm 15 bộ phim anime mới vào thư viện. Hãy xem ngay!',
-        type: 'movie',
-        category: 'movie',
-        priority: 'normal',
-        timestamp: Date.now() - 6 * 60 * 60 * 1000, // 6 hours ago
-        actionUrl: '#/loc?type_list=hoat-hinh',
-        actionText: 'Xem phim mới'
-      }
-    ];
-    
-    for (const notification of sampleNotifications) {
-      await notificationDataManager.createNotification(notification);
-    }
-    
-    console.log('📝 Added sample notifications');
-    
-  } catch (error) {
-    console.warn('Failed to add sample notifications:', error);
-  }
-}
+// addSampleNotifications function removed - no longer needed
 
 /**
  * Create system notification
