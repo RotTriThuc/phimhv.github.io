@@ -1,5 +1,4 @@
 @echo off
-setlocal enabledelayedexpansion
 chcp 65001 >nul
 color 0A
 
@@ -74,29 +73,13 @@ if errorlevel 1 (
 )
 echo [SUCCESS] Đã thêm tất cả file ✓
 
-:: Kiểm tra xem có file nào để commit không
-echo [STEP 3] Kiểm tra các thay đổi...
-git diff --cached --quiet
+:: Commit các thay đổi
+echo [STEP 3] Commit các thay đổi...
+git commit -m "%commit_message%"
 if errorlevel 1 (
-    echo [INFO] Có file mới để commit
-    git commit -m "%commit_message%"
-    if errorlevel 1 (
-        echo [ERROR] Không thể commit các thay đổi!
-        pause
-        exit /b 1
-    )
-    echo [SUCCESS] Đã commit thành công ✓
-) else (
-    echo [INFO] Không có thay đổi mới để commit
-    git log --oneline -1 >nul 2>&1
-    if errorlevel 1 (
-        echo [ERROR] Repository trống và không có file nào để commit!
-        echo Vui lòng thêm ít nhất một file vào thư mục này.
-        pause
-        exit /b 1
-    )
-    echo [INFO] Sử dụng commit hiện có ✓
+    echo [WARNING] Không có thay đổi nào để commit hoặc đã commit rồi
 )
+echo [SUCCESS] Đã commit thành công ✓
 
 :: Kiểm tra và thêm remote origin
 git remote | findstr origin >nul
@@ -115,77 +98,30 @@ if errorlevel 1 (
     echo [SUCCESS] Đã cập nhật remote repository ✓
 )
 
-:: Kiểm tra và thiết lập branch main
-echo [STEP 5] Thiết lập branch main...
-git log --oneline -1 >nul 2>&1
-if errorlevel 1 (
-    echo [INFO] Repository chưa có commit, tạo branch main sau khi commit...
-) else (
-    for /f "tokens=*" %%i in ('git branch --show-current 2^>nul') do set current_branch=%%i
-    if "!current_branch!"=="master" (
-        echo [INFO] Đổi tên branch từ master sang main...
-        git branch -M main
-        if errorlevel 1 (
-            echo [ERROR] Không thể đổi tên branch!
-            pause
-            exit /b 1
-        )
-    ) else if "!current_branch!"=="" (
-        echo [INFO] Tạo và chuyển sang branch main...
-        git checkout -b main
-        if errorlevel 1 (
-            echo [ERROR] Không thể tạo branch main!
-            pause
-            exit /b 1
-        )
-    ) else (
-        echo [INFO] Đang ở branch: !current_branch!
-        if not "!current_branch!"=="main" (
-            echo [INFO] Chuyển sang branch main...
-            git checkout -b main 2>nul || git checkout main
-        )
-    )
+:: Kiểm tra branch hiện tại và đổi tên thành main nếu cần
+for /f "tokens=*" %%i in ('git branch --show-current') do set current_branch=%%i
+if "%current_branch%"=="master" (
+    echo [INFO] Đổi tên branch từ master sang main...
+    git branch -M main
 )
-echo [SUCCESS] Branch main đã sẵn sàng ✓
-
-:: Kiểm tra kết nối với GitHub
-echo [STEP 6] Kiểm tra kết nối với GitHub...
-git ls-remote origin >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] Không thể kết nối với GitHub repository!
-    echo.
-    echo Vui lòng kiểm tra:
-    echo - Đường link repository có đúng không: %repo_url%
-    echo - Repository có tồn tại và bạn có quyền truy cập không
-    echo - Đã thiết lập authentication chưa (Personal Access Token hoặc SSH)
-    echo.
-    echo Để thiết lập Personal Access Token:
-    echo 1. Vào GitHub Settings ^> Developer settings ^> Personal access tokens
-    echo 2. Tạo token mới với quyền 'repo'
-    echo 3. Sử dụng token làm mật khẩu khi Git yêu cầu
-    echo.
-    echo Thông tin Git hiện tại:
-    echo User: %USERNAME%
-    git config user.name 2>nul || echo [WARNING] Chưa thiết lập user.name
-    git config user.email 2>nul || echo [WARNING] Chưa thiết lập user.email
-    pause
-    exit /b 1
+if "%current_branch%"=="" (
+    echo [INFO] Tạo branch main...
+    git checkout -b main
 )
-echo [SUCCESS] Kết nối GitHub thành công ✓
 
 :: Push lên GitHub
-echo [STEP 7] Đang upload lên GitHub...
+echo [STEP 5] Đang upload lên GitHub...
 git push -u origin main
 if errorlevel 1 (
     echo [ERROR] Không thể push lên GitHub!
+    echo Vui lòng kiểm tra:
+    echo - Đường link repository có đúng không
+    echo - Bạn có quyền truy cập repository không
+    echo - Đã đăng nhập Git chưa (git config user.name và user.email)
     echo.
-    echo Lỗi có thể do:
-    echo - Authentication thất bại (cần Personal Access Token)
-    echo - Repository không có quyền write
-    echo - Conflict với remote repository
-    echo.
-    echo Thử chạy lệnh sau để xem chi tiết lỗi:
-    echo git push -u origin main
+    echo Để thiết lập thông tin Git:
+    echo git config --global user.name "Tên của bạn"
+    echo git config --global user.email "email@example.com"
     pause
     exit /b 1
 )

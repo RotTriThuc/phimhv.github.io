@@ -1,25 +1,42 @@
 {
-  "lastUpdate": "2025-08-25T16:24:58.475Z",
-  "totalMovies": 24025,
+  "lastUpdate": "2025-08-28T10:08:45.134Z",
+  "totalMovies": 72,
   "stats": {
-    "newMovies": 1,
-    "newEpisodes": 1,
+    "newMovies": 72,
+    "newEpisodes": 0,
     "updatedMovies": 0
   },
   "recentMovies": [
     {
-      "name": "Bên Người Gió Cũng Ngọt Ngào",
-      "slug": "ben-nguoi-gio-cung-ngot-ngao",
-      "year": 2023,
-      "added": "2025-08-25T16:24:58.390Z"
+      "name": "Thử Thách Tình Yêu (Tình Yêu Tới)",
+      "slug": "thu-thach-tinh-yeu-tinh-yeu-toi",
+      "year": 2009,
+      "added": "2025-08-28T10:08:45.131Z"
+    },
+    {
+      "name": "Sự Thật Về Jussie Smollett",
+      "slug": "su-that-ve-jussie-smollett",
+      "year": 2025,
+      "added": "2025-08-28T10:08:45.131Z"
+    },
+    {
+      "name": "Nhật Ký Sát Thủ",
+      "slug": "nhat-ky-sat-thu",
+      "year": 2016,
+      "added": "2025-08-28T10:08:45.131Z"
+    },
+    {
+      "name": "Ninja Đồi Beverly",
+      "slug": "ninja-doi-beverly",
+      "year": 1997,
+      "added": "2025-08-28T10:08:45.131Z"
+    },
+    {
+      "name": "Hành Tinh Độc Thân: Phiêu Lưu Hy Lạp",
+      "slug": "hanh-tinh-doc-than-phieu-luu-hy-lap",
+      "year": 2025,
+      "added": "2025-08-28T10:08:45.131Z"
     }
   ],
-  "recentEpisodes": [
-    {
-      "name": "Lữ Trình Thanh Xuân",
-      "slug": "lu-trinh-thanh-xuan",
-      "episode": "Tập 8",
-      "updated": "2025-08-25T21:54:25.000Z"
-    }
-  ]
+  "recentEpisodes": []
 }
