@@ -17,6 +17,14 @@ const firebaseConfig = {
 // 3. "Firestore Database" → Create → Test mode → asia-southeast1  
 // 4. Project Overview → "</>" Web icon → App name → Copy config
 
+// Production logging wrapper - Global scope
+const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+const log = {
+  info: isDev ? console.log : () => {},
+  warn: isDev ? console.warn : () => {},
+  error: console.error // Always log errors
+};
+
 class MovieCommentSystem {
   constructor() {
     this.db = null;
@@ -27,14 +35,6 @@ class MovieCommentSystem {
   // Khởi tạo Firebase
   async init() {
     try {
-      // Production logging wrapper
-      const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
-      const log = {
-        info: isDev ? console.log : () => {},
-        warn: isDev ? console.warn : () => {},
-        error: console.error // Always log errors
-      };
-      
       log.info('🔥 Initializing Movie Comment System...');
       
       // Validate config
