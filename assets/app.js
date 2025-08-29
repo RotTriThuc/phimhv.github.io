@@ -3803,26 +3803,57 @@ class MovieBannerSlider {
   }
   
   bindEvents() {
-    // Thumbnail navigation
-    const thumbnails = this.container.querySelectorAll('.banner-thumbnail');
-    thumbnails.forEach(thumbnail => {
-      thumbnail.addEventListener('click', () => {
-        const index = parseInt(thumbnail.dataset.index);
-        this.goToSlide(index);
+    // Use setTimeout to ensure DOM is fully rendered
+    setTimeout(() => {
+      // Thumbnail navigation
+      const thumbnails = this.container.querySelectorAll('.banner-thumbnail');
+      thumbnails.forEach(thumbnail => {
+        thumbnail.addEventListener('click', () => {
+          const index = parseInt(thumbnail.dataset.index);
+          this.goToSlide(index);
+        });
       });
-    });
-    
-    // Save movie buttons
-    const saveButtons = this.container.querySelectorAll('.banner-btn--secondary');
-    saveButtons.forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const slug = btn.dataset.movieSlug;
-        if (slug) {
-          await window.toggleSaveMovie(slug);
-        }
+      
+      // Save movie buttons with improved error handling
+      const saveButtons = this.container.querySelectorAll('.banner-btn--secondary');
+      console.log(`🔍 Found ${saveButtons.length} save buttons in banner`);
+      
+      saveButtons.forEach((btn, index) => {
+        console.log(`🎯 Binding event to save button ${index + 1}:`, btn.dataset.movieSlug);
+        
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const slug = btn.dataset.movieSlug;
+          console.log(`🎬 Save button clicked for movie: ${slug}`);
+          
+          if (slug) {
+            try {
+              // Add loading state
+              const originalText = btn.textContent;
+              btn.textContent = '⏳ Đang xử lý...';
+              btn.disabled = true;
+              
+              await window.toggleSaveMovie(slug);
+              
+              // Update button text based on current state
+              const isSaved = await Storage.isMovieSaved(slug);
+              btn.textContent = isSaved ? '💔 Bỏ lưu' : '❤️ Lưu phim';
+              btn.disabled = false;
+              
+            } catch (error) {
+              console.error('❌ Banner save button error:', error);
+              btn.textContent = '❤️ Lưu phim';
+              btn.disabled = false;
+              showNotification('❌ Có lỗi xảy ra. Vui lòng thử lại.');
+            }
+          } else {
+            console.error('❌ No movie slug found for save button');
+          }
+        });
       });
-    });
+    }, 100);
     
     // Pause on hover
     this.container.addEventListener('mouseenter', () => this.pauseAutoPlay());
@@ -4020,22 +4051,78 @@ function initMovieBanner() {
 // Global function to toggle save movie (for banner buttons)
 window.toggleSaveMovie = async function(slug) {
   try {
+    console.log(`🎬 toggleSaveMovie called for: ${slug}`);
+    
     const isSaved = await Storage.isMovieSaved(slug);
+    console.log(`📊 Current saved state: ${isSaved}`);
     
     if (isSaved) {
       await Storage.removeSavedMovie(slug);
       showNotification('💔 Đã xóa khỏi danh sách yêu thích');
+      console.log(`✅ Movie removed: ${slug}`);
     } else {
       // Get movie details first
+      console.log(`🔍 Fetching movie data for: ${slug}`);
       const movieData = await Api.getMovie(slug);
+      console.log(`📊 API Response:`, movieData);
+      
+      // Handle different API response structures
+      let movieItem = null;
       if (movieData?.data?.item) {
-        await Storage.saveMovie(movieData.data.item);
+        movieItem = movieData.data.item;
+      } else if (movieData?.movie) {
+        movieItem = movieData.movie;
+      } else if (movieData?.data) {
+        movieItem = movieData.data;
+      } else if (movieData && typeof movieData === 'object' && movieData.slug) {
+        movieItem = movieData;
+      }
+      
+      if (movieItem) {
+        await Storage.saveMovie(movieItem);
         showNotification('❤️ Đã thêm vào danh sách yêu thích');
+        console.log(`✅ Movie saved: ${slug}`);
+      } else {
+        console.error('❌ No movie data found for:', slug, 'Response:', movieData);
+        
+        // Fallback: Create minimal movie object from banner data
+        const bannerSlide = document.querySelector(`[data-slug="${slug}"]`);
+        if (bannerSlide) {
+          const title = bannerSlide.querySelector('.banner-title')?.textContent || slug;
+          const posterUrl = bannerSlide.style.backgroundImage?.match(/url\("?([^"]*)"?\)/)?.[1] || '';
+          
+          const fallbackMovie = {
+            slug: slug,
+            name: title,
+            poster_url: posterUrl,
+            origin_name: title,
+            year: new Date().getFullYear(),
+            quality: 'HD',
+            episode_current: 'Tập 1',
+            content: 'Phim được lưu từ banner slider'
+          };
+          
+          console.log(`🔄 Using fallback movie data:`, fallbackMovie);
+          await Storage.saveMovie(fallbackMovie);
+          showNotification('❤️ Đã thêm vào danh sách yêu thích (dữ liệu tạm thời)');
+          console.log(`✅ Movie saved with fallback data: ${slug}`);
+        } else {
+          throw new Error('Không tìm thấy thông tin phim');
+        }
       }
     }
+    
+    // Update all banner buttons for this movie
+    const bannerButtons = document.querySelectorAll(`.banner-btn--secondary[data-movie-slug="${slug}"]`);
+    bannerButtons.forEach(btn => {
+      const newIsSaved = !isSaved; // Toggle state
+      btn.textContent = newIsSaved ? '💔 Bỏ lưu' : '❤️ Lưu phim';
+    });
+    
   } catch (error) {
     console.error('❌ Toggle save movie failed:', error);
     showNotification('❌ Có lỗi xảy ra. Vui lòng thử lại.');
+    throw error; // Re-throw for button error handling
   }
 };
 
