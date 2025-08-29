@@ -1,7 +1,12 @@
-/* XemPhim SPA with Secure API Proxy */
+/* XemPhim SPA - Production Optimized */
 
-// SECURITY: API endpoints are now hidden behind proxy layer
-// Real endpoints are protected in api-proxy.js
+// Production logging wrapper - only logs in development
+const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+const log = {
+  info: isDev ? console.log : () => {},
+  warn: isDev ? console.warn : () => {},
+  error: console.error // Always log errors
+};
 
 function buildUrl(path, params = {}) {
   const base = 'https://phimapi.com';
@@ -168,7 +173,7 @@ async function fetchWithRetries(url, maxRetries = 3, timeout = 10000) {
       
     } catch (error) {
       lastError = error;
-      console.warn(`🔄 Request attempt ${attempt}/${maxRetries} failed:`, error.message);
+      log.warn(`🔄 Request attempt ${attempt}/${maxRetries} failed:`, error.message);
       
       if (attempt < maxRetries) {
         // Exponential backoff
@@ -381,13 +386,13 @@ class ProgressiveImageLoader {
     
     const originalSrc = imgElement.dataset.src || imgElement.src;
     if (!originalSrc) {
-      console.warn('🚨 No image source found for element:', imgElement);
+      log.warn('🚨 No image source found for element:', imgElement);
       return;
     }
     
     // Ensure element is in DOM before processing
     if (!imgElement.parentNode || !document.contains(imgElement)) {
-      console.warn('🚨 Image element not in DOM, skipping load');
+      log.warn('🚨 Image element not in DOM, skipping load');
       return;
     }
     
@@ -403,9 +408,9 @@ class ProgressiveImageLoader {
     }
     
     // Show tiny blurred preview first (with delay to ensure DOM is ready)
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       this.setBlurredPreview(imgElement);
-    }, 10);
+    });
     
     // Get optimized URLs with adaptive quality
     const urls = this.getOptimizedUrl(originalSrc, {
@@ -420,7 +425,7 @@ class ProgressiveImageLoader {
       this.cache.set(originalSrc, winnerUrl);
       performanceMonitor.recordLoad(startTime, true);
     } catch (error) {
-      console.warn('🚨 All CDNs failed for:', originalSrc, error);
+      log.warn('🚨 All CDNs failed for:', originalSrc, error);
       // Fallback to original if all fail
       this.setImageSrc(imgElement, originalSrc);
       performanceMonitor.recordLoad(startTime, false);
@@ -484,7 +489,7 @@ class ProgressiveImageLoader {
   // Set blurred micro-preview instantly with error handling
   setBlurredPreview(imgElement) {
     if (!imgElement || !imgElement.parentNode) {
-      console.warn('🚨 Cannot set blur preview: invalid element or no parent');
+      log.warn('🚨 Cannot set blur preview: invalid element or no parent');
       return;
     }
     
@@ -521,7 +526,7 @@ class ProgressiveImageLoader {
         }
       }, 3000);
     } catch (error) {
-      console.warn('🚨 Failed to add blur preview:', error);
+      log.warn('🚨 Failed to add blur preview:', error);
     }
   }
   
@@ -538,7 +543,7 @@ class ProgressiveImageLoader {
   // Set image source with fade-in effect and error handling
   setImageSrc(imgElement, url) {
     if (!imgElement || !url) {
-      console.warn('🚨 Invalid parameters for setImageSrc:', { imgElement, url });
+      log.warn('🚨 Invalid parameters for setImageSrc:', { imgElement, url });
       return;
     }
     
@@ -561,7 +566,7 @@ class ProgressiveImageLoader {
         }
       }
     } catch (error) {
-      console.warn('🚨 Failed to set image source:', error);
+      log.warn('🚨 Failed to set image source:', error);
     }
   }
   
@@ -638,9 +643,15 @@ class ProgressiveImageLoader {
         }
       });
       
-      // Load visible images with slight delay to avoid blocking
+      // Load visible images with requestAnimationFrame for better performance
       visibleImages.forEach((img, index) => {
-        setTimeout(() => this.loadImage(img), index * 50);
+        if (index < 3) {
+          // Load first 3 immediately
+          this.loadImage(img);
+        } else {
+          // Batch load others
+          requestAnimationFrame(() => this.loadImage(img));
+        }
       });
       
       this.batchLoadTimeout = null;
@@ -653,7 +664,7 @@ let imageLoader;
 try {
   imageLoader = new ProgressiveImageLoader();
 } catch (error) {
-  console.error('🚨 Failed to initialize image loader:', error);
+  log.error('🚨 Failed to initialize image loader:', error);
   // Fallback simple image loader
   imageLoader = {
     loadImage: (img) => {
@@ -749,7 +760,7 @@ let performanceMonitor;
 try {
   performanceMonitor = new ImagePerformanceMonitor();
 } catch (error) {
-  console.warn('🚨 Failed to initialize performance monitor:', error);
+  log.warn('🚨 Failed to initialize performance monitor:', error);
   // Fallback no-op monitor
   performanceMonitor = {
     startTimer: () => Date.now(),
@@ -842,13 +853,13 @@ let networkIndicator;
 try {
   networkIndicator = new NetworkSpeedIndicator();
 } catch (error) {
-  console.warn('🚨 Failed to initialize network indicator:', error);
+  log.warn('🚨 Failed to initialize network indicator:', error);
   // Continue without network indicator
 }
 
 // System initialization status
-console.log('🎉 Image Loading System V2 Initialized Successfully!');
-console.log('📊 Components Status:', {
+log.info('🎉 Image Loading System V2 Initialized Successfully!');
+log.info('📊 Components Status:', {
   imageLoader: !!imageLoader,
   performanceMonitor: !!performanceMonitor,
   networkIndicator: !!networkIndicator
@@ -869,38 +880,38 @@ const Storage = {
     try {
       // Use cache if still valid
       if (this._savedMoviesCache && Date.now() - this._lastCacheUpdate < this._cacheExpiry) {
-        console.log('📦 Using cached movies:', this._savedMoviesCache.length);
+        log.info('📦 Using cached movies:', this._savedMoviesCache.length);
         return this._savedMoviesCache;
       }
 
       // ONLY use Firebase - no localStorage fallback
       if (!window.movieComments || !window.movieComments.initialized) {
-        console.warn('⚠️ Firebase not ready, waiting for initialization...');
+        log.warn('⚠️ Firebase not ready, waiting for initialization...');
 
         // Wait a bit for Firebase to initialize
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         if (!window.movieComments || !window.movieComments.initialized) {
-          console.warn('⚠️ Firebase still not ready, returning empty array');
+          log.warn('⚠️ Firebase still not ready, returning empty array');
           return [];
         }
       }
 
-      console.log('🔥 Loading movies from Firebase...');
+      log.info('🔥 Loading movies from Firebase...');
       const movies = await window.movieComments.getSavedMovies();
 
       // Update cache
       this._savedMoviesCache = movies;
       this._lastCacheUpdate = Date.now();
 
-      console.log(`✅ Loaded ${movies.length} movies from Firebase`);
+      log.info(`✅ Loaded ${movies.length} movies from Firebase`);
       return movies;
 
     } catch (error) {
-      console.error('❌ Get saved movies failed:', error);
+      log.error('❌ Get saved movies failed:', error);
 
       // No localStorage fallback - return empty array
-      console.warn('⚠️ Firebase error, returning empty array (no localStorage fallback)');
+      log.warn('⚠️ Firebase error, returning empty array (no localStorage fallback)');
       return [];
     }
   },
@@ -909,7 +920,7 @@ const Storage = {
     try {
       // ONLY use Firebase - no localStorage fallback
       if (!window.movieComments || !window.movieComments.initialized) {
-        console.warn('⚠️ Firebase not ready, cannot save movie');
+        log.warn('⚠️ Firebase not ready, cannot save movie');
         throw new Error('Firebase chưa sẵn sàng. Vui lòng thử lại sau.');
       }
 
@@ -918,10 +929,10 @@ const Storage = {
       // Clear cache to force refresh
       this._savedMoviesCache = null;
 
-      console.log(`✅ Movie saved to Firebase: ${movie.name || movie.slug}`);
+      log.info(`✅ Movie saved to Firebase: ${movie.name || movie.slug}`);
       return success;
     } catch (error) {
-      console.error('❌ Save movie to Firebase failed:', error);
+      log.error('❌ Save movie to Firebase failed:', error);
       throw error; // No localStorage fallback
     }
   },
@@ -930,7 +941,7 @@ const Storage = {
     try {
       // ONLY use Firebase - no localStorage fallback
       if (!window.movieComments || !window.movieComments.initialized) {
-        console.warn('⚠️ Firebase not ready, cannot remove movie');
+        log.warn('⚠️ Firebase not ready, cannot remove movie');
         throw new Error('Firebase chưa sẵn sàng. Vui lòng thử lại sau.');
       }
 
@@ -940,31 +951,41 @@ const Storage = {
       this._savedMoviesCache = null;
       this._lastCacheUpdate = 0;
 
-      console.log(`✅ Movie removed from Firebase: ${slug}`);
+      log.info(`✅ Movie removed from Firebase: ${slug}`);
       return success;
     } catch (error) {
-      console.error('❌ Remove movie from Firebase failed:', error);
+      log.error('❌ Remove movie from Firebase failed:', error);
       throw error; // No localStorage fallback
     }
   },
 
   async isMovieSaved(slug) {
     try {
-      // ONLY use Firebase - no localStorage fallback
-      if (!window.movieComments || !window.movieComments.initialized) {
-        console.warn('⚠️ Firebase not ready, cannot check if movie is saved');
-        return false;
-      }
-
       // Check cache first for performance
       if (this._savedMoviesCache && Date.now() - this._lastCacheUpdate < this._cacheExpiry) {
         return this._savedMoviesCache.some(m => m.slug === slug);
       }
 
+      // Wait for Firebase initialization with timeout
+      if (!window.movieComments || !window.movieComments.initialized) {
+        // Wait up to 3 seconds for Firebase to initialize
+        for (let i = 0; i < 6; i++) {
+          if (window.movieComments && window.movieComments.initialized) {
+            break;
+          }
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        // If still not ready, return false silently
+        if (!window.movieComments || !window.movieComments.initialized) {
+          return false;
+        }
+      }
+
       return await window.movieComments.isMovieSaved(slug);
     } catch (error) {
-      console.error('❌ Check movie saved failed:', error);
-      return false; // No localStorage fallback
+      log.error('❌ Check movie saved failed:', error);
+      return false;
     }
   },
 
@@ -987,7 +1008,7 @@ const Storage = {
 
       return progress;
     } catch (error) {
-      console.error('❌ Get watch progress failed, using localStorage:', error);
+      log.error('❌ Get watch progress failed, using localStorage:', error);
       return this._getLocalWatchProgress();
     }
   },
@@ -1006,7 +1027,7 @@ const Storage = {
       // Also save to localStorage as backup
       this._setLocalWatchProgress(movieSlug, episodeInfo);
     } catch (error) {
-      console.error('❌ Set watch progress failed, using localStorage:', error);
+      log.error('❌ Set watch progress failed, using localStorage:', error);
       this._setLocalWatchProgress(movieSlug, episodeInfo);
     }
   },
@@ -1019,7 +1040,7 @@ const Storage = {
 
       return await window.movieComments.getWatchProgress(movieSlug);
     } catch (error) {
-      console.error('❌ Get movie progress failed, using localStorage:', error);
+      log.error('❌ Get movie progress failed, using localStorage:', error);
       return this._getLocalMovieProgress(movieSlug);
     }
   },
@@ -1038,7 +1059,7 @@ const Storage = {
       // Also clear from localStorage
       this._clearLocalWatchProgress(movieSlug);
     } catch (error) {
-      console.error('❌ Clear watch progress failed, using localStorage:', error);
+      log.error('❌ Clear watch progress failed, using localStorage:', error);
       this._clearLocalWatchProgress(movieSlug);
     }
   },
@@ -1059,7 +1080,7 @@ const Storage = {
 
       return count;
     } catch (error) {
-      console.error('❌ Clear all saved movies failed:', error);
+      log.error('❌ Clear all saved movies failed:', error);
       localStorage.removeItem('savedMovies');
       return 0;
     }
@@ -1220,7 +1241,7 @@ function movieCard(movie) {
       }
     });
   } catch (error) {
-    console.warn('⚠️ Error checking movie status:', error);
+    log.warn('⚠️ Error checking movie status:', error);
   }
   
   const badges = [];
@@ -1247,7 +1268,7 @@ function movieCard(movie) {
     requestAnimationFrame(() => {
       // Double-check element is still in DOM
       if (!document.contains(imgEl)) {
-        console.warn('🚨 Image element removed from DOM before loading');
+        log.warn('🚨 Image element removed from DOM before loading');
         return;
       }
       
@@ -1434,13 +1455,11 @@ function listGrid(movies, className = '', enableVirtual = false) {
     } else {
       // All items rendered, trigger image loading
       requestAnimationFrame(() => {
-        setTimeout(() => {
-          try {
-            imageLoader.batchLoadVisible();
-          } catch (error) {
-            console.warn('🚨 Error in batch loading:', error);
-          }
-        }, 50);
+        try {
+          imageLoader.batchLoadVisible();
+        } catch (error) {
+          console.error('Image loading failed:', error);
+        }
       });
     }
   }
@@ -1683,6 +1702,17 @@ function navigateTo(hash) {
 
 async function renderHome(root) {
   root.innerHTML = '';
+  
+  // Movie Banner Slider
+  const bannerContainer = createEl('div', 'movie-banner');
+  root.appendChild(bannerContainer);
+  
+  // Initialize banner slider with performance optimization
+  requestAnimationFrame(() => {
+    if (!movieBanner && bannerContainer.isConnected) {
+      movieBanner = new MovieBannerSlider(bannerContainer);
+    }
+  });
   
   // Section 1: Phim mới cập nhật (chính)
   root.appendChild(sectionHeader('🎬 Phim mới cập nhật'));
@@ -1982,13 +2012,38 @@ async function renderDetail(root, slug) {
     const meta = createEl('div', 'detail__meta');
     const title = createEl('h1', 'detail__title', movie.name || 'Không tên');
     const countriesHtml = (movie.country || [])
-      .map(c => `<a href="#/quoc-gia/${encodeURIComponent(c.slug || '')}">${c.name}</a>`)
+      .map(c => `<a href="#/loc?country=${encodeURIComponent(c.slug || c.name || '')}" title="Xem tất cả phim từ ${c.name}">${c.name}</a>`)
       .join(', ') || '—';
     const categoriesHtml = (movie.category || movie.categories || [])
-      .map(c => `<a href="#/the-loai/${encodeURIComponent(c.slug || '')}">${c.name}</a>`)
+      .map(c => `<a href="#/loc?category=${encodeURIComponent(c.slug || c.name || '')}" title="Xem tất cả phim thể loại ${c.name}">${c.name}</a>`)
       .join(', ') || '—';
+    // Get current page context to preserve filters
+    const currentHash = window.location.hash;
+    const currentParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    const currentCategory = currentParams.get('category') || currentParams.get('the_loai') || '';
+    const currentCountry = currentParams.get('country') || currentParams.get('quoc_gia') || '';
+    
+    // Build year link with preserved context
+    let yearUrl = `#/loc?year=${encodeURIComponent(movie.year)}`;
+    if (currentHash.includes('/the-loai/')) {
+      // Extract category from URL path
+      const categorySlug = currentHash.split('/the-loai/')[1]?.split('?')[0];
+      if (categorySlug) {
+        yearUrl += `&category=${encodeURIComponent(categorySlug)}`;
+      }
+    } else if (currentCategory) {
+      yearUrl += `&category=${encodeURIComponent(currentCategory)}`;
+    }
+    if (currentCountry) {
+      yearUrl += `&country=${encodeURIComponent(currentCountry)}`;
+    }
+    
+    const yearLink = movie.year ? 
+      `<a href="${yearUrl}" title="Lọc phim năm ${movie.year} với bộ lọc hiện tại"><strong>${movie.year}</strong></a>` : 
+      '<strong>—</strong>';
+    
     const info = createEl('div', '', `
-      <div class="detail__line">Năm: <a href="#/nam/${movie.year || ''}"><strong>${movie.year || '—'}</strong></a></div>
+      <div class="detail__line">Năm: ${yearLink}</div>
       <div class="detail__line">Trạng thái: <strong>${movie.status || '—'}</strong></div>
       <div class="detail__line">Ngôn ngữ: <strong>${movie.lang || '—'}</strong></div>
       <div class="detail__line">Quốc gia: ${countriesHtml}</div>
@@ -2029,11 +2084,11 @@ async function renderDetail(root, slug) {
         }
       }
     }).catch(error => {
-      console.warn('⚠️ Error getting movie progress:', error);
+      console.error('Error getting movie progress:', error);
     });
 
     // Nút lưu/bỏ lưu phim (async)
-    const saveBtn = createEl('button', 'btn btn--save', '❤️ Lưu phim');
+    const saveBtn = createEl('button', 'btn btn--save', 'Lưu phim');
 
     // Check initial state
     Storage.isMovieSaved(movie.slug).then(isSaved => {
@@ -2355,18 +2410,35 @@ async function renderWatch(root, slug, params) {
 
 async function renderCategory(root, slug, params) {
   const page = Number(params.get('page') || '1');
+  const year = params.get('year') || params.get('nam') || '';
+  const country = params.get('country') || params.get('quoc_gia') || '';
+  
   root.innerHTML = '';
   
   const category = Categories.findBySlug(slug);
   const categoryName = category ? category.name : slug;
   
-  root.appendChild(sectionHeader(`Thể loại: ${categoryName}`));
+  // Build title with filters
+  let title = `Thể loại: ${categoryName}`;
+  const filters = [];
+  if (year) filters.push(`Năm ${year}`);
+  if (country) filters.push(`Quốc gia ${country}`);
+  if (filters.length > 0) {
+    title += ` (${filters.join(', ')})`;
+  }
+  
+  root.appendChild(sectionHeader(title));
   
   const loading = renderLoadingCards(12);
   root.appendChild(loading);
   
   try {
-    const data = await Api.listByCategory({ slug, page, limit: 24 });
+    // Pass all filter parameters to API
+    const apiParams = { slug, page, limit: 24 };
+    if (year) apiParams.year = year;
+    if (country) apiParams.country = country;
+    
+    const data = await Api.listByCategory(apiParams);
     safeRemove(loading);
     const items = extractItems(data);
     
@@ -2396,8 +2468,9 @@ async function renderCategory(root, slug, params) {
     
     if (totalPages > 1) {
       const pager = buildPager(page, totalPages, (nextPage) => {
-        params.set('page', String(nextPage));
-        navigateTo(`#/the-loai/${slug}?${params.toString()}`);
+        const newParams = new URLSearchParams(params);
+        newParams.set('page', String(nextPage));
+        navigateTo(`#/the-loai/${slug}?${newParams.toString()}`);
       });
       root.appendChild(pager);
     }
@@ -2410,21 +2483,67 @@ async function renderCategory(root, slug, params) {
 
 async function renderCountry(root, slug, params) {
   const page = Number(params.get('page') || '1');
+  const year = params.get('year') || params.get('nam') || '';
+  const category = params.get('category') || params.get('the_loai') || '';
+  
   root.innerHTML = '';
-  root.appendChild(sectionHeader(`Quốc gia: ${slug}`));
+  
+  // Build title with filters
+  let title = `Quốc gia: ${slug}`;
+  const filters = [];
+  if (year) filters.push(`Năm ${year}`);
+  if (category) filters.push(`Thể loại ${category}`);
+  if (filters.length > 0) {
+    title += ` (${filters.join(', ')})`;
+  }
+  
+  root.appendChild(sectionHeader(title));
+  
   const loading = renderLoadingCards(12);
   root.appendChild(loading);
+  
   try {
-    const data = await Api.listByCountry({ slug, page });
+    // Pass all filter parameters to API
+    const apiParams = { slug, page, limit: 24 };
+    if (year) apiParams.year = year;
+    if (category) apiParams.category = category;
+    
+    const data = await Api.listByCountry(apiParams);
     safeRemove(loading);
     const items = extractItems(data);
+    
+    if (items.length === 0) {
+      const noMovies = createEl('div', '', 'Chưa có phim nào từ quốc gia này.');
+      noMovies.style.cssText = 'text-align:center;padding:40px;color:var(--muted);';
+      root.appendChild(noMovies);
+      return;
+    }
+    
+    // Hiển thị số lượng phim
+    const totalItems = data?.data?.params?.pagination?.totalItems || data?.paginate?.totalItems || data?.totalItems || data?.pagination?.totalItems;
+    const currentPage = data?.data?.params?.pagination?.currentPage || page;
+    const totalPages = data?.data?.params?.pagination?.totalPages || data?.paginate?.totalPages || data?.totalPages || data?.pagination?.totalPages || 1;
+    
+    if (totalItems) {
+      const countInfo = createEl('div', '', `Tìm thấy ${totalItems} phim từ ${slug} - Trang ${currentPage}/${totalPages}`);
+      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
+      root.appendChild(countInfo);
+    } else if (items.length > 0) {
+      const countInfo = createEl('div', '', `Hiển thị ${items.length} phim - Trang ${currentPage}`);
+      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
+      root.appendChild(countInfo);
+    }
+    
     root.appendChild(listGrid(items));
-    const totalPages = data?.paginate?.totalPages || data?.totalPages || page;
-    const pager = buildPager(page, totalPages, (nextPage) => {
-      params.set('page', String(nextPage));
-      navigateTo(`#/quoc-gia/${slug}?${params.toString()}`);
-    });
-    root.appendChild(pager);
+    
+    if (totalPages > 1) {
+      const pager = buildPager(page, totalPages, (nextPage) => {
+        const newParams = new URLSearchParams(params);
+        newParams.set('page', String(nextPage));
+        navigateTo(`#/quoc-gia/${slug}?${newParams.toString()}`);
+      });
+      root.appendChild(pager);
+    }
   } catch (e) {
     console.error(e);
     root.innerHTML = '';
@@ -2434,25 +2553,201 @@ async function renderCountry(root, slug, params) {
 
 async function renderYear(root, year, params) {
   const page = Number(params.get('page') || '1');
+  const category = params.get('category') || params.get('the_loai') || '';
+  const country = params.get('country') || params.get('quoc_gia') || '';
+  
   root.innerHTML = '';
-  root.appendChild(sectionHeader(`Năm: ${year}`));
+  
+  // Build title with filters
+  let title = `Năm: ${year}`;
+  const filters = [];
+  if (category) filters.push(`Thể loại ${category}`);
+  if (country) filters.push(`Quốc gia ${country}`);
+  if (filters.length > 0) {
+    title += ` (${filters.join(', ')})`;
+  }
+  
+  root.appendChild(sectionHeader(title));
+  
   const loading = renderLoadingCards(12);
   root.appendChild(loading);
+  
   try {
-    const data = await Api.listByYear({ year, page });
+    // Pass all filter parameters to API
+    const apiParams = { year, page, limit: 24 };
+    if (category) apiParams.category = category;
+    if (country) apiParams.country = country;
+    
+    const data = await Api.listByYear(apiParams);
     safeRemove(loading);
     const items = extractItems(data);
+    
+    if (items.length === 0) {
+      const noMovies = createEl('div', '', 'Chưa có phim nào trong năm này.');
+      noMovies.style.cssText = 'text-align:center;padding:40px;color:var(--muted);';
+      root.appendChild(noMovies);
+      return;
+    }
+    
+    // Hiển thị số lượng phim
+    const totalItems = data?.data?.params?.pagination?.totalItems || data?.paginate?.totalItems || data?.totalItems || data?.pagination?.totalItems;
+    const currentPage = data?.data?.params?.pagination?.currentPage || page;
+    const totalPages = data?.data?.params?.pagination?.totalPages || data?.paginate?.totalPages || data?.totalPages || data?.pagination?.totalPages || 1;
+    
+    if (totalItems) {
+      const countInfo = createEl('div', '', `Tìm thấy ${totalItems} phim năm ${year} - Trang ${currentPage}/${totalPages}`);
+      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
+      root.appendChild(countInfo);
+    } else if (items.length > 0) {
+      const countInfo = createEl('div', '', `Hiển thị ${items.length} phim - Trang ${currentPage}`);
+      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
+      root.appendChild(countInfo);
+    }
+    
     root.appendChild(listGrid(items));
-    const totalPages = data?.paginate?.totalPages || data?.totalPages || page;
-    const pager = buildPager(page, totalPages, (nextPage) => {
-      params.set('page', String(nextPage));
-      navigateTo(`#/nam/${year}?${params.toString()}`);
-    });
-    root.appendChild(pager);
+    
+    if (totalPages > 1) {
+      const pager = buildPager(page, totalPages, (nextPage) => {
+        const newParams = new URLSearchParams(params);
+        newParams.set('page', String(nextPage));
+        navigateTo(`#/nam/${year}?${newParams.toString()}`);
+      });
+      root.appendChild(pager);
+    }
   } catch (e) {
     console.error(e);
     root.innerHTML = '';
     root.appendChild(renderError('Không tải được danh sách theo năm.', () => renderYear(root, year, params)));
+  }
+}
+
+// Enhanced Combined Filter Function
+async function renderCombinedFilter(root, params) {
+  const page = Number(params.get('page') || '1');
+  const category = params.get('category') || params.get('the_loai') || '';
+  const year = params.get('year') || params.get('nam') || '';
+  const country = params.get('country') || params.get('quoc_gia') || '';
+  const type_list = params.get('type_list') || '';
+  
+  root.innerHTML = '';
+  
+  // Build dynamic title based on active filters
+  const activeFilters = [];
+  if (category) activeFilters.push(`Thể loại: ${category}`);
+  if (year) activeFilters.push(`Năm: ${year}`);
+  if (country) activeFilters.push(`Quốc gia: ${country}`);
+  if (type_list) activeFilters.push(`Loại: ${type_list}`);
+  
+  const title = activeFilters.length > 0 ? 
+    `Lọc phim (${activeFilters.join(', ')})` : 
+    'Tất cả phim';
+  
+  root.appendChild(sectionHeader(title));
+  
+  // Add filter controls
+  const filterControls = createEl('div', 'filter-controls');
+  filterControls.style.cssText = 'margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap;';
+  
+  // Clear filters button
+  if (activeFilters.length > 0) {
+    const clearBtn = createEl('button', 'btn btn--ghost', '🗑️ Xóa bộ lọc');
+    clearBtn.addEventListener('click', () => {
+      navigateTo('#/loc');
+    });
+    filterControls.appendChild(clearBtn);
+  }
+  
+  root.appendChild(filterControls);
+  
+  const loading = renderLoadingCards(12);
+  root.appendChild(loading);
+  
+  try {
+    let data;
+    
+    // Choose appropriate API endpoint based on filters
+    if (type_list) {
+      // Type list has priority
+      data = await Api.listByType({ type_list, page, limit: 24 });
+    } else if (category) {
+      // Use category API: /v1/api/the-loai/{slug}?country={country}&year={year}
+      data = await Api.listByCategory({ 
+        slug: category, 
+        page, 
+        limit: 24,
+        country: country || undefined,
+        year: year || undefined
+      });
+    } else if (country) {
+      // Use country API: /v1/api/quoc-gia/{slug}?category={category}&year={year}
+      data = await Api.listByCountry({ 
+        slug: country, 
+        page, 
+        limit: 24,
+        category: category || undefined,
+        year: year || undefined
+      });
+    } else if (year) {
+      // Use year API: /v1/api/nam/{year}?category={category}&country={country}
+      data = await Api.listByYear({ 
+        year, 
+        page, 
+        limit: 24,
+        category: category || undefined,
+        country: country || undefined
+      });
+    } else {
+      // Fallback to search API
+      data = await Api.search({ 
+        keyword: '', 
+        category, 
+        year, 
+        country, 
+        page, 
+        limit: 24 
+      });
+    }
+    
+    safeRemove(loading);
+    const items = extractItems(data);
+    
+    if (items.length === 0) {
+      const noMovies = createEl('div', '', 'Không tìm thấy phim nào với bộ lọc này.');
+      noMovies.style.cssText = 'text-align:center;padding:40px;color:var(--muted);';
+      root.appendChild(noMovies);
+      return;
+    }
+    
+    // Display count info
+    const totalItems = data?.data?.params?.pagination?.totalItems || data?.paginate?.totalItems || data?.totalItems || data?.pagination?.totalItems;
+    const currentPage = data?.data?.params?.pagination?.currentPage || page;
+    const totalPages = data?.data?.params?.pagination?.totalPages || data?.paginate?.totalPages || data?.totalPages || data?.pagination?.totalPages || 1;
+    
+    if (totalItems) {
+      const countInfo = createEl('div', '', `Tìm thấy ${totalItems} phim - Trang ${currentPage}/${totalPages}`);
+      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
+      root.appendChild(countInfo);
+    } else if (items.length > 0) {
+      const countInfo = createEl('div', '', `Hiển thị ${items.length} phim - Trang ${currentPage}`);
+      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
+      root.appendChild(countInfo);
+    }
+    
+    root.appendChild(listGrid(items));
+    
+    if (totalPages > 1) {
+      const pager = buildPager(page, totalPages, (nextPage) => {
+        const newParams = new URLSearchParams(params);
+        newParams.set('page', String(nextPage));
+        navigateTo(`#/loc?${newParams.toString()}`);
+      });
+      root.appendChild(pager);
+    }
+    
+  } catch (e) {
+    console.error(e);
+    safeRemove(loading);
+    root.appendChild(renderError('Không tải được danh sách phim.', () => renderCombinedFilter(root, params)));
   }
 }
 
@@ -2482,12 +2777,24 @@ function bindHeader() {
 }
 
 async function populateFilters() {
+  const categorySelect = $('#categorySelect');
   const countrySelect = $('#countrySelect');
   const yearSelect = $('#yearSelect');
+  const applyFiltersBtn = $('#applyFiltersBtn');
 
   try {
-    const countries = await Api.getCountries().catch(() => []);
+    // Populate categories
+    if (categorySelect && Categories?.list) {
+      Categories.list.forEach(c => {
+        const opt = createEl('option');
+        opt.value = c.slug || '';
+        opt.textContent = c.name || '';
+        categorySelect.appendChild(opt);
+      });
+    }
 
+    // Populate countries
+    const countries = await Api.getCountries().catch(() => []);
     if (Array.isArray(countries)) {
       countries.forEach(c => {
         const opt = createEl('option');
@@ -2497,6 +2804,7 @@ async function populateFilters() {
       });
     }
 
+    // Populate years
     const currentYear = new Date().getFullYear();
     for (let y = currentYear; y >= 1970; y--) {
       const opt = createEl('option');
@@ -2505,14 +2813,46 @@ async function populateFilters() {
       yearSelect?.appendChild(opt);
     }
 
+    // Enhanced event listeners for combined filtering
+    const applyFilters = () => {
+      const category = categorySelect?.value || '';
+      const country = countrySelect?.value || '';
+      const year = yearSelect?.value || '';
+      
+      // If no filters selected, go to home
+      if (!category && !country && !year) {
+        navigateTo('#/');
+        return;
+      }
+      
+      // Build combined filter URL
+      const params = new URLSearchParams();
+      if (category) params.set('category', category);
+      if (country) params.set('country', country);
+      if (year) params.set('year', year);
+      
+      navigateTo(`#/loc?${params.toString()}`);
+    };
+
+    // Apply filters button
+    applyFiltersBtn?.addEventListener('click', applyFilters);
+
+    // Individual filter navigation (backward compatibility)
+    categorySelect?.addEventListener('change', () => {
+      const v = categorySelect.value;
+      if (v) navigateTo(`#/the-loai/${encodeURIComponent(v)}`);
+    });
+    
     countrySelect?.addEventListener('change', () => {
       const v = countrySelect.value;
       if (v) navigateTo(`#/quoc-gia/${encodeURIComponent(v)}`);
     });
+    
     yearSelect?.addEventListener('change', () => {
       const v = yearSelect.value;
       if (v) navigateTo(`#/nam/${encodeURIComponent(v)}`);
     });
+    
   } catch (e) {
     console.warn('Không tải được bộ lọc', e);
   }
@@ -3068,7 +3408,7 @@ async function router() {
     return;
   }
   if (path.startsWith('/loc')) {
-    await renderFilterList(root, params);
+    await renderCombinedFilter(root, params);
     isRouting = false;
     return;
   }
@@ -3084,19 +3424,52 @@ async function router() {
   }
   if (path.startsWith('/the-loai/')) {
     const slug = decodeURIComponent(path.split('/')[2] || '');
-    await renderCategory(root, slug, params);
+    // Check if there are additional filter parameters
+    const hasAdditionalFilters = params.get('year') || params.get('nam') || 
+                                params.get('country') || params.get('quoc_gia');
+    
+    if (hasAdditionalFilters) {
+      // Use combined filter for multi-criteria filtering
+      const newParams = new URLSearchParams(params);
+      newParams.set('category', slug);
+      await renderCombinedFilter(root, newParams);
+    } else {
+      await renderCategory(root, slug, params);
+    }
     isRouting = false;
     return;
   }
   if (path.startsWith('/quoc-gia/')) {
     const slug = decodeURIComponent(path.split('/')[2] || '');
-    await renderCountry(root, slug, params);
+    // Check if there are additional filter parameters
+    const hasAdditionalFilters = params.get('year') || params.get('nam') || 
+                                params.get('category') || params.get('the_loai');
+    
+    if (hasAdditionalFilters) {
+      // Use combined filter for multi-criteria filtering
+      const newParams = new URLSearchParams(params);
+      newParams.set('country', slug);
+      await renderCombinedFilter(root, newParams);
+    } else {
+      await renderCountry(root, slug, params);
+    }
     isRouting = false;
     return;
   }
   if (path.startsWith('/nam/')) {
     const year = decodeURIComponent(path.split('/')[2] || '');
-    await renderYear(root, year, params);
+    // Check if there are additional filter parameters
+    const hasAdditionalFilters = params.get('category') || params.get('the_loai') || 
+                                params.get('country') || params.get('quoc_gia');
+    
+    if (hasAdditionalFilters) {
+      // Use combined filter for multi-criteria filtering
+      const newParams = new URLSearchParams(params);
+      newParams.set('year', year);
+      await renderCombinedFilter(root, newParams);
+    } else {
+      await renderYear(root, year, params);
+    }
     isRouting = false;
     return;
   }
@@ -3260,4 +3633,432 @@ function showNotification(notification) {
   
   // Hiệu ứng slide in
   setTimeout(() => notificationEl.classList.add('notification--show'), 100);
-} 
+}
+
+// 🎬 MOVIE BANNER SLIDER SYSTEM
+class MovieBannerSlider {
+  constructor(container) {
+    this.container = container;
+    this.slides = [];
+    this.currentIndex = 0;
+    this.isAutoPlaying = true;
+    this.autoPlayInterval = null;
+    this.autoPlayDelay = 5000; // 5 seconds
+    this.isTransitioning = false;
+    
+    this.init();
+  }
+  
+  async init() {
+    try {
+      // Show loading state
+      this.showLoading();
+      
+      // Fetch banner movies
+      const movies = await this.fetchBannerMovies();
+      
+      if (movies.length === 0) {
+        this.showError('Không thể tải banner phim');
+        return;
+      }
+      
+      // Setup slider
+      this.slides = movies;
+      this.render();
+      this.bindEvents();
+      this.startAutoPlay();
+      
+      console.log(`🎬 Banner slider initialized with ${movies.length} movies`);
+      
+    } catch (error) {
+      console.error('❌ Banner slider init failed:', error);
+      this.showError('Lỗi tải banner');
+    }
+  }
+  
+  async fetchBannerMovies() {
+    try {
+      // Get latest movies for banner
+      const result = await Api.getLatest(1);
+      
+      // Use extractItems to handle different API response formats
+      const items = extractItems(result);
+      
+      if (!items || items.length === 0) {
+        throw new Error('No movies data');
+      }
+      
+      // Get daily rotation of 6 movies based on current date
+      const dailyMovies = this.getDailyMovieSelection(items);
+      const movies = dailyMovies.map(movie => ({
+        slug: movie.slug,
+        name: movie.name,
+        origin_name: movie.origin_name,
+        poster_url: processImageUrl(movie.poster_url || movie.thumb_url),
+        year: movie.year,
+        quality: movie.quality,
+        lang: movie.lang,
+        episode_current: movie.episode_current,
+        content: movie.content || movie.description || 'Bộ phim hấp dẫn đang chờ bạn khám phá...',
+        category: movie.category?.map(cat => cat.name).join(', ') || 'Phim hay'
+      }));
+      
+      return movies;
+      
+    } catch (error) {
+      console.error('❌ Failed to fetch banner movies:', error);
+      return [];
+    }
+  }
+
+  getDailyMovieSelection(items) {
+    // Get current date as seed for daily rotation
+    const today = new Date();
+    const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+    
+    // Create a pseudo-random seed based on date
+    const seed = dayOfYear * 7 + today.getFullYear();
+    
+    // Shuffle array based on daily seed
+    const shuffled = [...items];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(this.seededRandom(seed + i) * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    
+    // Return first 6 movies from shuffled array
+    return shuffled.slice(0, 6);
+  }
+
+  seededRandom(seed) {
+    // Simple seeded random function
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  }
+  
+  showLoading() {
+    this.container.innerHTML = `
+      <div class="banner-loading">
+        🎬 Đang tải banner phim...
+      </div>
+    `;
+  }
+  
+  showError(message) {
+    this.container.innerHTML = `
+      <div class="banner-loading">
+        ❌ ${message}
+      </div>
+    `;
+  }
+  
+  render() {
+    if (this.slides.length === 0) return;
+    
+    const slidesHtml = this.slides.map((movie, index) => `
+      <div class="banner-slide ${index === 0 ? 'active' : ''}" 
+           data-index="${index}"
+           data-slug="${movie.slug}"
+           style="background-image: url('${movie.poster_url}')">
+        <div class="banner-content">
+          <h2 class="banner-title">${this.escapeHtml(movie.name)}</h2>
+          <div class="banner-meta">
+            ${movie.year ? `<span class="banner-year">${movie.year}</span>` : ''}
+            ${movie.quality ? `<span class="banner-quality">${movie.quality}</span>` : ''}
+            ${movie.episode_current ? `<span class="banner-episode">${movie.episode_current}</span>` : ''}
+          </div>
+          <p class="banner-description">${this.escapeHtml(this.truncateText(movie.content, 150))}</p>
+          <div class="banner-actions">
+            <a href="#/phim/${movie.slug}" class="banner-btn banner-btn--primary" data-movie-slug="${movie.slug}">
+              ▶️ Xem ngay
+            </a>
+            <button class="banner-btn banner-btn--secondary" data-movie-slug="${movie.slug}">
+              ❤️ Lưu phim
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    
+    const thumbnailsHtml = this.slides.map((movie, index) => `
+      <div class="banner-thumbnail ${index === 0 ? 'active' : ''}" 
+           data-index="${index}" 
+           aria-label="${movie.name}">
+        <img src="${movie.poster_url}" alt="${movie.name}" loading="lazy">
+      </div>
+    `).join('');
+    
+    this.container.innerHTML = `
+      <div class="banner-slider">
+        ${slidesHtml}
+        
+        <div class="banner-thumbnails">
+          ${thumbnailsHtml}
+        </div>
+      </div>
+    `;
+    
+    // Preload next few images
+    this.preloadImages();
+  }
+  
+  bindEvents() {
+    // Thumbnail navigation
+    const thumbnails = this.container.querySelectorAll('.banner-thumbnail');
+    thumbnails.forEach(thumbnail => {
+      thumbnail.addEventListener('click', () => {
+        const index = parseInt(thumbnail.dataset.index);
+        this.goToSlide(index);
+      });
+    });
+    
+    // Save movie buttons
+    const saveButtons = this.container.querySelectorAll('.banner-btn--secondary');
+    saveButtons.forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const slug = btn.dataset.movieSlug;
+        if (slug) {
+          await window.toggleSaveMovie(slug);
+        }
+      });
+    });
+    
+    // Pause on hover
+    this.container.addEventListener('mouseenter', () => this.pauseAutoPlay());
+    this.container.addEventListener('mouseleave', () => this.resumeAutoPlay());
+    
+    // Touch/swipe support for mobile
+    this.bindTouchEvents();
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (!this.container.matches(':hover')) return;
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        this.prevSlide();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        this.nextSlide();
+      }
+    });
+  }
+  
+  bindTouchEvents() {
+    let startX = 0;
+    let startY = 0;
+    let endX = 0;
+    let endY = 0;
+    
+    this.container.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    });
+    
+    this.container.addEventListener('touchend', (e) => {
+      endX = e.changedTouches[0].clientX;
+      endY = e.changedTouches[0].clientY;
+      
+      const deltaX = endX - startX;
+      const deltaY = endY - startY;
+      
+      // Only handle horizontal swipes
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+        if (deltaX > 0) {
+          this.prevSlide();
+        } else {
+          this.nextSlide();
+        }
+      }
+    });
+  }
+  
+  prevSlide() {
+    if (this.isTransitioning) return;
+    
+    this.currentIndex = this.currentIndex === 0 ? this.slides.length - 1 : this.currentIndex - 1;
+    this.updateSlide();
+    this.resetAutoPlay();
+  }
+  
+  nextSlide() {
+    if (this.isTransitioning) return;
+    
+    this.currentIndex = (this.currentIndex + 1) % this.slides.length;
+    this.updateSlide();
+    this.resetAutoPlay();
+  }
+  
+  goToSlide(index) {
+    if (this.isTransitioning || index === this.currentIndex) return;
+    
+    this.currentIndex = index;
+    this.updateSlide();
+    this.resetAutoPlay();
+  }
+  
+  updateSlide() {
+    this.isTransitioning = true;
+    
+    const slides = this.container.querySelectorAll('.banner-slide');
+    const thumbnails = this.container.querySelectorAll('.banner-thumbnail');
+    
+    slides.forEach((slide, index) => {
+      slide.classList.toggle('active', index === this.currentIndex);
+    });
+    
+    thumbnails.forEach((thumbnail, index) => {
+      thumbnail.classList.toggle('active', index === this.currentIndex);
+    });
+    
+    // Reset transition flag after animation
+    setTimeout(() => {
+      this.isTransitioning = false;
+    }, 600);
+    
+    // Preload next image
+    this.preloadNextImage();
+  }
+  
+  preloadImages() {
+    // Only preload first image immediately, others on demand
+    if (this.slides.length > 0 && this.slides[0].poster_url) {
+      const img = new Image();
+      img.src = this.slides[0].poster_url;
+    }
+    
+    // Preload second image after a delay
+    if (this.slides.length > 1) {
+      requestAnimationFrame(() => {
+        const img = new Image();
+        img.src = this.slides[1].poster_url;
+      });
+    }
+  }
+  
+  preloadNextImage() {
+    const nextIndex = (this.currentIndex + 1) % this.slides.length;
+    const nextMovie = this.slides[nextIndex];
+    
+    if (nextMovie?.poster_url) {
+      const img = new Image();
+      img.src = nextMovie.poster_url;
+    }
+  }
+  
+  startAutoPlay() {
+    if (!this.isAutoPlaying || this.slides.length <= 1) return;
+    
+    this.autoPlayInterval = setInterval(() => {
+      this.nextSlide();
+    }, this.autoPlayDelay);
+  }
+  
+  pauseAutoPlay() {
+    if (this.autoPlayInterval) {
+      clearInterval(this.autoPlayInterval);
+      this.autoPlayInterval = null;
+    }
+  }
+  
+  resumeAutoPlay() {
+    if (this.isAutoPlaying && !this.autoPlayInterval) {
+      this.startAutoPlay();
+    }
+  }
+  
+  resetAutoPlay() {
+    this.pauseAutoPlay();
+    this.resumeAutoPlay();
+  }
+  
+  stopAutoPlay() {
+    this.isAutoPlaying = false;
+    this.pauseAutoPlay();
+  }
+  
+  // Utility methods
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text || '';
+    return div.innerHTML;
+  }
+  
+  truncateText(text, maxLength) {
+    if (!text || text.length <= maxLength) return text || '';
+    return text.substring(0, maxLength).trim() + '...';
+  }
+  
+  // Public API
+  destroy() {
+    this.stopAutoPlay();
+    this.container.innerHTML = '';
+  }
+  
+  refresh() {
+    this.destroy();
+    this.init();
+  }
+}
+
+// Global banner instance
+let movieBanner = null;
+
+// Initialize banner when DOM is ready with performance checks
+function initMovieBanner() {
+  const bannerContainer = document.querySelector('.movie-banner');
+  if (bannerContainer && !movieBanner && bannerContainer.isConnected) {
+    // Check if we're on home page to avoid unnecessary initialization
+    const currentHash = window.location.hash;
+    if (currentHash === '' || currentHash === '#/' || currentHash === '#') {
+      movieBanner = new MovieBannerSlider(bannerContainer);
+    }
+  }
+}
+
+// Global function to toggle save movie (for banner buttons)
+window.toggleSaveMovie = async function(slug) {
+  try {
+    const isSaved = await Storage.isMovieSaved(slug);
+    
+    if (isSaved) {
+      await Storage.removeSavedMovie(slug);
+      showNotification('💔 Đã xóa khỏi danh sách yêu thích');
+    } else {
+      // Get movie details first
+      const movieData = await Api.getMovie(slug);
+      if (movieData?.data?.item) {
+        await Storage.saveMovie(movieData.data.item);
+        showNotification('❤️ Đã thêm vào danh sách yêu thích');
+      }
+    }
+  } catch (error) {
+    console.error('❌ Toggle save movie failed:', error);
+    showNotification('❌ Có lỗi xảy ra. Vui lòng thử lại.');
+  }
+};
+
+// Auto-initialize banner on page load
+document.addEventListener('DOMContentLoaded', () => {
+  // Use requestIdleCallback for better performance
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(initMovieBanner, { timeout: 1000 });
+  } else {
+    requestAnimationFrame(initMovieBanner);
+  }
+});
+
+// Re-initialize banner when navigating (for SPA)
+window.addEventListener('hashchange', () => {
+  // Clean up existing banner when leaving home page
+  if (movieBanner && (window.location.hash !== '' && window.location.hash !== '#/' && window.location.hash !== '#')) {
+    movieBanner.destroy();
+    movieBanner = null;
+  }
+  
+  // Only init banner on home page
+  if (window.location.hash === '' || window.location.hash === '#/') {
+    requestAnimationFrame(initMovieBanner);
+  }
+}); 

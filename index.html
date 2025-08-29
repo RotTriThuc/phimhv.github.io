@@ -2,9 +2,14 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0f0f12">
+  <meta name="color-scheme" content="dark light">
   <title>🎬 Web Xem Phim Deep Try</title>
+  
+  <!-- Performance hints -->
+  <meta http-equiv="x-dns-prefetch-control" content="on">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <meta name="description" content="Website xem phim deep try. Tìm kiếm, lọc và xem phim mượt mà.">
   <meta name="keywords" content="xem phim, anime, HvPhim, phim bộ, phim lẻ, hoạt hình, vietsub">
   <meta name="author" content="NGUYEN HOAI VU">
@@ -24,9 +29,28 @@
   <meta property="twitter:title" content="🎬 Website xem phim - H.Vũ deep try">
   <meta property="twitter:description" content="Website xem phim deep try">
   
-  <link rel="preconnect" href="https://phimapi.com">
-  <link rel="preconnect" href="https://phimimg.com">
-  <link rel="stylesheet" href="./assets/styles.css">
+  <!-- DNS prefetch và preconnect để tăng tốc loading -->
+  <link rel="dns-prefetch" href="//phimapi.com">
+  <link rel="dns-prefetch" href="//phimimg.com">
+  <link rel="dns-prefetch" href="//www.gstatic.com">
+  <link rel="preconnect" href="https://phimapi.com" crossorigin>
+  <link rel="preconnect" href="https://phimimg.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  
+  <!-- Critical CSS inline để tránh render-blocking -->
+  <style>
+    :root{--bg:#0f0f12;--bg-elev:#15161a;--text:#e8e8ea;--muted:#a0a0a8;--primary:#6c5ce7;--card:#1a1b21;--border:#2a2c35}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
+    .header{position:sticky;top:0;z-index:50;background:rgba(15,15,18,0.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+    .container{width:100%;max-width:1200px;margin:0 auto;padding:0 16px}
+    .card__img{opacity:0;transition:opacity 0.3s ease}
+    .card__img.loaded{opacity:1}
+  </style>
+  
+  <!-- Load full CSS asynchronously -->
+  <link rel="preload" href="./assets/styles.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="./assets/styles.css"></noscript>
 </head>
 <body class="theme-dark">
   <noscript>Vui lòng bật JavaScript để sử dụng website.</noscript>
@@ -64,12 +88,16 @@
         </nav>
         
         <div class="filters">
+          <select id="categorySelect" class="select select--compact">
+            <option value="">Thể loại</option>
+          </select>
           <select id="countrySelect" class="select select--compact">
             <option value="">Quốc gia</option>
           </select>
           <select id="yearSelect" class="select select--compact">
             <option value="">Năm</option>
           </select>
+          <button id="applyFiltersBtn" class="btn btn--primary btn--compact" style="margin-left: 8px;">🔍 Lọc</button>
         </div>
       </div>
     </div>
@@ -83,8 +111,16 @@
     </div>
   </footer>
 
-  <script src="./firebase-config.js"></script>
-  <link rel="stylesheet" href="./movie-comments.css">
-  <script type="module" src="./assets/app.js?v=2025012116"></script>
+  <!-- Preload critical JavaScript -->
+  <link rel="preload" href="./assets/app.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="./firebase-config.js" as="script" crossorigin="anonymous">
+  
+  <!-- Load CSS asynchronously -->
+  <link rel="preload" href="./movie-comments.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="./movie-comments.css"></noscript>
+  
+  <!-- Load JavaScript without cache-busting for better caching -->
+  <script src="./firebase-config.js" defer></script>
+  <script type="module" src="./assets/app.js" defer></script>
 </body>
 </html> 

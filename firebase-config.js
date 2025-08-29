@@ -27,10 +27,15 @@ class MovieCommentSystem {
   // Khởi tạo Firebase
   async init() {
     try {
-      // Only log in development
-      if (window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1')) {
-        console.log('🔥 Initializing Movie Comment System...');
-      }
+      // Production logging wrapper
+      const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+      const log = {
+        info: isDev ? console.log : () => {},
+        warn: isDev ? console.warn : () => {},
+        error: console.error // Always log errors
+      };
+      
+      log.info('🔥 Initializing Movie Comment System...');
       
       // Validate config
       if (!this.validateConfig()) {
@@ -50,16 +55,16 @@ class MovieCommentSystem {
       // Enable offline support
       try {
         await this.db.enablePersistence({ synchronizeTabs: true });
-        console.log('💾 Offline support enabled');
+        log.info('💾 Offline support enabled');
       } catch (err) {
-        console.warn('⚠️ Offline support failed:', err.code);
+        log.warn('⚠️ Offline support failed:', err.code);
       }
       
       this.initialized = true;
-      console.log('✅ Comment system ready!');
+      log.info('✅ Comment system ready!');
       return true;
     } catch (error) {
-      console.error('❌ Init failed:', error);
+      log.error('❌ Init failed:', error);
       return false;
     }
   }
@@ -76,7 +81,7 @@ class MovieCommentSystem {
   // Load Firebase SDK - Using v8 compat for easier integration
   async loadFirebase() {
     if (window.firebase) {
-      console.log('🔄 Firebase already loaded, skipping...');
+      log.info('🔄 Firebase already loaded, skipping...');
       return;
     }
     
@@ -90,7 +95,8 @@ class MovieCommentSystem {
         const script = document.createElement('script');
         script.src = src;
         script.onload = () => {
-          console.log(`✅ Loaded: ${src.split('/').pop()}`);
+          const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+          if (isDev) console.log(`✅ Loaded: ${src.split('/').pop()}`);
           resolve();
         };
         script.onerror = () => {
@@ -112,7 +118,7 @@ class MovieCommentSystem {
       // Generate new user ID with better entropy
       userId = this._generateUserId();
       this._saveUserIdToAllStorage(userId);
-      console.log('🆔 Generated new cross-browser User ID:', userId);
+      log.info('🆔 Generated new cross-browser User ID:', userId);
     }
 
     return userId;
@@ -188,9 +194,9 @@ class MovieCommentSystem {
       // Save to IndexedDB for cross-browser persistence
       this._saveToIndexedDB(userId);
 
-      console.log('💾 User ID saved to all storage methods');
+      log.info('💾 User ID saved to all storage methods');
     } catch (error) {
-      console.warn('⚠️ Failed to save user ID to some storage methods:', error);
+      log.warn('⚠️ Failed to save user ID to some storage methods:', error);
     }
   }
 
@@ -217,7 +223,7 @@ class MovieCommentSystem {
         store.put(userId, 'userId');
       };
     } catch (error) {
-      console.warn('⚠️ IndexedDB save failed:', error);
+      log.warn('⚠️ IndexedDB save failed:', error);
     }
   }
 
@@ -259,20 +265,20 @@ class MovieCommentSystem {
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
       });
-      console.log('🔑 Sync code saved:', syncCode);
+      log.info('🔑 Sync code saved:', syncCode);
     } catch (error) {
-      console.error('❌ Failed to save sync code:', error);
+      log.error('❌ Failed to save sync code:', error);
     }
   }
 
   // Use sync code to sync with another device
   async useSyncCode(syncCode) {
-    console.log('🔄 Starting sync process with code:', syncCode);
+    log.info('🔄 Starting sync process with code:', syncCode);
 
     // Log current user before sync
     const currentUserId = this.getUserId();
     const currentUserName = this.getUserName();
-    console.log('📊 Current user before sync:', { currentUserId, currentUserName });
+    log.info('📊 Current user before sync:', { currentUserId, currentUserName });
 
     try {
       const doc = await this.db.collection('syncCodes').doc(syncCode).get();
@@ -307,13 +313,13 @@ class MovieCommentSystem {
       localStorage.removeItem('savedMovies');
       localStorage.removeItem('watchProgress');
 
-      console.log('🗑️ Cleared legacy localStorage data (Firebase-only mode)');
+      log.info('🗑️ Cleared legacy localStorage data (Firebase-only mode)');
 
       // Delete the sync code after use
       await this.db.collection('syncCodes').doc(syncCode).delete();
 
-      console.log('✅ Synced with user:', data.userName);
-      console.log('🔄 Cleared all caches for new user data');
+      log.info('✅ Synced with user:', data.userName);
+      log.info('🔄 Cleared all caches for new user data');
 
       return {
         userId: data.userId,
@@ -321,7 +327,7 @@ class MovieCommentSystem {
       };
 
     } catch (error) {
-      console.error('❌ Sync code failed:', error);
+      log.error('❌ Sync code failed:', error);
       throw error;
     }
   }
@@ -437,10 +443,10 @@ class MovieCommentSystem {
           const userData = await this.useSyncCode(syncCode);
 
           // Immediate refresh without waiting
-          console.log('🚀 Attempting immediate refresh...');
+          log.info('🚀 Attempting immediate refresh...');
           if (window.immediateRefreshSavedMovies) {
             const refreshSuccess = await window.immediateRefreshSavedMovies();
-            console.log(`🎯 Immediate refresh result: ${refreshSuccess}`);
+            log.info(`🎯 Immediate refresh result: ${refreshSuccess}`);
           }
 
           // Show success message
@@ -462,7 +468,7 @@ class MovieCommentSystem {
           // Force refresh saved movies immediately, then reload page
           setTimeout(async () => {
             try {
-              console.log('🔄 Starting immediate refresh after sync...');
+              log.info('🔄 Starting immediate refresh after sync...');
 
               // Clear all caches first
               if (window.Storage) {
@@ -475,15 +481,15 @@ class MovieCommentSystem {
 
               // Force reload movies with new user ID
               if (window.Storage) {
-                console.log('🔄 Force reloading saved movies with new user...');
+                log.info('🔄 Force reloading saved movies with new user...');
                 const newMovies = await window.Storage.getSavedMovies();
-                console.log(`📚 Found ${newMovies.length} movies for synced user`);
+                log.info(`📚 Found ${newMovies.length} movies for synced user`);
 
                 // If no movies found, try Firebase directly
                 if (newMovies.length === 0 && window.movieComments?.initialized) {
-                  console.log('🔄 No movies in cache, trying Firebase directly...');
+                  log.info('🔄 No movies in cache, trying Firebase directly...');
                   const firebaseMovies = await window.movieComments.getSavedMovies();
-                  console.log(`📚 Firebase returned ${firebaseMovies.length} movies`);
+                  log.info(`📚 Firebase returned ${firebaseMovies.length} movies`);
                 }
               }
 
@@ -492,9 +498,9 @@ class MovieCommentSystem {
                 await window.refreshSavedMoviesAfterSync();
               }
 
-              console.log('✅ Immediate refresh completed, reloading page...');
+              log.info('✅ Immediate refresh completed, reloading page...');
             } catch (error) {
-              console.error('❌ Error in immediate refresh:', error);
+              log.error('❌ Error in immediate refresh:', error);
             }
 
             // Reload page to apply all changes
@@ -549,7 +555,7 @@ class MovieCommentSystem {
       // Comment added successfully
       return docRef.id;
     } catch (error) {
-      console.error('❌ Add comment failed:', error);
+      log.error('❌ Add comment failed:', error);
       throw new Error('Không thể gửi bình luận. Vui lòng thử lại.');
     }
   }
@@ -590,7 +596,7 @@ class MovieCommentSystem {
       // Comments loaded successfully
       return comments;
     } catch (error) {
-      console.error('❌ Get comments failed:', error);
+      log.error('❌ Get comments failed:', error);
       return [];
     }
   }
@@ -626,7 +632,7 @@ class MovieCommentSystem {
       this.cache.clear();
       return true;
     } catch (error) {
-      console.error('❌ Toggle like failed:', error);
+      log.error('❌ Toggle like failed:', error);
       return false;
     }
   }
@@ -653,10 +659,10 @@ class MovieCommentSystem {
         }
       });
 
-      console.log('🚨 Comment reported');
+      log.info('🚨 Comment reported');
       return true;
     } catch (error) {
-      console.error('❌ Report failed:', error);
+      log.error('❌ Report failed:', error);
       return false;
     }
   }
@@ -938,10 +944,10 @@ class MovieCommentSystem {
 
       savedMovies.unshift(movieData);
       localStorage.setItem('savedMovies', JSON.stringify(savedMovies));
-      console.log('💾 Movie saved to localStorage:', movie.name);
+      log.info('💾 Movie saved to localStorage:', movie.name);
       return true;
     } catch (error) {
-      console.error('❌ Save to localStorage failed:', error);
+      log.error('❌ Save to localStorage failed:', error);
       return false;
     }
   }
@@ -957,10 +963,10 @@ class MovieCommentSystem {
       }
 
       localStorage.setItem('savedMovies', JSON.stringify(filteredMovies));
-      console.log('💾 Movie removed from localStorage:', slug);
+      log.info('💾 Movie removed from localStorage:', slug);
       return true;
     } catch (error) {
-      console.error('❌ Remove from localStorage failed:', error);
+      log.error('❌ Remove from localStorage failed:', error);
       return false;
     }
   }
