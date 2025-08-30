@@ -32,7 +32,7 @@ class MovieCommentSystem {
     this.cache = new Map();
   }
 
-  // Khởi tạo Firebase với retry mechanism
+  // Khởi tạo Firebase
   async init() {
     try {
       log.info('🔥 Initializing Movie Comment System...');
@@ -42,23 +42,8 @@ class MovieCommentSystem {
         throw new Error('Please update Firebase config in firebase-config.js');
       }
 
-      // Load Firebase SDK with retry
-      let retryCount = 0;
-      const maxRetries = 3;
-      
-      while (retryCount < maxRetries) {
-        try {
-          await this.loadFirebase();
-          break;
-        } catch (error) {
-          retryCount++;
-          log.warn(`⚠️ Firebase load attempt ${retryCount}/${maxRetries} failed:`, error);
-          if (retryCount >= maxRetries) {
-            throw error;
-          }
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-        }
-      }
+      // Load Firebase SDK
+      await this.loadFirebase();
       
       // Initialize Firebase app
       if (!firebase.apps.length) {
@@ -72,38 +57,14 @@ class MovieCommentSystem {
         await this.db.enablePersistence({ synchronizeTabs: true });
         log.info('💾 Offline support enabled');
       } catch (err) {
-        if (err.code === 'failed-precondition') {
-          log.warn('⚠️ Multiple tabs open, offline support disabled');
-        } else if (err.code === 'unimplemented') {
-          log.warn('⚠️ Browser doesn\'t support offline persistence');
-        } else {
-          log.warn('⚠️ Offline support failed:', err.code);
-        }
-      }
-      
-      // Test Firebase connection
-      try {
-        await this.db.collection('test').limit(1).get();
-        log.info('🔗 Firebase connection verified');
-      } catch (error) {
-        log.error('❌ Firebase connection test failed:', error);
-        throw new Error('Firebase connection failed. Check internet and Firestore rules.');
+        log.warn('⚠️ Offline support failed:', err.code);
       }
       
       this.initialized = true;
-      log.info('✅ Firebase system ready!');
-      
-      // Notify other parts of the app
-      window.dispatchEvent(new CustomEvent('firebaseReady'));
-      
+      log.info('✅ Comment system ready!');
       return true;
     } catch (error) {
-      log.error('❌ Firebase init failed:', error);
-      this.initialized = false;
-      
-      // Notify app of failure
-      window.dispatchEvent(new CustomEvent('firebaseFailed', { detail: error }));
-      
+      log.error('❌ Init failed:', error);
       return false;
     }
   }
@@ -117,7 +78,7 @@ class MovieCommentSystem {
     );
   }
 
-  // Load Firebase SDK - Using v8 compat for easier integration with better error handling
+  // Load Firebase SDK - Using v8 compat for easier integration
   async loadFirebase() {
     if (window.firebase) {
       log.info('🔄 Firebase already loaded, skipping...');
@@ -133,28 +94,18 @@ class MovieCommentSystem {
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = src;
-        script.crossOrigin = 'anonymous'; // Add CORS support for GitHub Pages
         script.onload = () => {
-          log.info(`✅ Loaded: ${src.split('/').pop()}`);
+          const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+          if (isDev) console.log(`✅ Loaded: ${src.split('/').pop()}`);
           resolve();
         };
-        script.onerror = (error) => {
-          console.error(`❌ Failed to load: ${src}`, error);
+        script.onerror = () => {
+          console.error(`❌ Failed to load: ${src}`);
           reject(new Error(`Failed to load ${src}`));
         };
         document.head.appendChild(script);
       });
-      
-      // Small delay between script loads for stability
-      await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
-    // Verify Firebase is actually loaded
-    if (!window.firebase) {
-      throw new Error('Firebase SDK failed to load properly');
-    }
-    
-    log.info('✅ All Firebase scripts loaded successfully');
   }
 
   // 🔑 CROSS-BROWSER USER ID SYSTEM
@@ -1388,40 +1339,13 @@ class MovieCommentSystem {
 // Global instance
 window.movieComments = new MovieCommentSystem();
 
-// Auto-init when DOM ready with better error handling
+// Auto-init when DOM ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', async () => {
-    try {
-      const success = await window.movieComments.init();
-      if (!success) {
-        console.error('❌ Firebase initialization failed on DOMContentLoaded');
-        // Try again after 2 seconds
-        setTimeout(async () => {
-          console.log('🔄 Retrying Firebase initialization...');
-          await window.movieComments.init();
-        }, 2000);
-      }
-    } catch (error) {
-      console.error('❌ Firebase init error:', error);
-    }
+  document.addEventListener('DOMContentLoaded', () => {
+    window.movieComments.init();
   });
 } else {
-  // Document already loaded
-  setTimeout(async () => {
-    try {
-      const success = await window.movieComments.init();
-      if (!success) {
-        console.error('❌ Firebase initialization failed');
-        // Try again after 2 seconds
-        setTimeout(async () => {
-          console.log('🔄 Retrying Firebase initialization...');
-          await window.movieComments.init();
-        }, 2000);
-      }
-    } catch (error) {
-      console.error('❌ Firebase init error:', error);
-    }
-  }, 100);
+  window.movieComments.init();
 }
 
 console.log('🎬 Movie Comment System loaded! Use movieComments.renderCommentSection(container, movieSlug)'); 

@@ -875,43 +875,25 @@ const Storage = {
   _lastCacheUpdate: 0,
   _forceFirebaseMode: false, // Force Firebase after sync
 
-  // Lưu phim yêu thích (Firebase with better error handling)
+  // Lưu phim yêu thích (Firebase)
   async getSavedMovies() {
     try {
       // Use cache if still valid
       if (this._savedMoviesCache && Date.now() - this._lastCacheUpdate < this._cacheExpiry) {
-        log.info(`📚 Using cached movies: ${this._savedMoviesCache.length} items`);
+        log.info('📦 Using cached movies:', this._savedMoviesCache.length);
         return this._savedMoviesCache;
       }
 
-      // Wait for Firebase initialization with longer timeout
+      // ONLY use Firebase - no localStorage fallback
       if (!window.movieComments || !window.movieComments.initialized) {
         log.warn('⚠️ Firebase not ready, waiting for initialization...');
 
-        // Wait up to 10 seconds for Firebase to initialize
-        for (let i = 0; i < 20; i++) {
-          if (window.movieComments && window.movieComments.initialized) {
-            log.info('✅ Firebase ready after waiting');
-            break;
-          }
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
+        // Wait a bit for Firebase to initialize
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         if (!window.movieComments || !window.movieComments.initialized) {
-          log.error('❌ Firebase failed to initialize after 10 seconds');
-          
-          // Try to initialize Firebase manually
-          if (window.movieComments && !window.movieComments.initialized) {
-            log.info('🔄 Attempting manual Firebase initialization...');
-            const initSuccess = await window.movieComments.init();
-            if (!initSuccess) {
-              log.error('❌ Manual Firebase initialization failed');
-              return this._getLocalStorageMovies(); // Fallback to localStorage
-            }
-          } else {
-            log.error('❌ movieComments not available, using localStorage fallback');
-            return this._getLocalStorageMovies();
-          }
+          log.warn('⚠️ Firebase still not ready, returning empty array');
+          return [];
         }
       }
 
@@ -922,26 +904,14 @@ const Storage = {
       this._savedMoviesCache = movies;
       this._lastCacheUpdate = Date.now();
 
-      log.info(`📚 Loaded ${movies.length} movies from Firebase`);
+      log.info(`✅ Loaded ${movies.length} movies from Firebase`);
       return movies;
+
     } catch (error) {
       log.error('❌ Get saved movies failed:', error);
 
-      // Fallback to localStorage if Firebase fails
-      log.warn('⚠️ Firebase error, falling back to localStorage');
-      return this._getLocalStorageMovies();
-    }
-  },
-
-  // Fallback method to get movies from localStorage
-  _getLocalStorageMovies() {
-    try {
-      const saved = localStorage.getItem('savedMovies');
-      const movies = saved ? JSON.parse(saved) : [];
-      log.info(`📱 Loaded ${movies.length} movies from localStorage fallback`);
-      return movies;
-    } catch (error) {
-      log.error('❌ localStorage fallback failed:', error);
+      // No localStorage fallback - return empty array
+      log.warn('⚠️ Firebase error, returning empty array (no localStorage fallback)');
       return [];
     }
   },

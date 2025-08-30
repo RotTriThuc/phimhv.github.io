@@ -1,107 +1,91 @@
-# 🔥 Firebase Saved Movies System - Hoàn chỉnh!
+# 🔥 Firebase Saved Movies System
 
-## 🎉 **TÓM TẮT: Hệ thống đã sẵn sàng!**
-
-Website của bạn **ĐÃ SỬ DỤNG FIREBASE** để lưu phim thay vì localStorage. Không cần thay đổi gì thêm!
-
-## ✅ **Những gì đã có sẵn:**
-
-### 1. **Firebase Configuration**
-- **Project**: `phim-comments` 
-- **Database**: Firestore với offline support
-- **Collections**: `savedMovies`, `watchProgress`, `syncCodes`
-- **Security Rules**: Đã cấu hình cho phép read/write
-
-### 2. **Core Features**
-- ✅ **Lưu phim vào Firebase** (không localStorage)
-- ✅ **Cross-device sync** với mã 6 số
-- ✅ **Offline support** với Firebase cache
-- ✅ **Watch progress tracking**
-- ✅ **User authentication** cross-browser
-- ✅ **GitHub Pages compatible**
-
-### 3. **Migration System**
-- ✅ **Auto-migration** từ localStorage sang Firebase
-- ✅ **Backup system** trước khi cleanup
-- ✅ **Verification tools** để check setup
+## 🎯 **Tính năng mới:**
+- ✅ Lưu phim trên Firebase thay vì localStorage
+- ✅ Sync phim đã lưu trên mọi thiết bị và trình duyệt
+- ✅ Backup tự động với localStorage fallback
+- ✅ Real-time notifications
+- ✅ Device tracking và user management
 
 ## 🚀 **Cách hoạt động:**
 
-### Lưu phim:
-```javascript
-// Khi user click "Lưu phim"
-await window.movieComments.saveMovie(movieData);
-// → Lưu vào Firebase collection 'savedMovies'
-// → Không dùng localStorage
+### **1. User Authentication**
+- Tự động tạo unique user ID persistent
+- Lưu tên user (có thể thay đổi)
+- Track device info để phân biệt thiết bị
+
+### **2. Firebase Collections**
+```
+savedMovies/
+├── {docId}
+│   ├── slug: "ten-phim"
+│   ├── name: "Tên Phim"
+│   ├── poster_url: "https://..."
+│   ├── year: 2025
+│   ├── lang: "Vietsub"
+│   ├── quality: "FHD"
+│   ├── episode_current: "Tập 10"
+│   ├── savedAt: timestamp
+│   ├── userId: "user_abc123"
+│   ├── userName: "Hoài Vũ"
+│   └── deviceInfo: {...}
 ```
 
-### Xem phim đã lưu:
-```javascript
-// Trang "Phim đã lưu" 
-const movies = await window.Storage.getSavedMovies();
-// → Lấy từ Firebase theo userId
-// → Cache để tăng tốc
+### **3. Smart Fallback System**
+- **Firebase available**: Sử dụng Firebase + localStorage backup
+- **Firebase unavailable**: Fallback về localStorage
+- **Cache system**: 5 phút cache để tăng performance
+
+## 🎨 **UI Improvements:**
+
+### **Sync Status Indicator**
+```
+🔄 Đồng bộ Firebase
+Phim được sync trên mọi thiết bị và trình duyệt
 ```
 
-### Đồng bộ thiết bị:
-1. **Thiết bị A**: Tạo mã sync → `movieComments.showSyncDialog()`
-2. **Thiết bị B**: Nhập mã 6 số → Đồng bộ tự động
-3. **Kết quả**: Phim đã lưu xuất hiện trên cả 2 thiết bị
+### **Enhanced Notifications**
+- Gradient background với animation
+- Slide in/out effects
+- Thông báo khi lưu/xóa phim thành công
 
-## 🔧 **Firebase Collections:**
-
-### `savedMovies`:
-```json
-{
-  "slug": "ten-phim-slug",
-  "name": "Tên Phim", 
-  "poster_url": "https://...",
-  "year": 2024,
-  "userId": "user_abc123_xyz_1234567890",
-  "userName": "Tên User",
-  "savedAt": "2024-01-01T00:00:00Z",
-  "deviceInfo": {...}
-}
-```
-
-### `watchProgress`:
-```json
-{
-  "movieSlug": "ten-phim-slug",
-  "userId": "user_abc123_xyz_1234567890",
-  "episodeName": "Tập 1",
-  "currentTime": 1200,
-  "duration": 3600,
-  "updatedAt": "2024-01-01T00:00:00Z"
-}
-```
-
-## 🛡️ **Security & Performance:**
-
-### Firestore Rules:
-```javascript
-// Cho phép public read/write (phù hợp web xem phim)
-match /savedMovies/{document} {
-  allow read, write: if true;
-}
-```
-
-### Performance:
-- **Offline Cache**: Firebase tự động cache
-- **Smart Indexing**: Query nhanh theo userId
-- **Batch Operations**: Xóa nhiều phim cùng lúc
-- **Real-time Sync**: Đồng bộ real-time
+### **Action Buttons**
+- 🗑️ **Xóa tất cả**: Async với loading state
+- 📤 **Xuất danh sách**: Copy to clipboard
+- 🔄 **Làm mới**: Force refresh từ Firebase
 
 ## 📱 **Cross-Device Sync:**
 
-### Cách sử dụng:
-1. **Tạo mã sync**: 
-   - Vào menu → Click "Đồng bộ thiết bị"
-   - Click "Tạo mã sync" → Nhận mã 6 số
-   
-2. **Sử dụng mã sync**:
-   - Thiết bị khác → "Nhập mã sync" 
-   - Nhập mã 6 số → Đồng bộ tự động
+### **Scenario 1: User trên máy tính**
+1. Lưu phim "Attack on Titan"
+2. Data được lưu vào Firebase với userId
+3. Backup vào localStorage
+
+### **Scenario 2: User trên điện thoại**
+1. Mở website với cùng browser/device
+2. Tự động load phim đã lưu từ Firebase
+3. Hiển thị "Attack on Titan" trong danh sách
+
+### **Scenario 3: Firebase down**
+1. System tự động fallback về localStorage
+2. Hiển thị warning "Lưu trữ local"
+3. Vẫn hoạt động bình thường
+
+## 🔧 **Technical Details:**
+
+### **Performance Optimizations**
+- **Cache Layer**: 5 phút cache cho saved movies
+- **Batch Operations**: Xóa nhiều phim cùng lúc
+- **Lazy Loading**: Chỉ load khi cần thiết
+- **Error Handling**: Graceful fallback
+
+### **Security Features**
+- **User Isolation**: Mỗi user chỉ thấy phim của mình
+- **Data Validation**: Validate movie data trước khi lưu
+- **Rate Limiting**: Prevent spam requests
+
+### **Firebase Rules** (cần setup):
+```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
