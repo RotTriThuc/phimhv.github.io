@@ -1388,13 +1388,40 @@ class MovieCommentSystem {
 // Global instance
 window.movieComments = new MovieCommentSystem();
 
-// Auto-init when DOM ready
+// Auto-init when DOM ready with better error handling
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    window.movieComments.init();
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const success = await window.movieComments.init();
+      if (!success) {
+        console.error('❌ Firebase initialization failed on DOMContentLoaded');
+        // Try again after 2 seconds
+        setTimeout(async () => {
+          console.log('🔄 Retrying Firebase initialization...');
+          await window.movieComments.init();
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('❌ Firebase init error:', error);
+    }
   });
 } else {
-  window.movieComments.init();
+  // Document already loaded
+  setTimeout(async () => {
+    try {
+      const success = await window.movieComments.init();
+      if (!success) {
+        console.error('❌ Firebase initialization failed');
+        // Try again after 2 seconds
+        setTimeout(async () => {
+          console.log('🔄 Retrying Firebase initialization...');
+          await window.movieComments.init();
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('❌ Firebase init error:', error);
+    }
+  }, 100);
 }
 
 console.log('🎬 Movie Comment System loaded! Use movieComments.renderCommentSection(container, movieSlug)'); 
