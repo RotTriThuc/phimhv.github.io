@@ -1,42 +1,73 @@
 {
-  "lastUpdate": "2025-08-28T10:08:45.134Z",
-  "totalMovies": 72,
+  "lastUpdate": "2025-08-30T02:06:07.060Z",
+  "totalMovies": 125,
   "stats": {
-    "newMovies": 72,
-    "newEpisodes": 0,
+    "newMovies": 53,
+    "newEpisodes": 15,
     "updatedMovies": 0
   },
   "recentMovies": [
     {
-      "name": "Thử Thách Tình Yêu (Tình Yêu Tới)",
-      "slug": "thu-thach-tinh-yeu-tinh-yeu-toi",
-      "year": 2009,
-      "added": "2025-08-28T10:08:45.131Z"
-    },
-    {
-      "name": "Sự Thật Về Jussie Smollett",
-      "slug": "su-that-ve-jussie-smollett",
+      "name": "Tôi Và Các Cậu Bé Nhà Walter (Phần 2)",
+      "slug": "toi-va-cac-cau-be-nha-walter-phan-2",
       "year": 2025,
-      "added": "2025-08-28T10:08:45.131Z"
+      "added": "2025-08-30T02:06:07.045Z"
     },
     {
-      "name": "Nhật Ký Sát Thủ",
-      "slug": "nhat-ky-sat-thu",
-      "year": 2016,
-      "added": "2025-08-28T10:08:45.131Z"
+      "name": "Tôi Và Các Cậu Bé Nhà Walter (Phần 1)",
+      "slug": "toi-va-cac-cau-be-nha-walter-phan-1",
+      "year": 2023,
+      "added": "2025-08-30T02:06:07.045Z"
     },
     {
-      "name": "Ninja Đồi Beverly",
-      "slug": "ninja-doi-beverly",
-      "year": 1997,
-      "added": "2025-08-28T10:08:45.131Z"
-    },
-    {
-      "name": "Hành Tinh Độc Thân: Phiêu Lưu Hy Lạp",
-      "slug": "hanh-tinh-doc-than-phieu-luu-hy-lap",
+      "name": "Danh Sách Tử Thù: Sói Hắc Ám",
+      "slug": "danh-sach-tu-thu-soi-hac-am",
       "year": 2025,
-      "added": "2025-08-28T10:08:45.131Z"
+      "added": "2025-08-30T02:06:07.045Z"
+    },
+    {
+      "name": "Nhà Vua và Kẻ Chinh Phạt",
+      "slug": "nha-vua-va-ke-chinh-phat",
+      "year": 2025,
+      "added": "2025-08-30T02:06:07.045Z"
+    },
+    {
+      "name": "Đấu Phá Thương Khung (Phần 5)",
+      "slug": "dau-pha-thuong-khung-phan-5",
+      "year": 2022,
+      "added": "2025-08-30T02:06:07.045Z"
     }
   ],
-  "recentEpisodes": []
+  "recentEpisodes": [
+    {
+      "name": "Chuyện Tình Khó Đỡ",
+      "slug": "chuyen-tinh-kho-do-2025",
+      "episode": "Tập 5",
+      "updated": "2025-08-30T01:22:03.000Z"
+    },
+    {
+      "name": "Tử Dạ Quy",
+      "slug": "tu-da-quy",
+      "episode": "Tập 27",
+      "updated": "2025-08-29T23:47:50.000Z"
+    },
+    {
+      "name": "Quy Tắc Hắc Nguyệt Quang",
+      "slug": "quy-tac-hac-nguyet-quang",
+      "episode": "Tập 21",
+      "updated": "2025-08-29T18:18:01.000Z"
+    },
+    {
+      "name": "Mãn Đình Phương",
+      "slug": "man-dinh-phuong",
+      "episode": "Tập 14",
+      "updated": "2025-08-29T18:17:13.000Z"
+    },
+    {
+      "name": "Hiến Ngư",
+      "slug": "hien-ngu",
+      "episode": "Tập 26",
+      "updated": "2025-08-29T18:15:14.000Z"
+    }
+  ]
 }

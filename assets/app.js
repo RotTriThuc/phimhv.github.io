@@ -2408,218 +2408,8 @@ async function renderWatch(root, slug, params) {
   }
 }
 
-async function renderCategory(root, slug, params) {
-  const page = Number(params.get('page') || '1');
-  const year = params.get('year') || params.get('nam') || '';
-  const country = params.get('country') || params.get('quoc_gia') || '';
-  
-  root.innerHTML = '';
-  
-  const category = Categories.findBySlug(slug);
-  const categoryName = category ? category.name : slug;
-  
-  // Build title with filters
-  let title = `Thể loại: ${categoryName}`;
-  const filters = [];
-  if (year) filters.push(`Năm ${year}`);
-  if (country) filters.push(`Quốc gia ${country}`);
-  if (filters.length > 0) {
-    title += ` (${filters.join(', ')})`;
-  }
-  
-  root.appendChild(sectionHeader(title));
-  
-  const loading = renderLoadingCards(12);
-  root.appendChild(loading);
-  
-  try {
-    // Pass all filter parameters to API
-    const apiParams = { slug, page, limit: 24 };
-    if (year) apiParams.year = year;
-    if (country) apiParams.country = country;
-    
-    const data = await Api.listByCategory(apiParams);
-    safeRemove(loading);
-    const items = extractItems(data);
-    
-    if (items.length === 0) {
-      const noMovies = createEl('div', '', 'Chưa có phim nào trong thể loại này.');
-      noMovies.style.cssText = 'text-align:center;padding:40px;color:var(--muted);';
-      root.appendChild(noMovies);
-      return;
-    }
-    
-    // Hiển thị số lượng phim
-    const totalItems = data?.data?.params?.pagination?.totalItems || data?.paginate?.totalItems || data?.totalItems || data?.pagination?.totalItems;
-    const currentPage = data?.data?.params?.pagination?.currentPage || page;
-    const totalPages = data?.data?.params?.pagination?.totalPages || data?.paginate?.totalPages || data?.totalPages || data?.pagination?.totalPages || 1;
-    
-    if (totalItems) {
-      const countInfo = createEl('div', '', `Tìm thấy ${totalItems} phim ${categoryName} - Trang ${currentPage}/${totalPages}`);
-      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
-      root.appendChild(countInfo);
-    } else if (items.length > 0) {
-      const countInfo = createEl('div', '', `Hiển thị ${items.length} phim - Trang ${currentPage}`);
-      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
-      root.appendChild(countInfo);
-    }
-    
-    root.appendChild(listGrid(items));
-    
-    if (totalPages > 1) {
-      const pager = buildPager(page, totalPages, (nextPage) => {
-        const newParams = new URLSearchParams(params);
-        newParams.set('page', String(nextPage));
-        navigateTo(`#/the-loai/${slug}?${newParams.toString()}`);
-      });
-      root.appendChild(pager);
-    }
-  } catch (e) {
-    console.error(e);
-    root.innerHTML = '';
-    root.appendChild(renderError('Không tải được danh sách thể loại.', () => renderCategory(root, slug, params)));
-  }
-}
 
-async function renderCountry(root, slug, params) {
-  const page = Number(params.get('page') || '1');
-  const year = params.get('year') || params.get('nam') || '';
-  const category = params.get('category') || params.get('the_loai') || '';
-  
-  root.innerHTML = '';
-  
-  // Build title with filters
-  let title = `Quốc gia: ${slug}`;
-  const filters = [];
-  if (year) filters.push(`Năm ${year}`);
-  if (category) filters.push(`Thể loại ${category}`);
-  if (filters.length > 0) {
-    title += ` (${filters.join(', ')})`;
-  }
-  
-  root.appendChild(sectionHeader(title));
-  
-  const loading = renderLoadingCards(12);
-  root.appendChild(loading);
-  
-  try {
-    // Pass all filter parameters to API
-    const apiParams = { slug, page, limit: 24 };
-    if (year) apiParams.year = year;
-    if (category) apiParams.category = category;
-    
-    const data = await Api.listByCountry(apiParams);
-    safeRemove(loading);
-    const items = extractItems(data);
-    
-    if (items.length === 0) {
-      const noMovies = createEl('div', '', 'Chưa có phim nào từ quốc gia này.');
-      noMovies.style.cssText = 'text-align:center;padding:40px;color:var(--muted);';
-      root.appendChild(noMovies);
-      return;
-    }
-    
-    // Hiển thị số lượng phim
-    const totalItems = data?.data?.params?.pagination?.totalItems || data?.paginate?.totalItems || data?.totalItems || data?.pagination?.totalItems;
-    const currentPage = data?.data?.params?.pagination?.currentPage || page;
-    const totalPages = data?.data?.params?.pagination?.totalPages || data?.paginate?.totalPages || data?.totalPages || data?.pagination?.totalPages || 1;
-    
-    if (totalItems) {
-      const countInfo = createEl('div', '', `Tìm thấy ${totalItems} phim từ ${slug} - Trang ${currentPage}/${totalPages}`);
-      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
-      root.appendChild(countInfo);
-    } else if (items.length > 0) {
-      const countInfo = createEl('div', '', `Hiển thị ${items.length} phim - Trang ${currentPage}`);
-      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
-      root.appendChild(countInfo);
-    }
-    
-    root.appendChild(listGrid(items));
-    
-    if (totalPages > 1) {
-      const pager = buildPager(page, totalPages, (nextPage) => {
-        const newParams = new URLSearchParams(params);
-        newParams.set('page', String(nextPage));
-        navigateTo(`#/quoc-gia/${slug}?${newParams.toString()}`);
-      });
-      root.appendChild(pager);
-    }
-  } catch (e) {
-    console.error(e);
-    root.innerHTML = '';
-    root.appendChild(renderError('Không tải được danh sách quốc gia.', () => renderCountry(root, slug, params)));
-  }
-}
 
-async function renderYear(root, year, params) {
-  const page = Number(params.get('page') || '1');
-  const category = params.get('category') || params.get('the_loai') || '';
-  const country = params.get('country') || params.get('quoc_gia') || '';
-  
-  root.innerHTML = '';
-  
-  // Build title with filters
-  let title = `Năm: ${year}`;
-  const filters = [];
-  if (category) filters.push(`Thể loại ${category}`);
-  if (country) filters.push(`Quốc gia ${country}`);
-  if (filters.length > 0) {
-    title += ` (${filters.join(', ')})`;
-  }
-  
-  root.appendChild(sectionHeader(title));
-  
-  const loading = renderLoadingCards(12);
-  root.appendChild(loading);
-  
-  try {
-    // Pass all filter parameters to API
-    const apiParams = { year, page, limit: 24 };
-    if (category) apiParams.category = category;
-    if (country) apiParams.country = country;
-    
-    const data = await Api.listByYear(apiParams);
-    safeRemove(loading);
-    const items = extractItems(data);
-    
-    if (items.length === 0) {
-      const noMovies = createEl('div', '', 'Chưa có phim nào trong năm này.');
-      noMovies.style.cssText = 'text-align:center;padding:40px;color:var(--muted);';
-      root.appendChild(noMovies);
-      return;
-    }
-    
-    // Hiển thị số lượng phim
-    const totalItems = data?.data?.params?.pagination?.totalItems || data?.paginate?.totalItems || data?.totalItems || data?.pagination?.totalItems;
-    const currentPage = data?.data?.params?.pagination?.currentPage || page;
-    const totalPages = data?.data?.params?.pagination?.totalPages || data?.paginate?.totalPages || data?.totalPages || data?.pagination?.totalPages || 1;
-    
-    if (totalItems) {
-      const countInfo = createEl('div', '', `Tìm thấy ${totalItems} phim năm ${year} - Trang ${currentPage}/${totalPages}`);
-      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
-      root.appendChild(countInfo);
-    } else if (items.length > 0) {
-      const countInfo = createEl('div', '', `Hiển thị ${items.length} phim - Trang ${currentPage}`);
-      countInfo.style.cssText = 'margin-bottom:16px;color:var(--muted);font-size:14px;';
-      root.appendChild(countInfo);
-    }
-    
-    root.appendChild(listGrid(items));
-    
-    if (totalPages > 1) {
-      const pager = buildPager(page, totalPages, (nextPage) => {
-        const newParams = new URLSearchParams(params);
-        newParams.set('page', String(nextPage));
-        navigateTo(`#/nam/${year}?${newParams.toString()}`);
-      });
-      root.appendChild(pager);
-    }
-  } catch (e) {
-    console.error(e);
-    root.innerHTML = '';
-    root.appendChild(renderError('Không tải được danh sách theo năm.', () => renderYear(root, year, params)));
-  }
-}
 
 // Enhanced Combined Filter Function
 async function renderCombinedFilter(root, params) {
@@ -3424,52 +3214,28 @@ async function router() {
   }
   if (path.startsWith('/the-loai/')) {
     const slug = decodeURIComponent(path.split('/')[2] || '');
-    // Check if there are additional filter parameters
-    const hasAdditionalFilters = params.get('year') || params.get('nam') || 
-                                params.get('country') || params.get('quoc_gia');
-    
-    if (hasAdditionalFilters) {
-      // Use combined filter for multi-criteria filtering
-      const newParams = new URLSearchParams(params);
-      newParams.set('category', slug);
-      await renderCombinedFilter(root, newParams);
-    } else {
-      await renderCategory(root, slug, params);
-    }
+    // Always use combined filter - simplified routing
+    const newParams = new URLSearchParams(params);
+    newParams.set('category', slug);
+    await renderCombinedFilter(root, newParams);
     isRouting = false;
     return;
   }
   if (path.startsWith('/quoc-gia/')) {
     const slug = decodeURIComponent(path.split('/')[2] || '');
-    // Check if there are additional filter parameters
-    const hasAdditionalFilters = params.get('year') || params.get('nam') || 
-                                params.get('category') || params.get('the_loai');
-    
-    if (hasAdditionalFilters) {
-      // Use combined filter for multi-criteria filtering
-      const newParams = new URLSearchParams(params);
-      newParams.set('country', slug);
-      await renderCombinedFilter(root, newParams);
-    } else {
-      await renderCountry(root, slug, params);
-    }
+    // Always use combined filter - simplified routing
+    const newParams = new URLSearchParams(params);
+    newParams.set('country', slug);
+    await renderCombinedFilter(root, newParams);
     isRouting = false;
     return;
   }
   if (path.startsWith('/nam/')) {
     const year = decodeURIComponent(path.split('/')[2] || '');
-    // Check if there are additional filter parameters
-    const hasAdditionalFilters = params.get('category') || params.get('the_loai') || 
-                                params.get('country') || params.get('quoc_gia');
-    
-    if (hasAdditionalFilters) {
-      // Use combined filter for multi-criteria filtering
-      const newParams = new URLSearchParams(params);
-      newParams.set('year', year);
-      await renderCombinedFilter(root, newParams);
-    } else {
-      await renderYear(root, year, params);
-    }
+    // Always use combined filter - simplified routing
+    const newParams = new URLSearchParams(params);
+    newParams.set('year', year);
+    await renderCombinedFilter(root, newParams);
     isRouting = false;
     return;
   }
