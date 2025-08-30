@@ -38,6 +38,46 @@ const log = {
   error: Logger.error
 };
 
+// Global banner instance - Khai báo sớm để tránh hoisting issues
+let movieBanner = null;
+
+// Helper function để khởi tạo banner một cách nhất quán
+function createMovieBanner(container, pageName = 'unknown') {
+  console.log(`🎬 Creating banner for ${pageName} page...`);
+
+  // Sử dụng setTimeout để đảm bảo tất cả code đã được load
+  setTimeout(() => {
+    // Kiểm tra xem MovieBannerSlider class đã được định nghĩa chưa
+    if (typeof MovieBannerSlider === 'undefined') {
+      console.error('🎬 MovieBannerSlider class not available, cannot create banner');
+      return;
+    }
+
+    // Reset movieBanner nếu đã tồn tại
+    if (movieBanner) {
+      console.log('🎬 Resetting existing banner...');
+      try {
+        if (typeof movieBanner.destroy === 'function') {
+          movieBanner.destroy();
+        }
+      } catch (error) {
+        console.warn('🎬 Error destroying existing banner:', error);
+      }
+      movieBanner = null;
+    }
+
+    // Tạo banner mới
+    try {
+      movieBanner = new MovieBannerSlider(container);
+      console.log(`🎬 Banner slider created successfully for ${pageName} page`);
+    } catch (error) {
+      console.error(`🎬 Error creating banner slider for ${pageName} page:`, error);
+    }
+  }, 0); // Chạy ngay lập tức nhưng sau khi call stack hiện tại hoàn thành
+
+  return movieBanner;
+}
+
 function buildUrl(path, params = {}) {
   const base = 'https://phimapi.com';
   const url = new URL(path, base);
@@ -1736,13 +1776,9 @@ async function renderHome(root) {
   // Movie Banner Slider
   const bannerContainer = createEl('div', 'movie-banner');
   root.appendChild(bannerContainer);
-  
-  // Initialize banner slider with performance optimization
-  requestAnimationFrame(() => {
-    if (!movieBanner && bannerContainer.isConnected) {
-      movieBanner = new MovieBannerSlider(bannerContainer);
-    }
-  });
+
+  // Initialize banner slider sử dụng helper function
+  createMovieBanner(bannerContainer, 'home');
   
   // Section 1: Phim mới cập nhật (chính)
   root.appendChild(sectionHeader('🎬 Phim mới cập nhật'));
@@ -2448,8 +2484,15 @@ async function renderCombinedFilter(root, params) {
   const year = params.get('year') || params.get('nam') || '';
   const country = params.get('country') || params.get('quoc_gia') || '';
   const type_list = params.get('type_list') || '';
-  
+
   root.innerHTML = '';
+
+  // Movie Banner Slider - Thêm banner vào trang lọc
+  const bannerContainer = createEl('div', 'movie-banner');
+  root.appendChild(bannerContainer);
+
+  // Initialize banner slider sử dụng helper function
+  createMovieBanner(bannerContainer, 'filter');
   
   // Build dynamic title based on active filters
   const activeFilters = [];
@@ -3447,26 +3490,36 @@ class MovieBannerSlider {
   
   async init() {
     try {
+      console.log('🎬 MovieBannerSlider init started...');
       // Show loading state
       this.showLoading();
-      
+      console.log('🎬 Loading state shown');
+
       // Fetch banner movies
+      console.log('🎬 Fetching banner movies...');
       const movies = await this.fetchBannerMovies();
-      
+      console.log('🎬 Movies fetched:', movies.length);
+
       if (movies.length === 0) {
+        console.error('🎬 No movies found for banner');
         this.showError('Không thể tải banner phim');
         return;
       }
-      
+
       // Setup slider
       this.slides = movies;
+      console.log('🎬 Rendering banner...');
       this.render();
+      console.log('🎬 Binding events...');
       this.bindEvents();
+      console.log('🎬 Starting autoplay...');
       this.startAutoPlay();
 
+      console.log(`🎬 Banner slider initialized successfully with ${movies.length} movies`);
       Logger.debug(`Banner slider initialized with ${movies.length} movies`);
 
     } catch (error) {
+      console.error('🎬 Banner slider init failed:', error);
       Logger.error('Banner slider init failed:', error);
       this.showError('Lỗi tải banner');
     }
@@ -3896,8 +3949,7 @@ class MovieBannerSlider {
   }
 }
 
-// Global banner instance
-let movieBanner = null;
+// Banner instance và helper function đã được di chuyển lên đầu file
 
 // Initialize banner when DOM is ready with performance checks
 function initMovieBanner() {
@@ -3989,26 +4041,14 @@ window.toggleSaveMovie = async function(slug) {
   }
 };
 
-// Auto-initialize banner on page load
-document.addEventListener('DOMContentLoaded', () => {
-  // Use requestIdleCallback for better performance
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(initMovieBanner, { timeout: 1000 });
-  } else {
-    requestAnimationFrame(initMovieBanner);
-  }
-});
+// Auto-initialize banner on page load - DISABLED
+// Banner giờ được quản lý bởi renderHome() và renderCombinedFilter()
+// document.addEventListener('DOMContentLoaded', () => {
+//   console.log('🎬 DOMContentLoaded, but banner init is now handled by render functions');
+// });
 
-// Re-initialize banner when navigating (for SPA)
-window.addEventListener('hashchange', () => {
-  // Clean up existing banner when leaving home page
-  if (movieBanner && (window.location.hash !== '' && window.location.hash !== '#/' && window.location.hash !== '#')) {
-    movieBanner.destroy();
-    movieBanner = null;
-  }
-  
-  // Only init banner on home page
-  if (window.location.hash === '' || window.location.hash === '#/') {
-    requestAnimationFrame(initMovieBanner);
-  }
-}); 
+// Re-initialize banner when navigating (for SPA) - DISABLED
+// Để tránh xung đột với logic banner trong renderHome() và renderCombinedFilter()
+// window.addEventListener('hashchange', () => {
+//   console.log('🎬 Hash changed, but banner management is now handled by render functions');
+// });
