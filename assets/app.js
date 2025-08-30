@@ -1,11 +1,41 @@
 /* XemPhim SPA - Production Optimized */
 
-// Production logging wrapper - only logs in development
+// Enhanced Production logging system
 const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+
+// Professional logging system with levels and context
+const Logger = {
+  // Development only logs
+  debug: isDev ? (...args) => console.log('🐛 [DEBUG]', ...args) : () => {},
+  info: isDev ? (...args) => console.log('ℹ️ [INFO]', ...args) : () => {},
+  warn: isDev ? (...args) => console.warn('⚠️ [WARN]', ...args) : () => {},
+
+  // Always log errors and critical issues
+  error: (...args) => console.error('❌ [ERROR]', ...args),
+  critical: (...args) => console.error('🚨 [CRITICAL]', ...args),
+
+  // Performance tracking (development only)
+  perf: isDev ? (label, fn) => {
+    const start = performance.now();
+    const result = fn();
+    const end = performance.now();
+    console.log(`⚡ [PERF] ${label}: ${(end - start).toFixed(2)}ms`);
+    return result;
+  } : (label, fn) => fn(),
+
+  // User-facing notifications (always enabled)
+  user: (message, type = 'info') => {
+    if (typeof showNotification === 'function') {
+      showNotification({ message, type });
+    }
+  }
+};
+
+// Backward compatibility
 const log = {
-  info: isDev ? console.log : () => {},
-  warn: isDev ? console.warn : () => {},
-  error: console.error // Always log errors
+  info: Logger.info,
+  warn: Logger.warn,
+  error: Logger.error
 };
 
 function buildUrl(path, params = {}) {
@@ -1283,7 +1313,7 @@ function movieCard(movie) {
           imageLoader.observe(imgEl);
         }
       } catch (error) {
-        console.warn('🚨 Error in image loading setup:', error);
+        Logger.warn('Error in image loading setup:', error);
         // Fallback to intersection observer
         imageLoader.observe(imgEl);
       }
@@ -1294,7 +1324,7 @@ function movieCard(movie) {
     e.stopPropagation();
     
     if (!slug) {
-      console.warn('⚠️ No slug found for movie:', movie);
+      Logger.warn('No slug found for movie:', movie);
       return;
     }
     
@@ -1458,7 +1488,7 @@ function listGrid(movies, className = '', enableVirtual = false) {
         try {
           imageLoader.batchLoadVisible();
         } catch (error) {
-          console.error('Image loading failed:', error);
+          Logger.error('Image loading failed:', error);
         }
       });
     }
@@ -1630,7 +1660,7 @@ class MemoryMonitor {
       
       // If memory usage > 80%, trigger cleanup
       if (usagePercent > 80) {
-        console.warn('🧠 High memory usage detected:', Math.round(usagePercent) + '%');
+        Logger.warn('High memory usage detected:', Math.round(usagePercent) + '%');
         this.triggerCleanup();
       }
     }
@@ -1660,8 +1690,8 @@ class MemoryMonitor {
     if ('gc' in window && typeof window.gc === 'function') {
       window.gc();
     }
-    
-    console.log('🧹 Memory cleanup completed');
+
+    Logger.debug('Memory cleanup completed');
   }
 }
 
@@ -1758,7 +1788,7 @@ async function addSimpleSection(root, title, type, limit = 6) {
     safeRemove(loading);
     root.appendChild(listGrid(items, 'grid--simple'));
   } catch (err) {
-    console.warn('Không tải được', type, err);
+    Logger.error('Failed to load', type, err);
     safeRemove(loading);
     root.appendChild(createEl('p', 'error-msg', `Không tải được ${title.toLowerCase()}`));
   }
@@ -1807,7 +1837,7 @@ async function renderMoreMovies(root, type) {
         moviesContainer.appendChild(loadMoreBtn);
       }
     } catch (e) {
-      console.error(e);
+      Logger.error('Failed to load more movies:', e);
       safeRemove(loading);
       moviesContainer.appendChild(createEl('p', 'error-msg', 'Không thể tải thêm phim'));
     }
@@ -1849,7 +1879,7 @@ async function renderSearch(root, params) {
     });
     root.appendChild(pager);
   } catch (e) {
-    console.error(e);
+    Logger.error('Search failed:', e);
     root.innerHTML = '';
     root.appendChild(renderError('Không tải được kết quả tìm kiếm.', () => renderSearch(root, params)));
   }
@@ -1968,7 +1998,7 @@ async function renderFilterList(root, params) {
       root.appendChild(pager);
     }
   } catch (e) {
-    console.error(e);
+    Logger.error('Filter list failed:', e);
     root.innerHTML = '';
     root.appendChild(renderError('Không tải được danh sách lọc.', () => renderFilterList(root, params)));
   }
@@ -2084,7 +2114,7 @@ async function renderDetail(root, slug) {
         }
       }
     }).catch(error => {
-      console.error('Error getting movie progress:', error);
+      Logger.error('Error getting movie progress:', error);
     });
 
     // Nút lưu/bỏ lưu phim (async)
@@ -2121,7 +2151,7 @@ async function renderDetail(root, slug) {
           });
         }
       } catch (error) {
-        console.error('❌ Save/remove movie failed:', error);
+        Logger.error('Save/remove movie failed:', error);
         showNotification({
           message: 'Có lỗi xảy ra. Vui lòng thử lại.',
           timestamp: new Date().toISOString()
@@ -2203,11 +2233,11 @@ async function renderDetail(root, slug) {
       try {
         window.movieComments.renderCommentSection(root, slug);
       } catch (error) {
-        console.warn('Could not load movie comments:', error);
+        Logger.warn('Could not load movie comments:', error);
       }
     }
   } catch (e) {
-    console.error(e);
+    Logger.error('Movie detail failed:', e);
     root.innerHTML = '';
     root.appendChild(renderError('Không tải được chi tiết phim.', () => renderDetail(root, slug)));
   }
@@ -2402,7 +2432,7 @@ async function renderWatch(root, slug, params) {
     root.appendChild(player);
     root.appendChild(eps);
   } catch (e) {
-    console.error(e);
+    Logger.error('Watch data failed:', e);
     root.innerHTML = '';
     root.appendChild(renderError('Không tải được dữ liệu phát.', () => renderWatch(root, slug, params)));
   }
@@ -2535,7 +2565,7 @@ async function renderCombinedFilter(root, params) {
     }
     
   } catch (e) {
-    console.error(e);
+    Logger.error('Combined filter failed:', e);
     safeRemove(loading);
     root.appendChild(renderError('Không tải được danh sách phim.', () => renderCombinedFilter(root, params)));
   }
@@ -2644,7 +2674,7 @@ async function populateFilters() {
     });
     
   } catch (e) {
-    console.warn('Không tải được bộ lọc', e);
+    Logger.warn('Failed to load filters:', e);
   }
 }
 
@@ -2786,7 +2816,7 @@ window.showCrossDeviceSync = function() {
 
 // 🔄 Force refresh saved movies after sync
 window.refreshSavedMoviesAfterSync = async function() {
-  console.log('🔄 Refreshing saved movies after sync...');
+  Logger.debug('Refreshing saved movies after sync...');
 
   try {
     // Clear all caches thoroughly
@@ -2805,7 +2835,7 @@ window.refreshSavedMoviesAfterSync = async function() {
     if (currentHash === '#/phim-da-luu' || currentHash === '#/phim-da-luu/') {
       const appElement = document.getElementById('app');
       if (appElement && window.renderSavedMovies) {
-        console.log('🎬 Re-rendering saved movies page...');
+        Logger.debug('Re-rendering saved movies page...');
 
         // Force clear the app element first
         appElement.innerHTML = '';
@@ -2813,19 +2843,19 @@ window.refreshSavedMoviesAfterSync = async function() {
 
         // Re-render with fresh data
         await window.renderSavedMovies(appElement);
-        console.log('✅ Saved movies page re-rendered');
+        Logger.debug('Saved movies page re-rendered');
       }
     }
 
-    console.log('✅ Saved movies refresh completed');
+    Logger.debug('Saved movies refresh completed');
   } catch (error) {
-    console.error('❌ Error refreshing saved movies:', error);
+    Logger.error('Error refreshing saved movies:', error);
   }
 };
 
 // 🚀 Immediate refresh without page reload
 window.immediateRefreshSavedMovies = async function() {
-  console.log('🚀 Immediate refresh of saved movies...');
+  Logger.debug('Immediate refresh of saved movies...');
 
   try {
     // Clear all caches and enable force Firebase mode
@@ -2841,7 +2871,7 @@ window.immediateRefreshSavedMovies = async function() {
     // Force reload movies from Firebase
     if (window.Storage) {
       const movies = await window.Storage.getSavedMovies();
-      console.log(`🎬 Immediate refresh found ${movies.length} movies`);
+      Logger.debug(`Immediate refresh found ${movies.length} movies`);
     }
 
     // If on saved movies page, refresh UI
@@ -2855,14 +2885,14 @@ window.immediateRefreshSavedMovies = async function() {
 
         if (window.renderSavedMovies) {
           await window.renderSavedMovies(appElement);
-          console.log('✅ UI refreshed immediately');
+          Logger.debug('UI refreshed immediately');
         }
       }
     }
 
     return true;
   } catch (error) {
-    console.error('❌ Immediate refresh failed:', error);
+    Logger.error('Immediate refresh failed:', error);
     return false;
   }
 };
@@ -2950,7 +2980,7 @@ async function renderSavedMovies(root) {
   const currentUser = isFirebaseReady ? window.movieComments.getUserName() : 'Khách';
 
   // Debug log
-  console.log('🔍 Sync Button Debug - renderSavedMovies:', {
+  Logger.debug('Sync Button Debug - renderSavedMovies:', {
     isFirebaseReady,
     currentUser,
     hasMovieComments: !!window.movieComments,
@@ -2988,7 +3018,7 @@ async function renderSavedMovies(root) {
   const handleKeyPress = (event) => {
     if (event.key === 'F5' && window.location.hash === '#/phim-da-luu') {
       // Don't prevent default - let it reload page, but also clear Firebase cache first
-      console.log('⌨️ F5 pressed on saved movies page - clearing Firebase cache before reload');
+      Logger.debug('F5 pressed on saved movies page - clearing Firebase cache before reload');
 
       // Clear Firebase cache before page reload
       if (window.Storage) {
@@ -3029,7 +3059,7 @@ async function renderSavedMovies(root) {
       refreshFirebaseBtn.textContent = '⏳ Đang tải...';
 
       try {
-        console.log('🔄 Starting Firebase + Page refresh...');
+        Logger.debug('Starting Firebase + Page refresh...');
 
         // Step 1: Clear all caches to force fresh data from Firebase
         if (window.Storage) {
@@ -3043,7 +3073,7 @@ async function renderSavedMovies(root) {
         localStorage.removeItem('savedMovies');
         localStorage.removeItem('watchProgress');
 
-        console.log('🗑️ Cleared all caches and localStorage');
+        Logger.debug('Cleared all caches and localStorage');
 
         // Step 3: Show loading message
         if (window.showNotification) {
@@ -3056,13 +3086,13 @@ async function renderSavedMovies(root) {
         // Step 4: Wait a moment for cache clearing to take effect
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        console.log('🌐 Reloading page for complete refresh...');
+        Logger.debug('Reloading page for complete refresh...');
 
         // Step 5: Reload the entire page for complete refresh
         window.location.reload();
 
       } catch (error) {
-        console.error('❌ Firebase + Page refresh failed:', error);
+        Logger.error('Firebase + Page refresh failed:', error);
 
         // Show error notification
         if (window.showNotification) {
@@ -3106,7 +3136,7 @@ async function renderSavedMovies(root) {
           });
           renderSavedMovies(root); // Re-render
         } catch (error) {
-          console.error('Clear all failed:', error);
+          Logger.error('Clear all failed:', error);
           showNotification({
             message: 'Có lỗi xảy ra khi xóa danh sách',
             timestamp: new Date().toISOString()
@@ -3138,7 +3168,7 @@ async function renderSavedMovies(root) {
     root.appendChild(moviesGrid);
 
   } catch (error) {
-    console.error('❌ Load saved movies failed:', error);
+    Logger.error('Load saved movies failed:', error);
     safeRemove(loadingState);
 
     const errorState = createEl('div', 'error-state');
@@ -3433,11 +3463,11 @@ class MovieBannerSlider {
       this.render();
       this.bindEvents();
       this.startAutoPlay();
-      
-      console.log(`🎬 Banner slider initialized with ${movies.length} movies`);
-      
+
+      Logger.debug(`Banner slider initialized with ${movies.length} movies`);
+
     } catch (error) {
-      console.error('❌ Banner slider init failed:', error);
+      Logger.error('Banner slider init failed:', error);
       this.showError('Lỗi tải banner');
     }
   }
@@ -3472,7 +3502,7 @@ class MovieBannerSlider {
       return movies;
       
     } catch (error) {
-      console.error('❌ Failed to fetch banner movies:', error);
+      Logger.error('Failed to fetch banner movies:', error);
       return [];
     }
   }
@@ -3582,21 +3612,21 @@ class MovieBannerSlider {
       
       // Save movie buttons with improved error handling
       const saveButtons = this.container.querySelectorAll('.banner-btn--secondary');
-      console.log(`🔍 Found ${saveButtons.length} save buttons in banner`);
-      
+      Logger.debug(`Found ${saveButtons.length} save buttons in banner`);
+
       saveButtons.forEach((btn, index) => {
-        console.log(`🎯 Binding event to save button ${index + 1}:`, btn.dataset.movieSlug);
+        Logger.debug(`Binding event to save button ${index + 1}:`, btn.dataset.movieSlug);
         btn.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          
+
           const slug = btn.dataset.movieSlug;
-          console.log(`💾 Save button clicked for movie: ${slug}`);
-          
+          Logger.debug(`Save button clicked for movie: ${slug}`);
+
           if (slug && typeof window.toggleSaveMovie === 'function') {
             window.toggleSaveMovie(slug);
           } else {
-            console.error('❌ Missing slug or toggleSaveMovie function:', { slug, toggleSaveMovie: typeof window.toggleSaveMovie });
+            Logger.error('Missing slug or toggleSaveMovie function:', { slug, toggleSaveMovie: typeof window.toggleSaveMovie });
           }
         });
       });
@@ -3884,20 +3914,20 @@ function initMovieBanner() {
 // Global function to toggle save movie (for banner buttons)
 window.toggleSaveMovie = async function(slug) {
   try {
-    console.log(`🎬 toggleSaveMovie called for: ${slug}`);
-    
+    Logger.debug(`toggleSaveMovie called for: ${slug}`);
+
     const isSaved = await Storage.isMovieSaved(slug);
-    console.log(`📊 Current saved state: ${isSaved}`);
-    
+    Logger.debug(`Current saved state: ${isSaved}`);
+
     if (isSaved) {
       await Storage.removeSavedMovie(slug);
       showNotification('💔 Đã xóa khỏi danh sách yêu thích');
-      console.log(`✅ Movie removed: ${slug}`);
+      Logger.debug(`Movie removed: ${slug}`);
     } else {
       // Get movie details first
-      console.log(`🔍 Fetching movie data for: ${slug}`);
+      Logger.debug(`Fetching movie data for: ${slug}`);
       const movieData = await Api.getMovie(slug);
-      console.log(`📊 API Response:`, movieData);
+      Logger.debug(`API Response:`, movieData);
       
       // Handle different API response structures
       let movieItem = null;
@@ -3914,9 +3944,9 @@ window.toggleSaveMovie = async function(slug) {
       if (movieItem) {
         await Storage.saveMovie(movieItem);
         showNotification('❤️ Đã thêm vào danh sách yêu thích');
-        console.log(`✅ Movie saved: ${slug}`);
+        Logger.debug(`Movie saved: ${slug}`);
       } else {
-        console.error('❌ No movie data found for:', slug, 'Response:', movieData);
+        Logger.error('No movie data found for:', slug, 'Response:', movieData);
         
         // Fallback: Create minimal movie object from banner data
         const bannerSlide = document.querySelector(`[data-slug="${slug}"]`);
@@ -3934,11 +3964,11 @@ window.toggleSaveMovie = async function(slug) {
             episode_current: 'Tập 1',
             content: 'Phim được lưu từ banner slider'
           };
-          
-          console.log(`🔄 Using fallback movie data:`, fallbackMovie);
+
+          Logger.debug(`Using fallback movie data:`, fallbackMovie);
           await Storage.saveMovie(fallbackMovie);
           showNotification('❤️ Đã thêm vào danh sách yêu thích (dữ liệu tạm thời)');
-          console.log(`✅ Movie saved with fallback data: ${slug}`);
+          Logger.debug(`Movie saved with fallback data: ${slug}`);
         } else {
           throw new Error('Không tìm thấy thông tin phim');
         }
@@ -3953,7 +3983,7 @@ window.toggleSaveMovie = async function(slug) {
     });
     
   } catch (error) {
-    console.error('❌ Toggle save movie failed:', error);
+    Logger.error('Toggle save movie failed:', error);
     showNotification('❌ Có lỗi xảy ra. Vui lòng thử lại.');
     throw error; // Re-throw for button error handling
   }

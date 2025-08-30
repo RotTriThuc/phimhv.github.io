@@ -17,12 +17,23 @@ const firebaseConfig = {
 // 3. "Firestore Database" → Create → Test mode → asia-southeast1  
 // 4. Project Overview → "</>" Web icon → App name → Copy config
 
-// Production logging wrapper - Global scope
+// Enhanced Production logging wrapper - Global scope
 const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+
+// Professional logging system for Firebase operations
+const FirebaseLogger = {
+  debug: isDev ? (...args) => console.log('🔥 [DEBUG]', ...args) : () => {},
+  info: isDev ? (...args) => console.log('🔥 [INFO]', ...args) : () => {},
+  warn: isDev ? (...args) => console.warn('🔥 [WARN]', ...args) : () => {},
+  error: (...args) => console.error('🔥 [ERROR]', ...args),
+  success: isDev ? (...args) => console.log('🔥 [SUCCESS]', ...args) : () => {}
+};
+
+// Backward compatibility
 const log = {
-  info: isDev ? console.log : () => {},
-  warn: isDev ? console.warn : () => {},
-  error: console.error // Always log errors
+  info: FirebaseLogger.info,
+  warn: FirebaseLogger.warn,
+  error: FirebaseLogger.error
 };
 
 class MovieCommentSystem {
@@ -95,12 +106,11 @@ class MovieCommentSystem {
         const script = document.createElement('script');
         script.src = src;
         script.onload = () => {
-          const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
-          if (isDev) console.log(`✅ Loaded: ${src.split('/').pop()}`);
+          FirebaseLogger.debug(`Loaded: ${src.split('/').pop()}`);
           resolve();
         };
         script.onerror = () => {
-          console.error(`❌ Failed to load: ${src}`);
+          FirebaseLogger.error(`Failed to load: ${src}`);
           reject(new Error(`Failed to load ${src}`));
         };
         document.head.appendChild(script);
@@ -1078,12 +1088,12 @@ class MovieCommentSystem {
         .get();
 
       if (!existingDoc.empty) {
-        console.log('⚠️ Movie already saved:', movie.name);
+        FirebaseLogger.debug('Movie already saved:', movie.name);
         return false; // Already saved
       }
 
       await this.db.collection('savedMovies').add(movieData);
-      console.log('✅ Movie saved to Firebase:', movie.name);
+      FirebaseLogger.success('Movie saved to Firebase:', movie.name);
 
       // Also save to localStorage as backup
       this.saveToLocalStorage(movie);
@@ -1095,7 +1105,7 @@ class MovieCommentSystem {
     } catch (error) {
       // Fallback to localStorage if Firebase fails
       if (error.code === 'permission-denied' || error.message.includes('permissions')) {
-        console.warn('⚠️ Firebase permissions denied, saving to localStorage');
+        FirebaseLogger.warn('Firebase permissions denied, saving to localStorage');
         const success = this.saveToLocalStorage(movie);
         if (success) {
           this.showNotification(`✅ Đã lưu "${movie.name}" (offline mode)`);
@@ -1103,7 +1113,7 @@ class MovieCommentSystem {
         }
       }
 
-      console.error('❌ Save movie failed:', error);
+      FirebaseLogger.error('Save movie failed:', error);
       throw new Error('Không thể lưu phim. Vui lòng thử lại.');
     }
   }
@@ -1121,7 +1131,7 @@ class MovieCommentSystem {
         .get();
 
       if (snapshot.empty) {
-        console.log('⚠️ Movie not found in saved list:', slug);
+        FirebaseLogger.debug('Movie not found in saved list:', slug);
         return false; // Not found
       }
 
@@ -1134,7 +1144,7 @@ class MovieCommentSystem {
       });
 
       await batch.commit();
-      console.log('✅ Movie removed from Firebase:', slug);
+      FirebaseLogger.success('Movie removed from Firebase:', slug);
 
       // Also remove from localStorage
       this.removeFromLocalStorage(slug);
@@ -1146,7 +1156,7 @@ class MovieCommentSystem {
     } catch (error) {
       // Fallback to localStorage if Firebase fails
       if (error.code === 'permission-denied' || error.message.includes('permissions')) {
-        console.warn('⚠️ Firebase permissions denied, removing from localStorage');
+        FirebaseLogger.warn('Firebase permissions denied, removing from localStorage');
         const success = this.removeFromLocalStorage(slug);
         if (success) {
           this.showNotification(`✅ Đã xóa phim khỏi danh sách (offline mode)`);
@@ -1154,7 +1164,7 @@ class MovieCommentSystem {
         }
       }
 
-      console.error('❌ Remove movie failed:', error);
+      FirebaseLogger.error('Remove movie failed:', error);
       throw new Error('Không thể xóa phim. Vui lòng thử lại.');
     }
   }
@@ -1175,7 +1185,7 @@ class MovieCommentSystem {
           .get();
       } catch (indexError) {
         // Fallback: Query without orderBy if index doesn't exist
-        console.warn('⚠️ Composite index not found, querying without orderBy');
+        FirebaseLogger.warn('Composite index not found, querying without orderBy');
         snapshot = await this.db.collection('savedMovies')
           .where('userId', '==', userId)
           .get();
@@ -1194,11 +1204,11 @@ class MovieCommentSystem {
       // Sort manually if we couldn't use orderBy
       movies.sort((a, b) => b.savedAt - a.savedAt);
 
-      console.log(`📚 Loaded ${movies.length} saved movies from Firebase`);
+      FirebaseLogger.debug(`Loaded ${movies.length} saved movies from Firebase`);
       return movies;
     } catch (error) {
       // No localStorage fallback - Firebase only
-      console.error('❌ Get saved movies failed:', error);
+      FirebaseLogger.error('Get saved movies failed:', error);
       return [];
     }
   }
@@ -1219,7 +1229,7 @@ class MovieCommentSystem {
       return !snapshot.empty;
     } catch (error) {
       // No localStorage fallback - Firebase only
-      console.error('❌ Check movie saved failed:', error);
+      FirebaseLogger.error('Check movie saved failed:', error);
       return false;
     }
   }
@@ -1245,10 +1255,10 @@ class MovieCommentSystem {
       });
 
       await batch.commit();
-      console.log(`✅ Cleared ${snapshot.size} saved movies from Firebase`);
+      FirebaseLogger.success(`Cleared ${snapshot.size} saved movies from Firebase`);
       return snapshot.size;
     } catch (error) {
-      console.error('❌ Clear saved movies failed:', error);
+      FirebaseLogger.error('Clear saved movies failed:', error);
       throw new Error('Không thể xóa danh sách phim. Vui lòng thử lại.');
     }
   }
@@ -1272,9 +1282,9 @@ class MovieCommentSystem {
       // Use movieSlug + userId as document ID for easy updates
       const docId = `${userId}_${movieSlug}`;
       await this.db.collection('watchProgress').doc(docId).set(progressData, { merge: true });
-      console.log('✅ Watch progress saved:', movieSlug, episodeInfo.episodeName);
+      FirebaseLogger.debug('Watch progress saved:', movieSlug, episodeInfo.episodeName);
     } catch (error) {
-      console.error('❌ Save watch progress failed:', error);
+      FirebaseLogger.error('Save watch progress failed:', error);
     }
   }
 
@@ -1300,12 +1310,12 @@ class MovieCommentSystem {
     } catch (error) {
       // Fallback to localStorage if Firebase fails
       if (error.code === 'permission-denied' || error.message.includes('permissions')) {
-        console.warn('⚠️ Firebase permissions denied for watch progress, using localStorage');
+        FirebaseLogger.warn('Firebase permissions denied for watch progress, using localStorage');
         const watchProgress = JSON.parse(localStorage.getItem('watchProgress') || '{}');
         return watchProgress[movieSlug] || null;
       }
 
-      console.error('❌ Get watch progress failed:', error);
+      FirebaseLogger.error('Get watch progress failed:', error);
       return null;
     }
   }
@@ -1333,7 +1343,7 @@ class MovieCommentSystem {
 
       return progress;
     } catch (error) {
-      console.error('❌ Get all watch progress failed:', error);
+      FirebaseLogger.error('Get all watch progress failed:', error);
       return {};
     }
   }
@@ -1347,9 +1357,9 @@ class MovieCommentSystem {
 
     try {
       await this.db.collection('watchProgress').doc(docId).delete();
-      console.log('✅ Watch progress cleared:', movieSlug);
+      FirebaseLogger.debug('Watch progress cleared:', movieSlug);
     } catch (error) {
-      console.error('❌ Clear watch progress failed:', error);
+      FirebaseLogger.error('Clear watch progress failed:', error);
     }
   }
 }
@@ -1366,4 +1376,4 @@ if (document.readyState === 'loading') {
   window.movieComments.init();
 }
 
-console.log('🎬 Movie Comment System loaded! Use movieComments.renderCommentSection(container, movieSlug)'); 
+FirebaseLogger.info('Movie Comment System loaded! Use movieComments.renderCommentSection(container, movieSlug)');
