@@ -3586,92 +3586,159 @@ class MovieBannerSlider {
       
       saveButtons.forEach((btn, index) => {
         console.log(`🎯 Binding event to save button ${index + 1}:`, btn.dataset.movieSlug);
-        
-        btn.addEventListener('click', async (e) => {
+        btn.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
           
           const slug = btn.dataset.movieSlug;
-          console.log(`🎬 Save button clicked for movie: ${slug}`);
+          console.log(`💾 Save button clicked for movie: ${slug}`);
           
-          if (slug) {
-            try {
-              // Add loading state
-              const originalText = btn.textContent;
-              btn.textContent = '⏳ Đang xử lý...';
-              btn.disabled = true;
-              
-              await window.toggleSaveMovie(slug);
-              
-              // Update button text based on current state
-              const isSaved = await Storage.isMovieSaved(slug);
-              btn.textContent = isSaved ? '💔 Bỏ lưu' : '❤️ Lưu phim';
-              btn.disabled = false;
-              
-            } catch (error) {
-              console.error('❌ Banner save button error:', error);
-              btn.textContent = '❤️ Lưu phim';
-              btn.disabled = false;
-              showNotification('❌ Có lỗi xảy ra. Vui lòng thử lại.');
-            }
+          if (slug && typeof window.toggleSaveMovie === 'function') {
+            window.toggleSaveMovie(slug);
           } else {
-            console.error('❌ No movie slug found for save button');
+            console.error('❌ Missing slug or toggleSaveMovie function:', { slug, toggleSaveMovie: typeof window.toggleSaveMovie });
           }
         });
       });
-    }, 100);
-    
-    // Pause on hover
-    this.container.addEventListener('mouseenter', () => this.pauseAutoPlay());
-    this.container.addEventListener('mouseleave', () => this.resumeAutoPlay());
-    
-    // Touch/swipe support for mobile
-    this.bindTouchEvents();
-    
-    // Keyboard navigation
-    document.addEventListener('keydown', (e) => {
-      if (!this.container.matches(':hover')) return;
       
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        this.prevSlide();
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        this.nextSlide();
+      // Watch movie buttons
+      const watchButtons = this.container.querySelectorAll('.banner-btn--primary');
+      watchButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const slug = btn.dataset.movieSlug;
+          if (slug) {
+            window.location.hash = `#/phim/${slug}`;
+          }
+        });
+      });
+      
+      // Mobile Touch/Swipe Support
+      this.addTouchSupport();
+      
+      // Keyboard navigation
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+          this.previousSlide();
+        } else if (e.key === 'ArrowRight') {
+          this.nextSlide();
+        }
+      });
+      
+      // Pause on hover (desktop only)
+      if (!this.isMobile()) {
+        this.container.addEventListener('mouseenter', () => {
+          this.pauseAutoPlay();
+        });
+        
+        this.container.addEventListener('mouseleave', () => {
+          this.startAutoPlay();
+        });
       }
-    });
+      
+    }, 100);
   }
-  
-  bindTouchEvents() {
+
+  // Mobile detection
+  isMobile() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+           window.innerWidth <= 768;
+  }
+
+  // Add touch/swipe support for mobile
+  addTouchSupport() {
     let startX = 0;
     let startY = 0;
-    let endX = 0;
-    let endY = 0;
+    let startTime = 0;
+    let isScrolling = false;
     
-    this.container.addEventListener('touchstart', (e) => {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-    });
+    const slider = this.container.querySelector('.banner-slider');
+    if (!slider) return;
     
-    this.container.addEventListener('touchend', (e) => {
-      endX = e.changedTouches[0].clientX;
-      endY = e.changedTouches[0].clientY;
+    // Touch start
+    slider.addEventListener('touchstart', (e) => {
+      const touch = e.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      startTime = Date.now();
+      isScrolling = false;
+      
+      // Pause autoplay during touch
+      this.pauseAutoPlay();
+    }, { passive: true });
+    
+    // Touch move - detect if user is scrolling vertically
+    slider.addEventListener('touchmove', (e) => {
+      if (isScrolling) return;
+      
+      const touch = e.touches[0];
+      const deltaX = Math.abs(touch.clientX - startX);
+      const deltaY = Math.abs(touch.clientY - startY);
+      
+      // If vertical scroll is more prominent, don't interfere
+      if (deltaY > deltaX && deltaY > 10) {
+        isScrolling = true;
+        return;
+      }
+      
+      // Prevent default for horizontal swipes
+      if (deltaX > 10) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+    
+    // Touch end - handle swipe
+    slider.addEventListener('touchend', (e) => {
+      if (isScrolling) {
+        this.startAutoPlay();
+        return;
+      }
+      
+      const touch = e.changedTouches[0];
+      const endX = touch.clientX;
+      const endTime = Date.now();
       
       const deltaX = endX - startX;
-      const deltaY = endY - startY;
+      const deltaTime = endTime - startTime;
+      const velocity = Math.abs(deltaX) / deltaTime;
       
-      // Only handle horizontal swipes
-      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+      // Swipe thresholds
+      const minDistance = 50;
+      const maxTime = 500;
+      const minVelocity = 0.1;
+      
+      if (Math.abs(deltaX) > minDistance && deltaTime < maxTime && velocity > minVelocity) {
         if (deltaX > 0) {
-          this.prevSlide();
+          // Swipe right - previous slide
+          this.previousSlide();
         } else {
+          // Swipe left - next slide
           this.nextSlide();
         }
       }
-    });
+      
+      // Resume autoplay after a delay
+      setTimeout(() => {
+        this.startAutoPlay();
+      }, 1000);
+    }, { passive: true });
+    
+    // Handle thumbnail touch scrolling
+    const thumbnails = this.container.querySelector('.banner-thumbnails');
+    if (thumbnails) {
+      thumbnails.addEventListener('touchstart', (e) => {
+        this.pauseAutoPlay();
+      }, { passive: true });
+      
+      thumbnails.addEventListener('touchend', () => {
+        setTimeout(() => {
+          this.startAutoPlay();
+        }, 1000);
+      }, { passive: true });
+    }
   }
   
-  prevSlide() {
+  previousSlide() {
     if (this.isTransitioning) return;
     
     this.currentIndex = this.currentIndex === 0 ? this.slides.length - 1 : this.currentIndex - 1;

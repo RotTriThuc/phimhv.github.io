@@ -326,54 +326,85 @@ body {
 }
 
 
-/* Responsive Design for Banner */
+/* Responsive Design for Banner - Optimized for Mobile */
 @media (max-width: 768px) {
   .movie-banner {
-    height: 50vh;
-    min-height: 350px;
+    height: 45vh;
+    min-height: 320px;
+    max-height: 400px;
     width: 100vw;
     margin-left: calc(-50vw + 50%);
+    margin-bottom: 1rem;
   }
   
   .banner-content {
-    padding: 40px 20px 30px;
+    padding: 30px 20px 25px;
     width: 100%;
     max-width: none;
+    background: linear-gradient(
+      transparent 0%,
+      rgba(0, 0, 0, 0.1) 20%,
+      rgba(0, 0, 0, 0.5) 60%,
+      rgba(0, 0, 0, 0.9) 100%
+    );
   }
   
   .banner-title {
-    font-size: 2rem;
-    margin-bottom: 12px;
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    line-height: 1.2;
   }
   
   .banner-meta {
-    gap: 12px;
+    gap: 10px;
     flex-wrap: wrap;
+    margin-bottom: 15px;
+  }
+  
+  .banner-year,
+  .banner-quality,
+  .banner-episode {
+    padding: 4px 10px;
+    font-size: 0.8rem;
   }
   
   .banner-description {
-    font-size: 0.95rem;
-    margin-bottom: 20px;
+    font-size: 0.9rem;
+    margin-bottom: 18px;
     max-width: 100%;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
   
   .banner-actions {
-    gap: 12px;
+    gap: 10px;
     flex-wrap: wrap;
   }
   
   .banner-btn {
-    padding: 12px 20px;
-    font-size: 0.9rem;
+    padding: 10px 18px;
+    font-size: 0.85rem;
+    min-width: 120px;
+    justify-content: center;
   }
   
+  /* Enhanced Mobile Thumbnails */
   .banner-thumbnails {
-    bottom: 20px;
-    gap: 8px;
-    padding: 10px;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    gap: 6px;
+    padding: 8px 12px;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    max-width: 90vw;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    /* Touch scrolling optimization */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
   }
   
   .banner-thumbnails::-webkit-scrollbar {
@@ -381,9 +412,23 @@ body {
   }
   
   .banner-thumbnail {
-    width: 60px;
-    height: 35px;
+    width: 70px;
+    height: 40px;
     flex-shrink: 0;
+    border-radius: 6px;
+    /* Touch target optimization */
+    min-width: 70px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  
+  .banner-thumbnail:hover {
+    transform: scale(1.05);
+  }
+  
+  .banner-thumbnail.active {
+    border-width: 2px;
+    box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
   }
 }
 
@@ -409,76 +454,63 @@ body {
   50% { opacity: 0.5; }
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .movie-banner {
-    height: 300px;
-    margin: 16px 0;
-    border-radius: 8px;
-  }
-  
-  .banner-content {
-    padding: 24px 20px;
-  }
-  
-  .banner-title {
-    font-size: 1.8rem;
-  }
-  
-  .banner-meta {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  
-  .banner-description {
-    font-size: 0.9rem;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-  }
-  
-  .banner-actions {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  
-  .banner-btn {
-    padding: 10px 20px;
-    font-size: 0.9rem;
-  }
-  
-  .banner-nav {
-    width: 40px;
-    height: 40px;
-    font-size: 1rem;
-  }
-  
-  .banner-nav--prev {
-    left: 12px;
-  }
-  
-  .banner-nav--next {
-    right: 12px;
-  }
-}
 
 @media (max-width: 480px) {
   .movie-banner {
-    height: 250px;
+    height: 40vh;
+    min-height: 280px;
+    max-height: 320px;
   }
   
   .banner-content {
-    padding: 20px 16px;
+    padding: 20px 16px 20px;
   }
   
   .banner-title {
     font-size: 1.5rem;
+    margin-bottom: 8px;
+  }
+  
+  .banner-meta {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  
+  .banner-year,
+  .banner-quality,
+  .banner-episode {
+    padding: 3px 8px;
+    font-size: 0.75rem;
   }
   
   .banner-description {
+    font-size: 0.85rem;
     -webkit-line-clamp: 2;
     line-clamp: 2;
-    margin-bottom: 16px;
+    margin-bottom: 15px;
+  }
+  
+  .banner-actions {
+    gap: 8px;
+  }
+  
+  .banner-btn {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    min-width: 100px;
+  }
+  
+  .banner-thumbnails {
+    bottom: 10px;
+    padding: 6px 10px;
+    gap: 4px;
+    max-width: 95vw;
+  }
+  
+  .banner-thumbnail {
+    width: 60px;
+    height: 35px;
+    min-width: 60px;
   }
   
   .banner-nav {
