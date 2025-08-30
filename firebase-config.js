@@ -244,16 +244,17 @@ class MovieCommentSystem {
 
   // 🔐 SYNC CODE SYSTEM for Cross-Browser Sync
   // Generate sync code for user
-  generateSyncCode() {
+  async generateSyncCode() {
     const userId = this.getUserId();
     const userName = this.getUserName();
 
     // Create 6-digit sync code
     const syncCode = Math.random().toString().substring(2, 8);
 
-    // Save sync mapping to Firebase
-    this._saveSyncCode(syncCode, userId, userName);
+    // Save sync mapping to Firebase and wait for completion
+    await this._saveSyncCode(syncCode, userId, userName);
 
+    log.info('🔑 Sync code generated and saved:', syncCode);
     return syncCode;
   }
 
@@ -387,9 +388,14 @@ class MovieCommentSystem {
     document.body.appendChild(dialog);
 
     // Event handlers
-    document.getElementById('generate-sync-code').onclick = () => {
-      const syncCode = this.generateSyncCode();
-      document.getElementById('sync-content').innerHTML = `
+    document.getElementById('generate-sync-code').onclick = async () => {
+      const button = document.getElementById('generate-sync-code');
+      button.disabled = true;
+      button.textContent = '⏳ Đang tạo mã...';
+      
+      try {
+        const syncCode = await this.generateSyncCode();
+        document.getElementById('sync-content').innerHTML = `
         <div style="text-align: center;">
           <div style="font-size: 24px; font-weight: bold; color: #6c5ce7; margin-bottom: 15px; letter-spacing: 2px;">${syncCode}</div>
           <div style="font-size: 14px; color: #888; margin-bottom: 15px;">
@@ -401,6 +407,18 @@ class MovieCommentSystem {
           </div>
         </div>
       `;
+      } catch (error) {
+        log.error('❌ Generate sync code failed:', error);
+        document.getElementById('sync-content').innerHTML = `
+          <div style="text-align: center; color: #ff5722;">
+            <div style="font-size: 48px; margin-bottom: 15px;">❌</div>
+            <div>Không thể tạo mã sync. Vui lòng thử lại.</div>
+          </div>
+        `;
+      } finally {
+        button.disabled = false;
+        button.textContent = '📤 Tạo mã sync';
+      }
     };
 
     document.getElementById('use-sync-code').onclick = () => {

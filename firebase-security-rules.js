@@ -34,6 +34,18 @@ service cloud.firestore {
       // allow read, write: if request.auth.uid == userId;
     }
     
+    // 🔐 SYNC CODES COLLECTION
+    // Allow users to create and use sync codes for cross-device sync
+    match /syncCodes/{document} {
+      allow read, write: if true;
+    }
+    
+    // 💬 MOVIE COMMENTS COLLECTION
+    // Allow read/write for all users (anonymous authentication)
+    match /movieComments/{document} {
+      allow read, write: if true;
+    }
+    
     // 📊 ANALYTICS COLLECTION (read-only for users)
     match /analytics/{document} {
       allow read: if true;
