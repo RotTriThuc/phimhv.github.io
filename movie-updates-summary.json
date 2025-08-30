@@ -1,73 +1,73 @@
 {
-  "lastUpdate": "2025-08-30T02:06:07.060Z",
-  "totalMovies": 125,
+  "lastUpdate": "2025-08-30T12:04:40.040Z",
+  "totalMovies": 164,
   "stats": {
-    "newMovies": 53,
-    "newEpisodes": 15,
+    "newMovies": 39,
+    "newEpisodes": 18,
     "updatedMovies": 0
   },
   "recentMovies": [
     {
-      "name": "Tôi Và Các Cậu Bé Nhà Walter (Phần 2)",
-      "slug": "toi-va-cac-cau-be-nha-walter-phan-2",
+      "name": "Trong Tầm Mắt",
+      "slug": "trong-tam-mat",
       "year": 2025,
-      "added": "2025-08-30T02:06:07.045Z"
+      "added": "2025-08-30T12:04:40.020Z"
     },
     {
-      "name": "Tôi Và Các Cậu Bé Nhà Walter (Phần 1)",
-      "slug": "toi-va-cac-cau-be-nha-walter-phan-1",
-      "year": 2023,
-      "added": "2025-08-30T02:06:07.045Z"
-    },
-    {
-      "name": "Danh Sách Tử Thù: Sói Hắc Ám",
-      "slug": "danh-sach-tu-thu-soi-hac-am",
+      "name": "Lực Lượng Chấp Pháp",
+      "slug": "luc-luong-chap-phap",
       "year": 2025,
-      "added": "2025-08-30T02:06:07.045Z"
+      "added": "2025-08-30T12:04:40.020Z"
     },
     {
-      "name": "Nhà Vua và Kẻ Chinh Phạt",
-      "slug": "nha-vua-va-ke-chinh-phat",
+      "name": "Hai Ngôi Mộ",
+      "slug": "hai-ngoi-mo",
       "year": 2025,
-      "added": "2025-08-30T02:06:07.045Z"
+      "added": "2025-08-30T12:04:40.020Z"
     },
     {
-      "name": "Đấu Phá Thương Khung (Phần 5)",
-      "slug": "dau-pha-thuong-khung-phan-5",
-      "year": 2022,
-      "added": "2025-08-30T02:06:07.045Z"
+      "name": "Số Điện Thoại Lạ: Bê Bối Tin Nhắn Trung Học",
+      "slug": "so-dien-thoai-la-be-boi-tin-nhan-trung-hoc",
+      "year": 2025,
+      "added": "2025-08-30T12:04:40.020Z"
+    },
+    {
+      "name": "Shin Godzilla : Sự Hồi Sinh",
+      "slug": "shin-godzilla-su-hoi-sinh",
+      "year": 2016,
+      "added": "2025-08-30T12:04:40.020Z"
     }
   ],
   "recentEpisodes": [
     {
-      "name": "Chuyện Tình Khó Đỡ",
-      "slug": "chuyen-tinh-kho-do-2025",
-      "episode": "Tập 5",
-      "updated": "2025-08-30T01:22:03.000Z"
-    },
-    {
-      "name": "Tử Dạ Quy",
-      "slug": "tu-da-quy",
-      "episode": "Tập 27",
-      "updated": "2025-08-29T23:47:50.000Z"
-    },
-    {
-      "name": "Quy Tắc Hắc Nguyệt Quang",
-      "slug": "quy-tac-hac-nguyet-quang",
-      "episode": "Tập 21",
-      "updated": "2025-08-29T18:18:01.000Z"
-    },
-    {
-      "name": "Mãn Đình Phương",
-      "slug": "man-dinh-phuong",
-      "episode": "Tập 14",
-      "updated": "2025-08-29T18:17:13.000Z"
-    },
-    {
       "name": "Hiến Ngư",
       "slug": "hien-ngu",
-      "episode": "Tập 26",
-      "updated": "2025-08-29T18:15:14.000Z"
+      "episode": "Tập 28",
+      "updated": "2025-08-30T18:49:31.000Z"
+    },
+    {
+      "name": "Sống Trong Một Ngày Suốt Trăm Nghìn Năm",
+      "slug": "song-trong-mot-ngay-suot-tram-nghin-nam",
+      "episode": "Tập 10",
+      "updated": "2025-08-30T18:28:46.000Z"
+    },
+    {
+      "name": "Đấu Trí Ký Ức",
+      "slug": "dau-tri-ky-uc",
+      "episode": "Tập 18",
+      "updated": "2025-08-30T18:10:30.000Z"
+    },
+    {
+      "name": "Dữ Tấn Trường An",
+      "slug": "du-tan-truong-an",
+      "episode": "Tập 18",
+      "updated": "2025-08-30T18:10:03.000Z"
+    },
+    {
+      "name": "Bữa Tiệc Của Cô Ấy",
+      "slug": "bua-tiec-cua-co-ay",
+      "episode": "Tập 25",
+      "updated": "2025-08-30T18:08:52.000Z"
     }
   ]
 }
