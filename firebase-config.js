@@ -72,8 +72,6 @@ class MovieCommentSystem {
       if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
         log.info('🔥 Firebase app initialized');
-      } else {
-        log.info('🔄 Firebase app already initialized, using existing instance');
       }
 
       // Initialize Firestore with validation
@@ -90,14 +88,7 @@ class MovieCommentSystem {
         await this.db.enablePersistence({ synchronizeTabs: true });
         log.info('💾 Offline support enabled');
       } catch (err) {
-        // Handle specific error codes
-        if (err.code === 'failed-precondition') {
-          log.warn('⚠️ Offline support failed: Multiple tabs open or already enabled');
-        } else if (err.code === 'unimplemented') {
-          log.warn('⚠️ Offline support not available in this browser');
-        } else {
-          log.warn('⚠️ Offline support failed:', err.code, err.message);
-        }
+        log.warn('⚠️ Offline support failed:', err.code);
       }
 
       this.initialized = true;
@@ -120,12 +111,8 @@ class MovieCommentSystem {
 
   // Load Firebase SDK - Using v8 compat for easier integration
   async loadFirebase() {
-    // Check if Firebase is already fully loaded
-    if (window.firebase &&
-        window.firebase.firestore &&
-        typeof window.firebase.firestore === 'function' &&
-        window.firebase.apps) {
-      log.info('🔄 Firebase already fully loaded, skipping...');
+    if (window.firebase && window.firebase.firestore) {
+      log.info('🔄 Firebase already loaded, skipping...');
       return;
     }
 

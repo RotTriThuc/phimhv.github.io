@@ -33,7 +33,7 @@ class NotificationUI {
   /**
    * Khởi tạo notification UI
    */
-  async init(containerSelector = '.header__actions') {
+  async init(containerSelector = '.header-actions') {
     try {
       Logger.info('🔔 Initializing Notification UI...');
 
