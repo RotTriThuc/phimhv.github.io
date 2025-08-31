@@ -1827,8 +1827,8 @@ async function renderHome(root) {
   // Section 2: Phim bộ hot
   await addSimpleSection(root, 'Phim bộ hot', 'phim-bo', 6);
   
-  // Section 3: Hoạt hình
-  await addSimpleSection(root, 'Hoạt hình', 'hoat-hinh', 6);
+  // Section 3: Anime
+  await addSimpleSection(root, 'Anime', 'hoat-hinh', 6);
 }
 
 async function addSimpleSection(root, title, type, limit = 6) {
@@ -2498,7 +2498,7 @@ const CategoryToTypeMapping = {
 const typeNames = {
   'phim-bo': 'Phim Bộ',
   'phim-le': 'Phim Lẻ',
-  'hoat-hinh': 'Hoạt Hình',
+  'hoat-hinh': 'Anime',
   'tv-shows': 'TV Shows',
   'phim-vietsub': 'Phim Vietsub',
   'phim-thuyet-minh': 'Phim Thuyết Minh',
@@ -2557,6 +2557,8 @@ async function renderCombinedFilter(root, params) {
   const year = params.get('year') || params.get('nam') || '';
   const country = params.get('country') || params.get('quoc_gia') || '';
   let type_list = params.get('type_list') || '';
+  const sort_field = params.get('sort_field') || '';
+  const sort_type = params.get('sort_type') || '';
 
   // Special handling: Convert category to type_list if needed
   if (category && CategoryToTypeMapping[category]) {
@@ -2574,11 +2576,23 @@ async function renderCombinedFilter(root, params) {
   const activeFilters = [];
   if (category) activeFilters.push(`Thể loại: ${category}`);
   if (year) activeFilters.push(`Năm: ${year}`);
-  if (country) activeFilters.push(`Quốc gia: ${country}`);
+  if (country) {
+    // Special display for Japanese anime filter
+    if (country === 'nhat-ban' && type_list === 'hoat-hinh') {
+      activeFilters.push(`Quốc gia: Nhật Bản`);
+    } else {
+      activeFilters.push(`Quốc gia: ${country}`);
+    }
+  }
   if (type_list) {
     // Special display for converted categories
     const displayName = typeNames[type_list] || type_list;
     activeFilters.push(`Thể loại: ${displayName}`);
+  }
+
+  // Add sort info for anime filter
+  if (type_list === 'hoat-hinh' && country === 'nhat-ban' && sort_field === 'year' && sort_type === 'desc') {
+    activeFilters.push('Sắp xếp: Mới nhất');
   }
 
   const title = activeFilters.length > 0 ?
@@ -2603,14 +2617,16 @@ async function renderCombinedFilter(root, params) {
     
     // Choose appropriate API endpoint based on filters
     if (type_list) {
-      // Type list has priority - FIXED: Include country and year parameters
+      // Type list has priority - FIXED: Include country, year, and sort parameters
       Logger.debug(`Using listByType API endpoint`);
       data = await Api.listByType({
         type_list,
         page,
         limit: 24,
         country: country || undefined,
-        year: year || undefined
+        year: year || undefined,
+        sort_field: sort_field || undefined,
+        sort_type: sort_type || undefined
       });
     } else if (category) {
       // Use category API: /v1/api/the-loai/{slug}?country={country}&year={year}
@@ -2620,35 +2636,43 @@ async function renderCombinedFilter(root, params) {
         page,
         limit: 24,
         country: country || undefined,
-        year: year || undefined
+        year: year || undefined,
+        sort_field: sort_field || undefined,
+        sort_type: sort_type || undefined
       });
     } else if (country) {
       // Use country API: /v1/api/quoc-gia/{slug}?category={category}&year={year}
-      data = await Api.listByCountry({ 
-        slug: country, 
-        page, 
+      data = await Api.listByCountry({
+        slug: country,
+        page,
         limit: 24,
         category: category || undefined,
-        year: year || undefined
+        year: year || undefined,
+        sort_field: sort_field || undefined,
+        sort_type: sort_type || undefined
       });
     } else if (year) {
       // Use year API: /v1/api/nam/{year}?category={category}&country={country}
-      data = await Api.listByYear({ 
-        year, 
-        page, 
+      data = await Api.listByYear({
+        year,
+        page,
         limit: 24,
         category: category || undefined,
-        country: country || undefined
+        country: country || undefined,
+        sort_field: sort_field || undefined,
+        sort_type: sort_type || undefined
       });
     } else {
       // Fallback to search API
-      data = await Api.search({ 
-        keyword: '', 
-        category, 
-        year, 
-        country, 
-        page, 
-        limit: 24 
+      data = await Api.search({
+        keyword: '',
+        category,
+        year,
+        country,
+        page,
+        limit: 24,
+        sort_field: sort_field || undefined,
+        sort_type: sort_type || undefined
       });
     }
     
@@ -2703,7 +2727,13 @@ function bindHeader() {
   document.querySelectorAll('.nav__btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const type = btn.getAttribute('data-quick');
-      navigateTo(`#/loc?type_list=${encodeURIComponent(type)}`);
+
+      // Special handling for anime - filter Japanese anime sorted by year (newest first)
+      if (type === 'hoat-hinh') {
+        navigateTo(`#/loc?type_list=${encodeURIComponent(type)}&country=nhat-ban&sort_field=year&sort_type=desc`);
+      } else {
+        navigateTo(`#/loc?type_list=${encodeURIComponent(type)}`);
+      }
     });
   });
 
@@ -2853,7 +2883,7 @@ const Categories = {
     { name: 'Hình Sự', slug: 'hinh-su' },
     { name: 'Võ Thuật', slug: 'vo-thuat' },
     { name: 'Khoa Học', slug: 'khoa-hoc' },
-    { name: 'Hoạt Hình', slug: 'hoat-hinh' },
+    { name: 'Anime', slug: 'hoat-hinh' },
     { name: 'Thần Thoại', slug: 'than-thoai' },
     { name: 'Chính Kịch', slug: 'chinh-kich' },
     { name: 'Kinh Điển', slug: 'kinh-dien' }

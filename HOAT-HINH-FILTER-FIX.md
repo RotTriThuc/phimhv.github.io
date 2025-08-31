@@ -1,18 +1,18 @@
-# 🎌 Fix Lọc Hoạt Hình - Documentation
+# 🎌 Fix Lọc Anime - Documentation
 
 ## 🔍 **Vấn Đề Được Phát Hiện**
 
 ### **Mô tả vấn đề:**
-- Thể loại "Hoạt Hình" đã được thêm vào dropdown nhưng không lọc được phim
-- Khi chọn "Hoạt Hình" → hiển thị "Không tìm thấy phim nào với bộ lọc này"
+- Thể loại "Anime" đã được thêm vào dropdown nhưng không lọc được phim
+- Khi chọn "Anime" → hiển thị "Không tìm thấy phim nào với bộ lọc này"
 
 ### **Nguyên nhân gốc:**
-"Hoạt Hình" có **2 vai trò khác nhau** trong hệ thống:
+"Anime" có **2 vai trò khác nhau** trong hệ thống:
 
 1. **✅ Type List:** `hoat-hinh` → API `/v1/api/danh-sach/hoat-hinh` (hoạt động)
 2. **❌ Category:** `hoat-hinh` → API `/v1/api/the-loai/hoat-hinh` (không tồn tại)
 
-**Logic cũ:** Khi user chọn "Hoạt Hình" từ dropdown thể loại → `category=hoat-hinh` → gọi sai API endpoint
+**Logic cũ:** Khi user chọn "Anime" từ dropdown thể loại → `category=hoat-hinh` → gọi sai API endpoint
 
 ---
 
