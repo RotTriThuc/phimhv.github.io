@@ -17,16 +17,19 @@ const firebaseConfig = {
 // 3. "Firestore Database" → Create → Test mode → asia-southeast1  
 // 4. Project Overview → "</>" Web icon → App name → Copy config
 
-// Enhanced Production logging wrapper - Global scope
+// Enhanced Production logging wrapper - Global scope - Hide debug info but keep errors
 const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+const hideDebugInfo = true; // Hide sensitive debug info in production
 
 // Professional logging system for Firebase operations
 const FirebaseLogger = {
-  debug: isDev ? (...args) => console.log('🔥 [DEBUG]', ...args) : () => {},
-  info: isDev ? (...args) => console.log('🔥 [INFO]', ...args) : () => {},
-  warn: isDev ? (...args) => console.warn('🔥 [WARN]', ...args) : () => {},
-  error: (...args) => console.error('🔥 [ERROR]', ...args),
-  success: isDev ? (...args) => console.log('🔥 [SUCCESS]', ...args) : () => {}
+  debug: (isDev && !hideDebugInfo) ? (...args) => console.log('🔥 [DEBUG]', ...args) : () => {},
+  info: (isDev && !hideDebugInfo) ? (...args) => console.log('🔥 [INFO]', ...args) : () => {},
+  success: (isDev && !hideDebugInfo) ? (...args) => console.log('🔥 [SUCCESS]', ...args) : () => {},
+
+  // Always show warnings and errors for debugging issues
+  warn: (...args) => console.warn('🔥 [WARN]', ...args),
+  error: (...args) => console.error('🔥 [ERROR]', ...args)
 };
 
 // Backward compatibility

@@ -1,16 +1,17 @@
 /* XemPhim SPA - Production Optimized */
 
-// Enhanced Production logging system
+// Enhanced Production logging system - Hide debug info but keep errors
 const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+const hideDebugInfo = true; // Hide sensitive debug info in production
 
 // Professional logging system with levels and context
 const Logger = {
-  // Development only logs
-  debug: isDev ? (...args) => console.log('🐛 [DEBUG]', ...args) : () => {},
-  info: isDev ? (...args) => console.log('ℹ️ [INFO]', ...args) : () => {},
-  warn: isDev ? (...args) => console.warn('⚠️ [WARN]', ...args) : () => {},
+  // Hide debug/info logs that might contain sensitive data
+  debug: (isDev && !hideDebugInfo) ? (...args) => console.log('🐛 [DEBUG]', ...args) : () => {},
+  info: (isDev && !hideDebugInfo) ? (...args) => console.log('ℹ️ [INFO]', ...args) : () => {},
 
-  // Always log errors and critical issues
+  // Always show warnings and errors for debugging issues
+  warn: (...args) => console.warn('⚠️ [WARN]', ...args),
   error: (...args) => console.error('❌ [ERROR]', ...args),
   critical: (...args) => console.error('🚨 [CRITICAL]', ...args),
 
@@ -43,25 +44,25 @@ let movieBanner = null;
 
 // Helper function để khởi tạo banner một cách nhất quán
 function createMovieBanner(container, pageName = 'unknown') {
-  console.log(`🎬 Creating banner for ${pageName} page...`);
+  Logger.debug(`Creating banner for ${pageName} page...`);
 
   // Sử dụng setTimeout để đảm bảo tất cả code đã được load
   setTimeout(() => {
     // Kiểm tra xem MovieBannerSlider class đã được định nghĩa chưa
     if (typeof MovieBannerSlider === 'undefined') {
-      console.error('🎬 MovieBannerSlider class not available, cannot create banner');
+      Logger.error('MovieBannerSlider class not available, cannot create banner');
       return;
     }
 
     // Reset movieBanner nếu đã tồn tại
     if (movieBanner) {
-      console.log('🎬 Resetting existing banner...');
+      Logger.debug('Resetting existing banner...');
       try {
         if (typeof movieBanner.destroy === 'function') {
           movieBanner.destroy();
         }
       } catch (error) {
-        console.warn('🎬 Error destroying existing banner:', error);
+        Logger.warn('Error destroying existing banner:', error);
       }
       movieBanner = null;
     }
@@ -69,9 +70,9 @@ function createMovieBanner(container, pageName = 'unknown') {
     // Tạo banner mới
     try {
       movieBanner = new MovieBannerSlider(container);
-      console.log(`🎬 Banner slider created successfully for ${pageName} page`);
+      Logger.debug(`Banner slider created successfully for ${pageName} page`);
     } catch (error) {
-      console.error(`🎬 Error creating banner slider for ${pageName} page:`, error);
+      Logger.error(`Error creating banner slider for ${pageName} page:`, error);
     }
   }, 0); // Chạy ngay lập tức nhưng sau khi call stack hiện tại hoàn thành
 
@@ -214,40 +215,60 @@ async function requestJson(url) {
 }
 
 // Enhanced fetch with retries and timeout
-async function fetchWithRetries(url, maxRetries = 3, timeout = 10000) {
+async function fetchWithRetries(url, maxRetries = 3, timeout = 15000) {
   let lastError;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    let controller;
+    let timeoutId;
+
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-      
-      const res = await fetch(url, { 
-        method: 'GET', 
-        mode: 'cors', 
+      controller = new AbortController();
+
+      // Set timeout with better error message
+      timeoutId = setTimeout(() => {
+        controller.abort();
+        Logger.debug(`Request timeout after ${timeout}ms: ${url}`);
+      }, timeout);
+
+      const res = await fetch(url, {
+        method: 'GET',
+        mode: 'cors',
         credentials: 'omit',
-        headers: { 
+        headers: {
           'Accept': 'application/json',
           'Accept-Encoding': 'gzip, deflate, br'
         },
         signal: controller.signal
       });
-      
+
+      // Clear timeout immediately after successful fetch
       clearTimeout(timeoutId);
-      
+
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
-      
-      return await res.json();
-      
+
+      const data = await res.json();
+      Logger.debug(`Request completed successfully`);
+      return data;
+
     } catch (error) {
+      // Clear timeout in case of error
+      if (timeoutId) clearTimeout(timeoutId);
+
       lastError = error;
-      log.warn(`🔄 Request attempt ${attempt}/${maxRetries} failed:`, error.message);
-      
+
+      // Better error categorization
+      const errorType = error.name === 'AbortError' ? 'timeout' :
+                       error.message.includes('HTTP') ? 'http' : 'network';
+
+      Logger.warn(`🔄 Request attempt ${attempt}/${maxRetries} failed (${errorType}):`, error.message);
+
       if (attempt < maxRetries) {
-        // Exponential backoff
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        // Exponential backoff with jitter
+        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
@@ -1967,17 +1988,7 @@ async function renderFilterList(root, params) {
   const country = params.get('country') || '';
   const year = params.get('year') || '';
 
-  // Tên hiển thị cho type_list
-  const typeNames = {
-    'phim-bo': 'Phim Bộ',
-    'phim-le': 'Phim Lẻ', 
-    'hoat-hinh': 'Hoạt Hình',
-    'tv-shows': 'TV Shows',
-    'phim-vietsub': 'Phim Vietsub',
-    'phim-thuyet-minh': 'Phim Thuyết Minh',
-    'phim-long-tieng': 'Phim Lồng Tiếng'
-  };
-  
+  // Use global typeNames definition
   const typeName = typeNames[type_list] || type_list;
 
   root.innerHTML = '';
@@ -2477,32 +2488,101 @@ async function renderWatch(root, slug, params) {
 
 
 
+// Mapping categories that are actually type_lists
+const CategoryToTypeMapping = {
+  'hoat-hinh': 'hoat-hinh',
+  // Có thể thêm các mapping khác trong tương lai
+};
+
+// Type names for display
+const typeNames = {
+  'phim-bo': 'Phim Bộ',
+  'phim-le': 'Phim Lẻ',
+  'hoat-hinh': 'Hoạt Hình',
+  'tv-shows': 'TV Shows',
+  'phim-vietsub': 'Phim Vietsub',
+  'phim-thuyet-minh': 'Phim Thuyết Minh',
+  'phim-long-tieng': 'Phim Lồng Tiếng'
+};
+
+// Clear all filters function
+function clearAllFilters() {
+  Logger.debug('Clearing all filters and returning to home');
+
+  // Reset all dropdown selects to default values
+  const categorySelect = document.querySelector('select[name="category"]');
+  const countrySelect = document.querySelector('select[name="country"]');
+  const yearSelect = document.querySelector('select[name="year"]');
+
+  if (categorySelect) categorySelect.value = '';
+  if (countrySelect) countrySelect.value = '';
+  if (yearSelect) yearSelect.value = '';
+
+  // Show loading state briefly for better UX - target the correct button
+  const clearBtn = document.getElementById('clearFiltersBtn');
+  const originalText = clearBtn ? clearBtn.innerHTML : '🗑️';
+
+  if (clearBtn) {
+    clearBtn.innerHTML = '↺ Đang xóa...';
+    clearBtn.disabled = true;
+    clearBtn.style.opacity = '0.6';
+  }
+
+  // Navigate to home after short delay for smooth UX
+  setTimeout(() => {
+    // Reset button state BEFORE navigation
+    if (clearBtn) {
+      clearBtn.innerHTML = originalText;
+      clearBtn.disabled = false;
+      clearBtn.style.opacity = '1';
+    }
+
+    navigateTo('#/');
+
+    // Show success notification
+    if (window.showNotification) {
+      showNotification({
+        message: '✅ Đã xóa tất cả bộ lọc',
+        type: 'success',
+        duration: 2000
+      });
+    }
+  }, 300);
+}
+
 // Enhanced Combined Filter Function
 async function renderCombinedFilter(root, params) {
   const page = Number(params.get('page') || '1');
-  const category = params.get('category') || params.get('the_loai') || '';
+  let category = params.get('category') || params.get('the_loai') || '';
   const year = params.get('year') || params.get('nam') || '';
   const country = params.get('country') || params.get('quoc_gia') || '';
-  const type_list = params.get('type_list') || '';
+  let type_list = params.get('type_list') || '';
+
+  // Special handling: Convert category to type_list if needed
+  if (category && CategoryToTypeMapping[category]) {
+    Logger.debug(`Converting category "${category}" to type_list "${CategoryToTypeMapping[category]}"`);
+    type_list = CategoryToTypeMapping[category];
+    category = ''; // Clear category since we're using type_list instead
+  }
 
   root.innerHTML = '';
 
-  // Movie Banner Slider - Thêm banner vào trang lọc
-  const bannerContainer = createEl('div', 'movie-banner');
-  root.appendChild(bannerContainer);
+  // Banner slider removed from filter page to improve user experience
+  // Users can focus on filtering without distractions
 
-  // Initialize banner slider sử dụng helper function
-  createMovieBanner(bannerContainer, 'filter');
-  
   // Build dynamic title based on active filters
   const activeFilters = [];
   if (category) activeFilters.push(`Thể loại: ${category}`);
   if (year) activeFilters.push(`Năm: ${year}`);
   if (country) activeFilters.push(`Quốc gia: ${country}`);
-  if (type_list) activeFilters.push(`Loại: ${type_list}`);
-  
-  const title = activeFilters.length > 0 ? 
-    `Lọc phim (${activeFilters.join(', ')})` : 
+  if (type_list) {
+    // Special display for converted categories
+    const displayName = typeNames[type_list] || type_list;
+    activeFilters.push(`Thể loại: ${displayName}`);
+  }
+
+  const title = activeFilters.length > 0 ?
+    `Lọc phim (${activeFilters.join(', ')})` :
     'Tất cả phim';
   
   root.appendChild(sectionHeader(title));
@@ -2511,14 +2591,7 @@ async function renderCombinedFilter(root, params) {
   const filterControls = createEl('div', 'filter-controls');
   filterControls.style.cssText = 'margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap;';
   
-  // Clear filters button
-  if (activeFilters.length > 0) {
-    const clearBtn = createEl('button', 'btn btn--ghost', '🗑️ Xóa bộ lọc');
-    clearBtn.addEventListener('click', () => {
-      navigateTo('#/loc');
-    });
-    filterControls.appendChild(clearBtn);
-  }
+  // Note: Clear filters button removed from here - using header button instead
   
   root.appendChild(filterControls);
   
@@ -2530,13 +2603,21 @@ async function renderCombinedFilter(root, params) {
     
     // Choose appropriate API endpoint based on filters
     if (type_list) {
-      // Type list has priority
-      data = await Api.listByType({ type_list, page, limit: 24 });
+      // Type list has priority - FIXED: Include country and year parameters
+      Logger.debug(`Using listByType API endpoint`);
+      data = await Api.listByType({
+        type_list,
+        page,
+        limit: 24,
+        country: country || undefined,
+        year: year || undefined
+      });
     } else if (category) {
       // Use category API: /v1/api/the-loai/{slug}?country={country}&year={year}
-      data = await Api.listByCategory({ 
-        slug: category, 
-        page, 
+      Logger.debug(`Using listByCategory API endpoint`);
+      data = await Api.listByCategory({
+        slug: category,
+        page,
         limit: 24,
         country: country || undefined,
         year: year || undefined
@@ -2639,6 +2720,9 @@ function bindHeader() {
   $('#themeToggle')?.addEventListener('click', toggleTheme);
 }
 
+// Flag to prevent duplicate event listeners
+let filtersInitialized = false;
+
 async function populateFilters() {
   const categorySelect = $('#categorySelect');
   const countrySelect = $('#countrySelect');
@@ -2676,46 +2760,72 @@ async function populateFilters() {
       yearSelect?.appendChild(opt);
     }
 
-    // Enhanced event listeners for combined filtering
-    const applyFilters = () => {
-      const category = categorySelect?.value || '';
-      const country = countrySelect?.value || '';
-      const year = yearSelect?.value || '';
-      
-      // If no filters selected, go to home
-      if (!category && !country && !year) {
-        navigateTo('#/');
-        return;
-      }
-      
-      // Build combined filter URL
-      const params = new URLSearchParams();
-      if (category) params.set('category', category);
-      if (country) params.set('country', country);
-      if (year) params.set('year', year);
-      
-      navigateTo(`#/loc?${params.toString()}`);
-    };
+    // Enhanced event listeners for combined filtering - only bind once
+    if (!filtersInitialized) {
+      const applyFilters = () => {
+        const category = categorySelect?.value || '';
+        const country = countrySelect?.value || '';
+        const year = yearSelect?.value || '';
 
-    // Apply filters button
-    applyFiltersBtn?.addEventListener('click', applyFilters);
+        Logger.debug('Apply filters clicked:', { category, country, year });
+
+        // If no filters selected, go to home
+        if (!category && !country && !year) {
+          Logger.debug('No filters selected, going to home');
+          navigateTo('#/');
+          return;
+        }
+
+        // Build combined filter URL
+        const params = new URLSearchParams();
+        if (category) params.set('category', category);
+        if (country) params.set('country', country);
+        if (year) params.set('year', year);
+
+        const url = `#/loc?${params.toString()}`;
+        Logger.debug('Navigating to:', url);
+        navigateTo(url);
+      };
+
+      // Apply filters button - bind only once
+      if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', applyFilters);
+        Logger.debug('Apply filters button event listener bound');
+      }
+
+    // Add clear filters button to main filter controls
+    const clearFiltersBtn = $('#clearFiltersBtn');
+    if (clearFiltersBtn) {
+      // Ensure button is in correct state on page load
+      clearFiltersBtn.innerHTML = '🗑️';
+      clearFiltersBtn.disabled = false;
+      clearFiltersBtn.style.opacity = '1';
+
+      clearFiltersBtn.addEventListener('click', () => {
+        clearAllFilters();
+      });
+    }
 
     // Individual filter navigation (backward compatibility)
     categorySelect?.addEventListener('change', () => {
       const v = categorySelect.value;
       if (v) navigateTo(`#/the-loai/${encodeURIComponent(v)}`);
     });
-    
+
     countrySelect?.addEventListener('change', () => {
       const v = countrySelect.value;
       if (v) navigateTo(`#/quoc-gia/${encodeURIComponent(v)}`);
     });
-    
-    yearSelect?.addEventListener('change', () => {
-      const v = yearSelect.value;
-      if (v) navigateTo(`#/nam/${encodeURIComponent(v)}`);
-    });
-    
+
+      yearSelect?.addEventListener('change', () => {
+        const v = yearSelect.value;
+        if (v) navigateTo(`#/nam/${encodeURIComponent(v)}`);
+      });
+
+      // Mark as initialized
+      filtersInitialized = true;
+    }
+
   } catch (e) {
     Logger.warn('Failed to load filters:', e);
   }
@@ -2743,6 +2853,7 @@ const Categories = {
     { name: 'Hình Sự', slug: 'hinh-su' },
     { name: 'Võ Thuật', slug: 'vo-thuat' },
     { name: 'Khoa Học', slug: 'khoa-hoc' },
+    { name: 'Hoạt Hình', slug: 'hoat-hinh' },
     { name: 'Thần Thoại', slug: 'than-thoai' },
     { name: 'Chính Kịch', slug: 'chinh-kich' },
     { name: 'Kinh Điển', slug: 'kinh-dien' }
@@ -3490,36 +3601,34 @@ class MovieBannerSlider {
   
   async init() {
     try {
-      console.log('🎬 MovieBannerSlider init started...');
+      Logger.debug('MovieBannerSlider init started...');
       // Show loading state
       this.showLoading();
-      console.log('🎬 Loading state shown');
+      Logger.debug('Loading state shown');
 
       // Fetch banner movies
-      console.log('🎬 Fetching banner movies...');
+      Logger.debug('Fetching banner movies...');
       const movies = await this.fetchBannerMovies();
-      console.log('🎬 Movies fetched:', movies.length);
+      Logger.debug('Movies fetched:', movies.length);
 
       if (movies.length === 0) {
-        console.error('🎬 No movies found for banner');
+        Logger.error('No movies found for banner');
         this.showError('Không thể tải banner phim');
         return;
       }
 
       // Setup slider
       this.slides = movies;
-      console.log('🎬 Rendering banner...');
+      Logger.debug('Rendering banner...');
       this.render();
-      console.log('🎬 Binding events...');
+      Logger.debug('Binding events...');
       this.bindEvents();
-      console.log('🎬 Starting autoplay...');
+      Logger.debug('Starting autoplay...');
       this.startAutoPlay();
 
-      console.log(`🎬 Banner slider initialized successfully with ${movies.length} movies`);
-      Logger.debug(`Banner slider initialized with ${movies.length} movies`);
+      Logger.info(`Banner slider initialized successfully with ${movies.length} movies`);
 
     } catch (error) {
-      console.error('🎬 Banner slider init failed:', error);
       Logger.error('Banner slider init failed:', error);
       this.showError('Lỗi tải banner');
     }
@@ -3977,9 +4086,9 @@ window.toggleSaveMovie = async function(slug) {
       Logger.debug(`Movie removed: ${slug}`);
     } else {
       // Get movie details first
-      Logger.debug(`Fetching movie data for: ${slug}`);
+      Logger.debug(`Fetching movie data`);
       const movieData = await Api.getMovie(slug);
-      Logger.debug(`API Response:`, movieData);
+      Logger.debug(`Movie data retrieved successfully`);
       
       // Handle different API response structures
       let movieItem = null;
@@ -4044,11 +4153,11 @@ window.toggleSaveMovie = async function(slug) {
 // Auto-initialize banner on page load - DISABLED
 // Banner giờ được quản lý bởi renderHome() và renderCombinedFilter()
 // document.addEventListener('DOMContentLoaded', () => {
-//   console.log('🎬 DOMContentLoaded, but banner init is now handled by render functions');
+//   Logger.debug('DOMContentLoaded, but banner init is now handled by render functions');
 // });
 
 // Re-initialize banner when navigating (for SPA) - DISABLED
 // Để tránh xung đột với logic banner trong renderHome() và renderCombinedFilter()
 // window.addEventListener('hashchange', () => {
-//   console.log('🎬 Hash changed, but banner management is now handled by render functions');
+//   Logger.debug('Hash changed, but banner management is now handled by render functions');
 // });

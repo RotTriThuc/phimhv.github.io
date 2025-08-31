@@ -1,5 +1,20 @@
 /* Service Worker - Advanced offline support and caching strategies */
 
+// Enhanced Production logging system for Service Worker - Hide debug info but keep errors
+const isDev = self.location.hostname === 'localhost' || self.location.hostname.includes('127.0.0.1');
+const hideDebugInfo = true; // Hide sensitive debug info in production
+
+const SWLogger = {
+  // Hide debug/info logs that might contain sensitive data
+  debug: (isDev && !hideDebugInfo) ? (...args) => console.log('🔧 [SW-DEBUG]', ...args) : () => {},
+  info: (isDev && !hideDebugInfo) ? (...args) => console.log('ℹ️ [SW-INFO]', ...args) : () => {},
+
+  // Always show warnings and errors for debugging issues
+  warn: (...args) => console.warn('⚠️ [SW-WARN]', ...args),
+  error: (...args) => console.error('❌ [SW-ERROR]', ...args),
+  critical: (...args) => console.error('🚨 [SW-CRITICAL]', ...args)
+};
+
 const CACHE_NAME = 'xemphim-v1.2.0';
 const STATIC_CACHE = 'xemphim-static-v1.2.0';
 const DYNAMIC_CACHE = 'xemphim-dynamic-v1.2.0';
@@ -70,57 +85,57 @@ const OFFLINE_PAGES = {
 
 // Install event - Precache static assets
 self.addEventListener('install', (event) => {
-  console.log('🔧 Service Worker installing...');
-  
+  SWLogger.info('Service Worker installing...');
+
   event.waitUntil(
     Promise.all([
       // Cache static assets
       caches.open(STATIC_CACHE).then((cache) => {
-        console.log('📦 Precaching static assets');
+        SWLogger.debug('Precaching static assets');
         return cache.addAll(STATIC_ASSETS);
       }),
-      
+
       // Cache offline pages
       caches.open(DYNAMIC_CACHE).then((cache) => {
-        console.log('📄 Precaching offline pages');
+        SWLogger.debug('Precaching offline pages');
         return cache.addAll(Object.values(OFFLINE_PAGES));
       })
     ]).then(() => {
-      console.log('✅ Service Worker installed successfully');
+      SWLogger.info('Service Worker installed successfully');
       // Skip waiting to activate immediately
       return self.skipWaiting();
     }).catch((error) => {
-      console.error('❌ Service Worker installation failed:', error);
+      SWLogger.error('Service Worker installation failed:', error);
     })
   );
 });
 
 // Activate event - Clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('🚀 Service Worker activating...');
-  
+  SWLogger.info('Service Worker activating...');
+
   event.waitUntil(
     Promise.all([
       // Clean up old caches
       caches.keys().then((cacheNames) => {
         const validCaches = [STATIC_CACHE, DYNAMIC_CACHE, API_CACHE, IMAGE_CACHE];
-        
+
         return Promise.all(
           cacheNames.map((cacheName) => {
             if (!validCaches.includes(cacheName)) {
-              console.log('🗑️ Deleting old cache:', cacheName);
+              SWLogger.debug('Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
           })
         );
       }),
-      
+
       // Claim all clients
       self.clients.claim()
     ]).then(() => {
-      console.log('✅ Service Worker activated successfully');
+      SWLogger.info('Service Worker activated successfully');
     }).catch((error) => {
-      console.error('❌ Service Worker activation failed:', error);
+      SWLogger.error('Service Worker activation failed:', error);
     })
   );
 });
@@ -160,7 +175,7 @@ async function handleRequest(request) {
         return await networkFirst(request, strategy);
     }
   } catch (error) {
-    console.error('❌ Request handling failed:', error);
+    SWLogger.error('Request handling failed:', error);
     return await handleOfflineFallback(request);
   }
 }
@@ -216,7 +231,7 @@ async function cacheFirst(request, strategy) {
   } catch (error) {
     // Return stale cache if network fails
     if (cachedResponse) {
-      console.log('📦 Serving stale cache due to network error');
+      SWLogger.debug('Serving stale cache due to network error');
       return cachedResponse;
     }
     throw error;
@@ -241,12 +256,12 @@ async function networkFirst(request, strategy) {
   } catch (error) {
     // Fallback to cache
     const cachedResponse = await cache.match(request);
-    
+
     if (cachedResponse) {
-      console.log('📦 Serving cached response due to network error');
+      SWLogger.debug('Serving cached response due to network error');
       return cachedResponse;
     }
-    
+
     throw error;
   }
 }
@@ -265,7 +280,7 @@ async function staleWhileRevalidate(request, strategy) {
     }
     return networkResponse;
   }).catch((error) => {
-    console.log('🌐 Background fetch failed:', error.message);
+    SWLogger.debug('Background fetch failed:', error.message);
   });
   
   // Return cached response immediately if available
@@ -281,7 +296,7 @@ async function staleWhileRevalidate(request, strategy) {
   } catch (error) {
     // Return stale cache as last resort
     if (cachedResponse) {
-      console.log('📦 Serving stale cache as last resort');
+      SWLogger.debug('Serving stale cache as last resort');
       return cachedResponse;
     }
     throw error;
@@ -314,8 +329,8 @@ async function cleanupCache(cache, maxEntries) {
     await Promise.all(
       entriesToDelete.map(key => cache.delete(key))
     );
-    
-    console.log(`🧹 Cleaned up ${entriesToDelete.length} cache entries`);
+
+    SWLogger.debug(`Cleaned up ${entriesToDelete.length} cache entries`);
   }
 }
 
@@ -373,12 +388,12 @@ async function handleOfflineFallback(request) {
 
 // Background sync for offline actions
 self.addEventListener('sync', (event) => {
-  console.log('🔄 Background sync triggered:', event.tag);
-  
+  SWLogger.debug('Background sync triggered:', event.tag);
+
   if (event.tag === 'sync-saved-movies') {
     event.waitUntil(syncSavedMovies());
   }
-  
+
   if (event.tag === 'sync-watch-progress') {
     event.waitUntil(syncWatchProgress());
   }
@@ -387,11 +402,11 @@ self.addEventListener('sync', (event) => {
 // Sync saved movies when back online
 async function syncSavedMovies() {
   try {
-    console.log('🔄 Syncing saved movies...');
-    
+    SWLogger.debug('Syncing saved movies...');
+
     // Get offline saved movies from IndexedDB
     const offlineMovies = await getOfflineSavedMovies();
-    
+
     if (offlineMovies.length > 0) {
       // Sync with Firebase when online
       const response = await fetch('/api/sync-saved-movies', {
@@ -399,25 +414,25 @@ async function syncSavedMovies() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ movies: offlineMovies })
       });
-      
+
       if (response.ok) {
-        console.log('✅ Saved movies synced successfully');
+        SWLogger.info('Saved movies synced successfully');
         await clearOfflineSavedMovies();
       }
     }
   } catch (error) {
-    console.error('❌ Failed to sync saved movies:', error);
+    SWLogger.error('Failed to sync saved movies:', error);
   }
 }
 
 // Sync watch progress when back online
 async function syncWatchProgress() {
   try {
-    console.log('🔄 Syncing watch progress...');
-    
+    SWLogger.debug('Syncing watch progress...');
+
     // Get offline watch progress from IndexedDB
     const offlineProgress = await getOfflineWatchProgress();
-    
+
     if (offlineProgress.length > 0) {
       // Sync with Firebase when online
       const response = await fetch('/api/sync-watch-progress', {
@@ -425,14 +440,14 @@ async function syncWatchProgress() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ progress: offlineProgress })
       });
-      
+
       if (response.ok) {
-        console.log('✅ Watch progress synced successfully');
+        SWLogger.info('Watch progress synced successfully');
         await clearOfflineWatchProgress();
       }
     }
   } catch (error) {
-    console.error('❌ Failed to sync watch progress:', error);
+    SWLogger.error('Failed to sync watch progress:', error);
   }
 }
 
@@ -457,8 +472,8 @@ async function clearOfflineWatchProgress() {
 
 // Push notification handling
 self.addEventListener('push', (event) => {
-  console.log('📱 Push notification received');
-  
+  SWLogger.debug('Push notification received');
+
   const options = {
     body: 'Có phim mới được cập nhật!',
     icon: '/icons/icon-192x192.png',
@@ -481,7 +496,7 @@ self.addEventListener('push', (event) => {
       }
     ]
   };
-  
+
   event.waitUntil(
     self.registration.showNotification('XemPhim - Phim mới!', options)
   );
@@ -489,10 +504,10 @@ self.addEventListener('push', (event) => {
 
 // Notification click handling
 self.addEventListener('notificationclick', (event) => {
-  console.log('📱 Notification clicked:', event.action);
-  
+  SWLogger.debug('Notification clicked:', event.action);
+
   event.notification.close();
-  
+
   if (event.action === 'explore') {
     // Open app to explore new movies
     event.waitUntil(
@@ -501,4 +516,4 @@ self.addEventListener('notificationclick', (event) => {
   }
 });
 
-console.log('🎬 XemPhim Service Worker loaded successfully');
+SWLogger.info('XemPhim Service Worker loaded successfully');

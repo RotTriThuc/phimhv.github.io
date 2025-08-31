@@ -1,7 +1,9 @@
 # 🎬 Movie Banner Slider Documentation
 
 ## Tổng quan
-Movie Banner Slider là component hiển thị slide banner phim tích hợp API phimapi.com, được thiết kế để hiển thị trên trang chủ với giao diện responsive và hiệu ứng mượt mà.
+Movie Banner Slider là component hiển thị slide banner phim tích hợp API phimapi.com, được thiết kế để hiển thị **chỉ trên trang chủ** với giao diện responsive và hiệu ứng mượt mà.
+
+> **⚠️ Lưu ý quan trọng**: Banner slider đã được loại bỏ khỏi trang lọc phim để cải thiện trải nghiệm người dùng và giúp họ tập trung vào việc tìm kiếm phim.
 
 ## Tính năng chính
 
@@ -123,17 +125,19 @@ banner.refresh();         // Tải lại
 
 ### Tích hợp vào renderHome()
 ```javascript
-// Movie Banner Slider
+// Movie Banner Slider - CHỈ HIỂN THỊ TRÊN TRANG CHỦ
 const bannerContainer = createEl('div', 'movie-banner');
 root.appendChild(bannerContainer);
 
 // Initialize với performance check
-setTimeout(() => {
-  if (!movieBanner && bannerContainer.isConnected) {
-    movieBanner = new MovieBannerSlider(bannerContainer);
-  }
-}, 100);
+createMovieBanner(bannerContainer, 'home');
 ```
+
+### ❌ Đã loại bỏ khỏi trang lọc phim
+Banner slider đã được loại bỏ khỏi function `renderCombinedFilter()` để:
+- **Cải thiện UX**: Người dùng tập trung vào việc lọc phim
+- **Tối ưu performance**: Giảm tải tài nguyên không cần thiết
+- **Layout sạch sẽ**: Giao diện gọn gàng hơn khi lọc phim
 
 ### SPA Navigation Handling
 - **hashchange Event**: Cleanup khi rời trang chủ

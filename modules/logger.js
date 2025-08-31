@@ -1,16 +1,17 @@
 /* Enhanced Production Logging System */
 
-// Environment detection
+// Environment detection - Hide debug info but keep errors
 const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+const hideDebugInfo = true; // Hide sensitive debug info in production
 
 // Professional logging system with levels and context
 export const Logger = {
-  // Development only logs
-  debug: isDev ? (...args) => console.log('🐛 [DEBUG]', ...args) : () => {},
-  info: isDev ? (...args) => console.log('ℹ️ [INFO]', ...args) : () => {},
-  warn: isDev ? (...args) => console.warn('⚠️ [WARN]', ...args) : () => {},
-  
-  // Always log errors and critical issues
+  // Hide debug/info logs that might contain sensitive data
+  debug: (isDev && !hideDebugInfo) ? (...args) => console.log('🐛 [DEBUG]', ...args) : () => {},
+  info: (isDev && !hideDebugInfo) ? (...args) => console.log('ℹ️ [INFO]', ...args) : () => {},
+
+  // Always show warnings and errors for debugging issues
+  warn: (...args) => console.warn('⚠️ [WARN]', ...args),
   error: (...args) => console.error('❌ [ERROR]', ...args),
   critical: (...args) => console.error('🚨 [CRITICAL]', ...args),
   
