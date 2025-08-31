@@ -3649,11 +3649,38 @@ function initCacheClearShortcut() {
   }
 }
 
-// Notification System
-function initNotificationSystem() {
+// 🔔 New Notification System
+async function initNotificationSystem() {
+  try {
+    console.log('🔔 Initializing notification system...');
+
+    // Wait for Firebase to be ready
+    if (window.movieComments) {
+      await window.movieComments.init();
+      console.log('✅ Firebase initialized for notifications');
+    }
+
+    // Initialize notification UI
+    if (window.notificationUI) {
+      await window.notificationUI.init('.header__actions');
+      console.log('✅ Notification UI initialized');
+    } else {
+      console.warn('⚠️ Notification UI module not loaded');
+      // Fallback to old system
+      initLegacyNotificationSystem();
+    }
+  } catch (error) {
+    console.error('❌ Notification system init failed:', error);
+    // Fallback to old system
+    initLegacyNotificationSystem();
+  }
+}
+
+// Legacy notification system as fallback
+function initLegacyNotificationSystem() {
   createNotificationContainer();
   checkForUpdates();
-  
+
   // Kiểm tra cập nhật mỗi 2 phút (chỉ local, không chạy trên production)
   if (!window.location.hostname.includes('github.io') && window.location.hostname !== 'localhost') {
     setInterval(checkForUpdates, 2 * 60 * 1000);

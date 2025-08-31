@@ -50,7 +50,7 @@ class MovieCommentSystem {
   async init() {
     try {
       log.info('🔥 Initializing Movie Comment System...');
-      
+
       // Validate config
       if (!this.validateConfig()) {
         throw new Error('Please update Firebase config in firebase-config.js');
@@ -58,22 +58,48 @@ class MovieCommentSystem {
 
       // Load Firebase SDK
       await this.loadFirebase();
-      
+
+      // Validate Firebase is available
+      if (!window.firebase) {
+        throw new Error('Firebase SDK not loaded');
+      }
+
+      if (typeof window.firebase.firestore !== 'function') {
+        throw new Error('Firebase Firestore not available. Make sure firebase-firestore.js is loaded.');
+      }
+
       // Initialize Firebase app
       if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
+        log.info('🔥 Firebase app initialized');
+      } else {
+        log.info('🔄 Firebase app already initialized, using existing instance');
       }
-      
+
+      // Initialize Firestore with validation
       this.db = firebase.firestore();
-      
+
+      if (!this.db) {
+        throw new Error('Failed to initialize Firestore database');
+      }
+
+      log.info('🗄️ Firestore database initialized');
+
       // Enable offline support
       try {
         await this.db.enablePersistence({ synchronizeTabs: true });
         log.info('💾 Offline support enabled');
       } catch (err) {
-        log.warn('⚠️ Offline support failed:', err.code);
+        // Handle specific error codes
+        if (err.code === 'failed-precondition') {
+          log.warn('⚠️ Offline support failed: Multiple tabs open or already enabled');
+        } else if (err.code === 'unimplemented') {
+          log.warn('⚠️ Offline support not available in this browser');
+        } else {
+          log.warn('⚠️ Offline support failed:', err.code, err.message);
+        }
       }
-      
+
       this.initialized = true;
       log.info('✅ Comment system ready!');
       return true;
@@ -94,11 +120,15 @@ class MovieCommentSystem {
 
   // Load Firebase SDK - Using v8 compat for easier integration
   async loadFirebase() {
-    if (window.firebase) {
-      log.info('🔄 Firebase already loaded, skipping...');
+    // Check if Firebase is already fully loaded
+    if (window.firebase &&
+        window.firebase.firestore &&
+        typeof window.firebase.firestore === 'function' &&
+        window.firebase.apps) {
+      log.info('🔄 Firebase already fully loaded, skipping...');
       return;
     }
-    
+
     const scripts = [
       'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
       'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js'
@@ -118,6 +148,40 @@ class MovieCommentSystem {
         };
         document.head.appendChild(script);
       });
+    }
+
+    // Wait for Firebase to be fully available with retry mechanism
+    await this.waitForFirebase();
+  }
+
+  // Wait for Firebase to be fully initialized with retry
+  async waitForFirebase(maxRetries = 10, delay = 100) {
+    for (let i = 0; i < maxRetries; i++) {
+      if (window.firebase &&
+          typeof window.firebase.initializeApp === 'function' &&
+          typeof window.firebase.firestore === 'function') {
+        log.info('✅ Firebase SDK fully loaded and ready');
+        return;
+      }
+
+      // Debug thông tin về Firebase state
+      this.debugFirebaseState();
+
+      log.info(`⏳ Waiting for Firebase SDK... (${i + 1}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+
+    throw new Error('Firebase SDK failed to load completely after maximum retries');
+  }
+
+  // Debug Firebase state để troubleshoot
+  debugFirebaseState() {
+    log.debug('🔍 Firebase Debug State:');
+    log.debug('- window.firebase exists:', !!window.firebase);
+    if (window.firebase) {
+      log.debug('- firebase.initializeApp type:', typeof window.firebase.initializeApp);
+      log.debug('- firebase.firestore type:', typeof window.firebase.firestore);
+      log.debug('- firebase.apps length:', window.firebase.apps ? window.firebase.apps.length : 'undefined');
     }
   }
 
@@ -1365,18 +1429,314 @@ class MovieCommentSystem {
       FirebaseLogger.error('Clear watch progress failed:', error);
     }
   }
+
+  // 🔔 NOTIFICATION SYSTEM METHODS
+  // Tích hợp notification system vào Firebase config
+
+  /**
+   * Tạo notification mới
+   */
+  async createNotification({
+    title,
+    content,
+    type = 'admin_announcement',
+    scheduledAt = null,
+    expiresAt = null,
+    metadata = {},
+    priority = 'normal'
+  }) {
+    if (!this.initialized) await this.init();
+
+    try {
+      const now = firebase.firestore.FieldValue.serverTimestamp();
+
+      const notification = {
+        title: title.trim(),
+        content: content.trim(),
+        type,
+        status: scheduledAt ? 'scheduled' : 'active',
+        createdAt: now,
+        scheduledAt: scheduledAt ? firebase.firestore.Timestamp.fromDate(new Date(scheduledAt)) : null,
+        expiresAt: expiresAt ? firebase.firestore.Timestamp.fromDate(new Date(expiresAt)) : null,
+        readBy: [],
+        metadata: {
+          ...metadata,
+          priority,
+          adminId: this.getUserId()
+        },
+        stats: {
+          totalReads: 0,
+          totalViews: 0
+        }
+      };
+
+      const docRef = await this.db.collection('notifications').add(notification);
+
+      FirebaseLogger.info(`✅ Created notification: ${docRef.id}`);
+      return { id: docRef.id, ...notification };
+    } catch (error) {
+      FirebaseLogger.error('❌ Create notification failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Lấy danh sách notifications
+   */
+  async getNotifications({
+    type = null,
+    status = 'active',
+    limit = 50,
+    orderBy = 'createdAt',
+    orderDirection = 'desc',
+    includeExpired = false
+  } = {}) {
+    if (!this.initialized) await this.init();
+
+    try {
+      let query = this.db.collection('notifications');
+
+      // Simplified query to avoid permission issues
+      // We'll filter by type and status in JavaScript instead
+
+      // Order first, then filter expired (to avoid Firebase query constraint)
+      query = query.orderBy(orderBy, orderDirection).limit(limit);
+
+      // Note: We'll filter expired notifications in JavaScript instead of Firestore
+      // to avoid the "inequality filter must be first orderBy" constraint
+
+      const snapshot = await query.get();
+      const notifications = [];
+
+      const now = new Date();
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const notification = {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate(),
+          scheduledAt: data.scheduledAt?.toDate(),
+          expiresAt: data.expiresAt?.toDate()
+        };
+
+        // Filter in JavaScript to avoid complex Firestore queries
+        if (type && notification.type !== type) {
+          return; // Skip if type doesn't match
+        }
+
+        if (status && notification.status !== status) {
+          return; // Skip if status doesn't match
+        }
+
+        if (!includeExpired && notification.expiresAt && notification.expiresAt < now) {
+          return; // Skip expired notifications
+        }
+
+        notifications.push(notification);
+      });
+
+      FirebaseLogger.debug(`📋 Retrieved ${notifications.length} notifications`);
+      return notifications;
+    } catch (error) {
+      FirebaseLogger.error('❌ Get notifications failed:', error);
+
+      // Fallback: return empty array instead of throwing to avoid breaking UI
+      FirebaseLogger.warn('🔄 Returning empty notifications array as fallback');
+      return [];
+    }
+  }
+
+  /**
+   * Đánh dấu notification đã đọc
+   */
+  async markNotificationAsRead(notificationId, userId = null) {
+    if (!this.initialized) await this.init();
+
+    try {
+      const currentUserId = userId || this.getUserId();
+
+      const notificationRef = this.db.collection('notifications').doc(notificationId);
+
+      await this.db.runTransaction(async (transaction) => {
+        const doc = await transaction.get(notificationRef);
+
+        if (!doc.exists) {
+          throw new Error('Notification not found');
+        }
+
+        const data = doc.data();
+        const readBy = data.readBy || [];
+
+        // Nếu chưa đọc thì thêm vào
+        if (!readBy.includes(currentUserId)) {
+          readBy.push(currentUserId);
+
+          transaction.update(notificationRef, {
+            readBy,
+            'stats.totalReads': firebase.firestore.FieldValue.increment(1)
+          });
+        }
+      });
+
+      FirebaseLogger.debug(`✅ Marked notification ${notificationId} as read`);
+      return true;
+    } catch (error) {
+      FirebaseLogger.error('❌ Mark as read failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Xóa notification
+   */
+  async deleteNotification(notificationId) {
+    if (!this.initialized) await this.init();
+
+    try {
+      await this.db.collection('notifications').doc(notificationId).delete();
+      FirebaseLogger.info(`🗑️ Deleted notification: ${notificationId}`);
+      return true;
+    } catch (error) {
+      FirebaseLogger.error('❌ Delete notification failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Lấy số lượng notifications chưa đọc
+   */
+  async getUnreadNotificationCount(userId = null) {
+    if (!this.initialized) await this.init();
+
+    try {
+      const currentUserId = userId || this.getUserId();
+
+      const snapshot = await this.db.collection('notifications')
+        .where('status', '==', 'active')
+        .get();
+
+      let unreadCount = 0;
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const readBy = data.readBy || [];
+
+        if (!readBy.includes(currentUserId)) {
+          unreadCount++;
+        }
+      });
+
+      FirebaseLogger.debug(`📊 Unread count: ${unreadCount}`);
+      return unreadCount;
+    } catch (error) {
+      FirebaseLogger.error('❌ Get unread count failed:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Tạo auto-notification cho phim mới
+   */
+  async createMovieNotification(movies) {
+    if (!Array.isArray(movies) || movies.length === 0) return;
+
+    try {
+      const movieCount = movies.length;
+      const firstMovie = movies[0];
+
+      const title = movieCount === 1
+        ? `🎬 Phim mới: ${firstMovie.name}`
+        : `🎬 ${movieCount} phim mới được cập nhật`;
+
+      const content = movieCount === 1
+        ? `Phim "${firstMovie.name}" vừa được thêm vào hệ thống. Xem ngay!`
+        : `${movieCount} phim mới vừa được cập nhật. Khám phá ngay những bộ phim hot nhất!`;
+
+      await this.createNotification({
+        title,
+        content,
+        type: 'new_movie',
+        metadata: {
+          movieCount,
+          movies: movies.slice(0, 5).map(m => ({ slug: m.slug, name: m.name })),
+          priority: 'high'
+        }
+      });
+
+      FirebaseLogger.info(`🎬 Created movie notification for ${movieCount} movies`);
+    } catch (error) {
+      FirebaseLogger.error('❌ Create movie notification failed:', error);
+    }
+  }
+
+  /**
+   * Lắng nghe real-time notifications
+   */
+  listenToNotifications(callback, userId = null) {
+    if (!this.initialized) {
+      FirebaseLogger.warn('Firebase not initialized, cannot listen to notifications');
+      return null;
+    }
+
+    try {
+      const currentUserId = userId || this.getUserId();
+
+      const unsubscribe = this.db.collection('notifications')
+        .where('status', '==', 'active')
+        .orderBy('createdAt', 'desc')
+        .limit(50)
+        .onSnapshot((snapshot) => {
+          const notifications = [];
+
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            const readBy = data.readBy || [];
+
+            notifications.push({
+              id: doc.id,
+              ...data,
+              createdAt: data.createdAt?.toDate(),
+              scheduledAt: data.scheduledAt?.toDate(),
+              expiresAt: data.expiresAt?.toDate(),
+              isRead: readBy.includes(currentUserId)
+            });
+          });
+
+          callback(notifications);
+        }, (error) => {
+          FirebaseLogger.error('Notification listener error:', error);
+        });
+
+      return unsubscribe;
+    } catch (error) {
+      FirebaseLogger.error('❌ Listen to notifications failed:', error);
+      return null;
+    }
+  }
 }
 
 // Global instance
 window.movieComments = new MovieCommentSystem();
 
-// Auto-init when DOM ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    window.movieComments.init();
-  });
-} else {
-  window.movieComments.init();
+// Auto-init when DOM ready with error handling
+async function initMovieComments() {
+  try {
+    const success = await window.movieComments.init();
+    if (!success) {
+      FirebaseLogger.warn('⚠️ Firebase initialization failed, running in fallback mode');
+      // App vẫn có thể hoạt động với localStorage fallback
+    }
+  } catch (error) {
+    FirebaseLogger.error('❌ Critical Firebase error:', error);
+    // Có thể thêm fallback mechanism ở đây
+  }
 }
 
-FirebaseLogger.info('Movie Comment System loaded! Use movieComments.renderCommentSection(container, movieSlug)');
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initMovieComments);
+} else {
+  initMovieComments();
+}
+
+FirebaseLogger.info('Movie Comment System with Notifications loaded! Use movieComments.renderCommentSection(container, movieSlug)');

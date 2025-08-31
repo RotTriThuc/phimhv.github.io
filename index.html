@@ -125,6 +125,18 @@
   
   <!-- Load JavaScript without cache-busting for better caching -->
   <script src="./firebase-config.js" defer></script>
+
+  <!-- 🔔 Notification System -->
+  <script type="module">
+    // Import notification UI module
+    import { notificationUI } from './modules/notification-ui.js';
+
+    // Make it globally accessible
+    window.notificationUI = notificationUI;
+
+    console.log('✅ Notification UI module loaded');
+  </script>
+
   <script type="module" src="./assets/app.js" defer></script>
 </body>
 </html> 

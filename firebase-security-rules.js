@@ -45,6 +45,14 @@ service cloud.firestore {
     match /movieComments/{document} {
       allow read, write: if true;
     }
+
+    // 🔔 NOTIFICATIONS COLLECTION
+    // Allow read for everyone, write for all users (demo purposes)
+    match /notifications/{document} {
+      allow read, write: if true;
+      // Production: restrict write to authenticated users
+      // allow write: if request.auth != null;
+    }
     
     // 📊 ANALYTICS COLLECTION (read-only for users)
     match /analytics/{document} {
