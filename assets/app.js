@@ -2275,6 +2275,20 @@ async function renderDetail(root, slug) {
     root.appendChild(eps);
     root.appendChild(desc);
 
+    // Add series navigator
+    try {
+      const { getCachedRelatedSeasons, createSeriesNavigator } = await import('../modules/series-navigator.js');
+      const relatedSeasons = await getCachedRelatedSeasons(movie, Api, extractItems);
+      const seriesNavigator = createSeriesNavigator(movie, relatedSeasons, createEl);
+
+      if (seriesNavigator) {
+        root.appendChild(seriesNavigator);
+        Logger.debug('Series navigator added to detail page');
+      }
+    } catch (error) {
+      Logger.warn('Could not load series navigator:', error);
+    }
+
     // Add movie comments section
     if (window.movieComments) {
       try {
@@ -2477,6 +2491,21 @@ async function renderWatch(root, slug, params) {
     root.appendChild(h1);
     root.appendChild(sub);
     root.appendChild(player);
+
+    // Add series navigator for watch page
+    try {
+      const { getCachedRelatedSeasons, createWatchSeriesNavigator } = await import('../modules/series-navigator.js');
+      const relatedSeasons = await getCachedRelatedSeasons(movie, Api, extractItems);
+      const watchNavigator = createWatchSeriesNavigator(movie, relatedSeasons, createEl);
+
+      if (watchNavigator) {
+        root.appendChild(watchNavigator);
+        Logger.debug('Watch series navigator added');
+      }
+    } catch (error) {
+      Logger.warn('Could not load watch series navigator:', error);
+    }
+
     root.appendChild(eps);
   } catch (e) {
     Logger.error('Watch data failed:', e);
