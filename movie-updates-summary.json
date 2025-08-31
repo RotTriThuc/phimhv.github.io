@@ -1,73 +1,73 @@
 {
-  "lastUpdate": "2025-08-30T12:04:40.040Z",
-  "totalMovies": 164,
+  "lastUpdate": "2025-08-31T11:38:53.178Z",
+  "totalMovies": 198,
   "stats": {
-    "newMovies": 39,
-    "newEpisodes": 18,
+    "newMovies": 34,
+    "newEpisodes": 20,
     "updatedMovies": 0
   },
   "recentMovies": [
     {
-      "name": "Trong Tầm Mắt",
-      "slug": "trong-tam-mat",
+      "name": "Hải Hôn Hành",
+      "slug": "hai-hon-hanh",
       "year": 2025,
-      "added": "2025-08-30T12:04:40.020Z"
+      "added": "2025-08-31T11:38:53.169Z"
     },
     {
-      "name": "Lực Lượng Chấp Pháp",
-      "slug": "luc-luong-chap-phap",
+      "name": "Yêu Lại Từ Đầu",
+      "slug": "yeu-lai-tu-dau-2025",
       "year": 2025,
-      "added": "2025-08-30T12:04:40.020Z"
+      "added": "2025-08-31T11:38:53.169Z"
     },
     {
-      "name": "Hai Ngôi Mộ",
-      "slug": "hai-ngoi-mo",
+      "name": "Tại Hạ Anh Đài",
+      "slug": "tai-ha-anh-dai",
       "year": 2025,
-      "added": "2025-08-30T12:04:40.020Z"
+      "added": "2025-08-31T11:38:53.169Z"
     },
     {
-      "name": "Số Điện Thoại Lạ: Bê Bối Tin Nhắn Trung Học",
-      "slug": "so-dien-thoai-la-be-boi-tin-nhan-trung-hoc",
+      "name": "Chuyện Chưa Kể Về Kẻ Bất Tử",
+      "slug": "chuyen-chua-ke-ve-ke-bat-tu",
       "year": 2025,
-      "added": "2025-08-30T12:04:40.020Z"
+      "added": "2025-08-31T11:38:53.169Z"
     },
     {
-      "name": "Shin Godzilla : Sự Hồi Sinh",
-      "slug": "shin-godzilla-su-hoi-sinh",
-      "year": 2016,
-      "added": "2025-08-30T12:04:40.020Z"
+      "name": "Đón Lấy Bình Minh (Season 3)",
+      "slug": "don-lay-binh-minh-season-3",
+      "year": 2025,
+      "added": "2025-08-31T11:38:53.169Z"
     }
   ],
   "recentEpisodes": [
     {
+      "name": "Tử Dạ Quy",
+      "slug": "tu-da-quy",
+      "episode": "Tập 31",
+      "updated": "2025-08-31T17:42:27.000Z"
+    },
+    {
+      "name": "Trong Tầm Mắt",
+      "slug": "trong-tam-mat",
+      "episode": "Tập 10",
+      "updated": "2025-08-31T17:25:03.000Z"
+    },
+    {
       "name": "Hiến Ngư",
       "slug": "hien-ngu",
-      "episode": "Tập 28",
-      "updated": "2025-08-30T18:49:31.000Z"
-    },
-    {
-      "name": "Sống Trong Một Ngày Suốt Trăm Nghìn Năm",
-      "slug": "song-trong-mot-ngay-suot-tram-nghin-nam",
-      "episode": "Tập 10",
-      "updated": "2025-08-30T18:28:46.000Z"
-    },
-    {
-      "name": "Đấu Trí Ký Ức",
-      "slug": "dau-tri-ky-uc",
-      "episode": "Tập 18",
-      "updated": "2025-08-30T18:10:30.000Z"
+      "episode": "Tập 29",
+      "updated": "2025-08-31T17:22:54.000Z"
     },
     {
       "name": "Dữ Tấn Trường An",
       "slug": "du-tan-truong-an",
-      "episode": "Tập 18",
-      "updated": "2025-08-30T18:10:03.000Z"
+      "episode": "Tập 20",
+      "updated": "2025-08-31T17:22:19.000Z"
     },
     {
-      "name": "Bữa Tiệc Của Cô Ấy",
-      "slug": "bua-tiec-cua-co-ay",
-      "episode": "Tập 25",
-      "updated": "2025-08-30T18:08:52.000Z"
+      "name": "Sống Trong Một Ngày Suốt Trăm Nghìn Năm",
+      "slug": "song-trong-mot-ngay-suot-tram-nghin-nam",
+      "episode": "Tập 12",
+      "updated": "2025-08-31T16:58:49.000Z"
     }
   ]
 }

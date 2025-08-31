@@ -33,16 +33,16 @@ if "%COMMAND%"=="start" (
   echo [DAEMON] Chay daemon mode - Cap nhat tu dong moi 5 phut
   echo [INFO] Nhan Ctrl+C de dung
   echo.
-  node "%~dp0auto-update.js" start
+  node "%~dp0auto-update.cjs" start
 ) else if "%COMMAND%"=="daemon" (
   echo [DAEMON] Chay daemon mode - Cap nhat tu dong moi 5 phut  
   echo [INFO] Nhan Ctrl+C de dung
   echo.
-  node "%~dp0auto-update.js" daemon
+  node "%~dp0auto-update.cjs" daemon
 ) else if "%COMMAND%"=="once" (
   echo [RUN] Chay cap nhat mot lan...
   echo.
-  node "%~dp0auto-update.js" once
+  node "%~dp0auto-update.cjs" once
   echo.
   echo [DONE] Hoan tat. Nhan phim bat ky de dong...
   pause >nul

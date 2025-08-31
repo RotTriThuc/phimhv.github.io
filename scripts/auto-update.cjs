@@ -259,7 +259,7 @@ class AutoUpdater {
 
   async createTrackableSummary(changes, totalMovies) {
     const summaryFile = path.join(__dirname, '..', 'movie-updates-summary.json');
-    
+
     const summary = {
       lastUpdate: new Date().toISOString(),
       totalMovies: totalMovies,
@@ -288,26 +288,26 @@ class AutoUpdater {
 
   createNotificationMessage(changes) {
     const messages = [];
-    
+
     if (changes.newMovies.length > 0) {
       messages.push(`🎬 ${changes.newMovies.length} phim mới`);
     }
-    
+
     if (changes.newEpisodes.length > 0) {
       messages.push(`📺 ${changes.newEpisodes.length} tập mới`);
     }
-    
+
     if (changes.updatedMovies.length > 0) {
       messages.push(`🔄 ${changes.updatedMovies.length} phim cập nhật`);
     }
-    
+
     return messages.length > 0 ? messages.join(' • ') : 'Không có cập nhật mới';
   }
 
   async performUpdate() {
     const startTime = Date.now();
     console.log(`\n🔄 Starting update at ${new Date().toLocaleString('vi-VN')}`);
-    
+
     try {
       // Reset stats
       this.stats = {
@@ -333,7 +333,7 @@ class AutoUpdater {
 
       // Detect changes
       const changes = await this.detectChanges(existingMovies, newMovies);
-      
+
       // Save updates log
       await this.saveUpdatesLog(changes);
 
@@ -342,13 +342,13 @@ class AutoUpdater {
 
       // Create notification
       const notification = this.createNotificationMessage(changes);
-      
+
       const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-      
+
       console.log(`\n✅ Update completed in ${duration}s`);
       console.log(`📊 Stats: ${this.stats.newMovies} new movies, ${this.stats.newEpisodes} new episodes, ${this.stats.updatedMovies} updates`);
       console.log(`🔔 ${notification}`);
-      
+
       // Tạo file notification cho frontend
       await this.saveNotification({
         message: notification,
@@ -362,7 +362,7 @@ class AutoUpdater {
       if (hasSignificantUpdates) {
         console.log('\n🔄 Attempting to push updates to GitHub...');
         const pushSuccess = await this.pushToGitHub(notification);
-        
+
         if (pushSuccess) {
           console.log('🎉 Auto-push completed successfully!');
         } else {
@@ -552,10 +552,10 @@ class AutoUpdater {
 
   async startScheduler() {
     console.log(`⏰ Starting scheduler with ${this.config.updateInterval / 1000 / 60} minute intervals`);
-    
+
     // Chạy ngay lần đầu
     await this.performUpdate();
-    
+
     // Lặp lại theo interval
     setInterval(async () => {
       await this.performUpdate();
@@ -581,7 +581,7 @@ async function main() {
       console.log('🚀 Starting auto-updater daemon...');
       await updater.startScheduler();
       break;
-      
+
     case 'once':
     default:
       console.log('🔄 Running single update...');
@@ -608,4 +608,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = AutoUpdater; 
+module.exports = AutoUpdater;

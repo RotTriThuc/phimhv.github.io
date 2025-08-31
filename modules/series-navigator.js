@@ -260,9 +260,55 @@ export function createSeriesNavigator(currentMovie, relatedSeasons, createEl = n
 
   const navigator = createElement('div', 'series-navigator');
 
+  // Header với title và refresh button
+  const header = createElement('div', 'series-navigator__header');
+
   // Title
   const title = createElement('h3', 'series-navigator__title', '🎬 Các phần trong series');
-  navigator.appendChild(title);
+  header.appendChild(title);
+
+  // Refresh button
+  const refreshBtn = createElement('button', 'series-navigator__refresh-btn', '🔄');
+  refreshBtn.title = 'Kiểm tra phần mới';
+  refreshBtn.addEventListener('click', async () => {
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = '⏳';
+
+    try {
+      // Force refresh related seasons
+      const api = window.Api;
+      const extractItems = window.extractItems;
+      const newSeasons = await getCachedRelatedSeasons(currentMovie, api, extractItems, true);
+
+      // Re-render navigator
+      const newNavigator = createSeriesNavigator(currentMovie, newSeasons, createElement);
+      if (newNavigator && navigator.parentNode) {
+        navigator.parentNode.replaceChild(newNavigator, navigator);
+      }
+
+      // Show notification
+      if (window.showNotification) {
+        window.showNotification({
+          message: '✅ Đã cập nhật danh sách phần phim',
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing series:', error);
+      if (window.showNotification) {
+        window.showNotification({
+          message: '❌ Lỗi khi cập nhật: ' + error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } finally {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = '🔄';
+    }
+  });
+
+  header.appendChild(refreshBtn);
+  navigator.appendChild(header);
 
   // Series name
   const currentSeriesInfo = getSeriesBaseInfo(currentMovie);
@@ -399,28 +445,74 @@ const relatedSeasonsCache = new Map();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 phút
 
 /**
- * Lấy related seasons với caching
+ * Enhanced cache với smart invalidation
+ * @param {string} cacheKey - Cache key
+ * @param {boolean} forceRefresh - Force refresh cache
+ * @returns {Object|null} Cached data hoặc null
+ */
+function getSmartCache(cacheKey, forceRefresh = false) {
+  if (forceRefresh) {
+    relatedSeasonsCache.delete(cacheKey);
+    return null;
+  }
+
+  const cached = relatedSeasonsCache.get(cacheKey);
+  if (!cached) return null;
+
+  // Check cache expiry
+  if (Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached;
+  }
+
+  // Cache expired
+  relatedSeasonsCache.delete(cacheKey);
+  return null;
+}
+
+/**
+ * Lấy related seasons với caching và auto-update support
  * @param {Object} currentMovie - Movie hiện tại
  * @param {Object} api - Api instance
  * @param {Function} extractItems - Function to extract items from API response
+ * @param {boolean} forceRefresh - Force refresh từ API
  * @returns {Array} Cached hoặc fresh data
  */
-export async function getCachedRelatedSeasons(currentMovie, api = null, extractItems = null) {
-  console.log('🚀 getCachedRelatedSeasons called for:', currentMovie.name);
+export async function getCachedRelatedSeasons(currentMovie, api = null, extractItems = null, forceRefresh = false) {
+  console.log('🚀 getCachedRelatedSeasons called for:', currentMovie.name, forceRefresh ? '(force refresh)' : '');
 
   const cacheKey = currentMovie.slug;
-  const cached = relatedSeasonsCache.get(cacheKey);
+  const cached = getSmartCache(cacheKey, forceRefresh);
 
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+  if (cached && !forceRefresh) {
     console.log('💾 Using cached related seasons for:', currentMovie.name);
     return cached.data;
   }
-  
+
   const relatedSeasons = await findRelatedSeasons(currentMovie, api, extractItems);
   relatedSeasonsCache.set(cacheKey, {
     data: relatedSeasons,
     timestamp: Date.now()
   });
+
+  // Auto-track series nếu có Series Update Manager
+  try {
+    const seriesInfo = getSeriesBaseInfo(currentMovie);
+    if (seriesInfo && window.seriesUpdateManager) {
+      window.seriesUpdateManager.trackSeries(seriesInfo, currentMovie, async (newSeasons) => {
+        // Callback khi có update - invalidate cache
+        console.log('🔄 Series updated, invalidating cache for:', currentMovie.name);
+        relatedSeasonsCache.delete(cacheKey);
+
+        // Trigger UI update event
+        const event = new CustomEvent('seriesNavigatorUpdate', {
+          detail: { currentMovie, newSeasons }
+        });
+        window.dispatchEvent(event);
+      });
+    }
+  } catch (error) {
+    console.warn('Could not setup auto-tracking:', error);
+  }
 
   return relatedSeasons;
 }

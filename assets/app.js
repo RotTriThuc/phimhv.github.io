@@ -2278,12 +2278,58 @@ async function renderDetail(root, slug) {
     // Add series navigator
     try {
       const { getCachedRelatedSeasons, createSeriesNavigator } = await import('../modules/series-navigator.js');
+
+      // Initialize Series Update Manager if not already done
+      if (!window.seriesUpdateManager) {
+        try {
+          const { seriesUpdateManager } = await import('../modules/series-update-manager.js');
+          window.seriesUpdateManager = seriesUpdateManager;
+          console.log('Series Update Manager initialized');
+        } catch (error) {
+          console.warn('Could not initialize Series Update Manager:', error);
+        }
+      }
+
       const relatedSeasons = await getCachedRelatedSeasons(movie, Api, extractItems);
       const seriesNavigator = createSeriesNavigator(movie, relatedSeasons, createEl);
 
       if (seriesNavigator) {
         root.appendChild(seriesNavigator);
         Logger.debug('Series navigator added to detail page');
+
+        // Setup auto-update event listener cho detail page
+        const handleSeriesUpdate = (event) => {
+          const { seriesInfo, newSeasons } = event.detail;
+          Logger.info('🔄 Series updated on detail page:', seriesInfo.baseName);
+
+          // Re-render series navigator với data mới
+          const newNavigator = createSeriesNavigator(movie, newSeasons, createEl);
+          if (newNavigator && seriesNavigator.parentNode) {
+            seriesNavigator.parentNode.replaceChild(newNavigator, seriesNavigator);
+
+            // Show notification
+            if (window.showNotification) {
+              window.showNotification({
+                message: `🆕 Có phần mới của "${seriesInfo.baseName}"!`,
+                timestamp: new Date().toISOString()
+              });
+            }
+          }
+        };
+
+        // Add event listener
+        window.addEventListener('seriesUpdated', handleSeriesUpdate);
+
+        // Cleanup function (sẽ được gọi khi navigate away)
+        const cleanup = () => {
+          window.removeEventListener('seriesUpdated', handleSeriesUpdate);
+        };
+
+        // Store cleanup function for later use
+        if (!window.pageCleanupFunctions) {
+          window.pageCleanupFunctions = [];
+        }
+        window.pageCleanupFunctions.push(cleanup);
       }
     } catch (error) {
       Logger.warn('Could not load series navigator:', error);
@@ -2495,6 +2541,18 @@ async function renderWatch(root, slug, params) {
     // Add series navigator for watch page
     try {
       const { getCachedRelatedSeasons, createWatchSeriesNavigator } = await import('../modules/series-navigator.js');
+
+      // Initialize Series Update Manager if not already done
+      if (!window.seriesUpdateManager) {
+        try {
+          const { seriesUpdateManager } = await import('../modules/series-update-manager.js');
+          window.seriesUpdateManager = seriesUpdateManager;
+          console.log('Series Update Manager initialized');
+        } catch (error) {
+          console.warn('Could not initialize Series Update Manager:', error);
+        }
+      }
+
       const relatedSeasons = await getCachedRelatedSeasons(movie, Api, extractItems);
       const watchNavigator = createWatchSeriesNavigator(movie, relatedSeasons, createEl);
 
@@ -3405,7 +3463,20 @@ async function router() {
     return;
   }
   isRouting = true;
-  
+
+  // Cleanup previous page resources
+  if (window.pageCleanupFunctions && window.pageCleanupFunctions.length > 0) {
+    Logger.debug('Cleaning up previous page resources...');
+    window.pageCleanupFunctions.forEach(cleanup => {
+      try {
+        cleanup();
+      } catch (error) {
+        Logger.warn('Error in page cleanup:', error);
+      }
+    });
+    window.pageCleanupFunctions = [];
+  }
+
   // Smart scroll to top on navigation
   const currentScrollY = window.scrollY;
   if (currentScrollY > 100) {
