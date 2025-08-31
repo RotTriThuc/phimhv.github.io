@@ -1758,6 +1758,10 @@ class MemoryMonitor {
 
 const Api = new APIManager();
 
+// Expose Api and extractItems to window for series-navigator.js
+window.Api = Api;
+window.extractItems = extractItems;
+
 /* Routing */
 function parseHash() {
   const raw = location.hash || '#/';
