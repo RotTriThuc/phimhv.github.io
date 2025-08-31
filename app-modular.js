@@ -21,6 +21,12 @@ import {
 } from './modules/ui-components.js';
 import { initRouter, registerPageRenderers } from './modules/router.js';
 
+// Import performance optimization modules
+import { networkMonitor } from './modules/network-monitor.js';
+import { createVideoPlayer } from './modules/video-player.js';
+import { videoCacheManager } from './modules/video-cache.js';
+import { enhancedPerformanceMonitor, recordVideoEvent, recordApiEvent } from './modules/performance-monitor-enhanced.js';
+
 // Import page renderers
 import {
   renderHome,
@@ -100,17 +106,64 @@ class XemPhimApp {
   async initCore() {
     // Initialize theme
     initTheme();
-    
+
+    // Initialize network monitoring
+    try {
+      await networkMonitor.init();
+      Logger.info('🌐 Network monitoring initialized');
+
+      // Setup network quality change listener
+      networkMonitor.addListener((event, data) => {
+        if (event === 'qualityChange') {
+          showNotification({
+            message: `📶 Network quality changed to: ${data.newQuality}`,
+            type: 'info',
+            duration: 3000
+          });
+        }
+      });
+
+    } catch (error) {
+      Logger.warn('⚠️ Network monitoring initialization failed:', error);
+    }
+
+    // Initialize video cache manager
+    try {
+      await videoCacheManager.init();
+      Logger.info('💾 Video cache manager initialized');
+    } catch (error) {
+      Logger.warn('⚠️ Video cache manager initialization failed:', error);
+    }
+
+    // Initialize enhanced performance monitoring
+    try {
+      await enhancedPerformanceMonitor.init();
+      Logger.info('📊 Enhanced performance monitoring initialized');
+
+      // Setup performance alerts
+      window.addEventListener('performance-alert', (event) => {
+        const { category, message, severity } = event.detail;
+        showNotification({
+          message: `⚠️ Performance Alert: ${message}`,
+          type: severity === 'error' ? 'error' : 'warning',
+          duration: 5000
+        });
+      });
+
+    } catch (error) {
+      Logger.warn('⚠️ Performance monitoring initialization failed:', error);
+    }
+
     // Initialize memory monitoring
     if (isDev) {
       setInterval(() => {
         memoryManager.checkMemoryUsage();
       }, 30000); // Check every 30 seconds in development
     }
-    
+
     // Initialize global error handling
     this.initErrorHandling();
-    
+
     Logger.debug('Core systems initialized');
   }
 
@@ -500,20 +553,317 @@ class XemPhimApp {
   }
 
   async renderWatch(root, slug, params) {
+    const serverIndex = Number(params.get('server') || '0');
+    const epSlug = params.get('ep') || '';
+
     root.innerHTML = '<div class="page-loading">Đang tải trình phát...</div>';
-    
+
+    // Scroll to top for better video focus
+    if (window.scrollY > 50) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    }
+
     try {
-      // Watch page rendering logic would go here
+      // Record video session start
+      recordVideoEvent('session_start', {
+        movieSlug: slug,
+        episodeSlug: epSlug,
+        serverIndex: serverIndex
+      });
+
+      // Fetch movie data with enhanced API
+      const movieData = await Api.getMovie(slug);
+      if (!movieData?.data?.item) {
+        throw new Error('Movie data not found');
+      }
+
+      const movie = movieData.data.item;
+      const episodes = movie.episodes || [];
+
+      if (episodes.length === 0) {
+        throw new Error('No episodes available');
+      }
+
+      // Find current episode and server
+      const currentEpisode = episodes.find(ep =>
+        ep.server_data?.some(server =>
+          server.slug === epSlug || server.name === epSlug
+        )
+      );
+
+      if (!currentEpisode) {
+        throw new Error('Episode not found');
+      }
+
+      const server = currentEpisode.server_data[serverIndex] || currentEpisode.server_data[0];
+      if (!server) {
+        throw new Error('Server not found');
+      }
+
+      // Create enhanced watch page layout
       root.innerHTML = `
         <div class="watch-page">
-          <h1>Xem phim</h1>
-          <p>Slug: ${slug}</p>
+          <div class="watch-header">
+            <h1 class="watch-title">${movie.name}</h1>
+            <div class="watch-meta">
+              <span class="episode-info">Tập ${server.name}</span>
+              <span class="server-info">Server ${serverIndex + 1}</span>
+              <div class="network-status" id="network-status">
+                <span class="network-indicator">📶</span>
+                <span class="network-text">Đang kiểm tra...</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="video-container" id="video-container">
+            <div class="video-loading">
+              <div class="loading-spinner"></div>
+              <p>Đang tải video...</p>
+            </div>
+          </div>
+
+          <div class="video-controls-panel">
+            <div class="quality-selector" id="quality-selector" style="display: none;">
+              <label>Chất lượng:</label>
+              <select id="quality-select">
+                <option value="auto">Tự động</option>
+                <option value="high">Cao (720p+)</option>
+                <option value="medium">Trung bình (480p)</option>
+                <option value="low">Thấp (360p)</option>
+              </select>
+            </div>
+
+            <div class="performance-info" id="performance-info">
+              <div class="perf-item">
+                <span class="perf-label">Băng thông:</span>
+                <span class="perf-value" id="bandwidth-value">--</span>
+              </div>
+              <div class="perf-item">
+                <span class="perf-label">Buffer:</span>
+                <span class="perf-value" id="buffer-value">--</span>
+              </div>
+              <div class="perf-item">
+                <span class="perf-label">Cache:</span>
+                <span class="perf-value" id="cache-value">--</span>
+              </div>
+            </div>
+          </div>
         </div>
       `;
+
+      // Initialize enhanced video player
+      await this.initializeEnhancedVideoPlayer(server, movie, epSlug, serverIndex);
+
+      // Update network status display
+      this.updateNetworkStatusDisplay();
+
+      // Setup performance monitoring for this video session
+      this.setupVideoPerformanceMonitoring(slug, epSlug);
+
     } catch (error) {
       Logger.error('Watch page render failed:', error);
+      recordVideoEvent('session_error', {
+        movieSlug: slug,
+        episodeSlug: epSlug,
+        error: error.message
+      });
+
       root.appendChild(renderError('Không thể tải trình phát', () => this.renderWatch(root, slug, params)));
     }
+  }
+
+  async initializeEnhancedVideoPlayer(server, movie, epSlug, serverIndex) {
+    const container = document.getElementById('video-container');
+    if (!container) return;
+
+    try {
+      // Create advanced video player
+      const videoPlayer = createVideoPlayer(container, {
+        ui: {
+          showQualitySelector: true,
+          showSpeedControl: true,
+          showVolumeControl: true,
+          showFullscreenButton: true,
+          showPictureInPicture: true
+        }
+      });
+
+      // Setup video player event listeners
+      videoPlayer.on('loadedmetadata', () => {
+        recordVideoEvent('video_loaded', {
+          movieSlug: movie.slug,
+          episodeSlug: epSlug,
+          duration: videoPlayer.video?.duration || 0
+        });
+
+        // Show quality selector
+        const qualitySelector = document.getElementById('quality-selector');
+        if (qualitySelector) {
+          qualitySelector.style.display = 'block';
+        }
+      });
+
+      videoPlayer.on('qualityChanged', (data) => {
+        recordVideoEvent('quality_changed', {
+          movieSlug: movie.slug,
+          episodeSlug: epSlug,
+          newQuality: data.level,
+          reason: 'user_selection'
+        });
+      });
+
+      videoPlayer.on('error', (error) => {
+        recordVideoEvent('playback_error', {
+          movieSlug: movie.slug,
+          episodeSlug: epSlug,
+          error: error.message
+        });
+      });
+
+      // Load video source
+      if (server.link_m3u8) {
+        await videoPlayer.loadSource(server.link_m3u8);
+      } else if (server.link_embed) {
+        // Fallback to iframe embed
+        container.innerHTML = `
+          <iframe
+            src="${server.link_embed}"
+            allowfullscreen
+            referrerpolicy="no-referrer"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-presentation"
+            allow="autoplay; encrypted-media; fullscreen; picture-in-picture">
+          </iframe>
+        `;
+      } else {
+        throw new Error('No video source available');
+      }
+
+      // Setup quality selector
+      this.setupQualitySelector(videoPlayer);
+
+      // Start performance monitoring
+      this.startVideoPerformanceTracking(videoPlayer);
+
+    } catch (error) {
+      Logger.error('Video player initialization failed:', error);
+      container.innerHTML = `
+        <div class="video-error">
+          <h3>Không thể phát video</h3>
+          <p>${error.message}</p>
+          <button onclick="location.reload()" class="retry-btn">Thử lại</button>
+        </div>
+      `;
+    }
+  }
+
+  setupQualitySelector(videoPlayer) {
+    const qualitySelect = document.getElementById('quality-select');
+    if (!qualitySelect) return;
+
+    qualitySelect.addEventListener('change', (e) => {
+      const selectedQuality = e.target.value;
+      videoPlayer.setQuality(selectedQuality);
+
+      showNotification({
+        message: `Đã chuyển chất lượng video: ${selectedQuality}`,
+        type: 'success',
+        duration: 2000
+      });
+    });
+
+    // Set initial quality based on network conditions
+    const networkInfo = networkMonitor.getNetworkInfo();
+    const recommendedQuality = networkInfo.quality || 'auto';
+    qualitySelect.value = recommendedQuality;
+    videoPlayer.setQuality(recommendedQuality);
+  }
+
+  updateNetworkStatusDisplay() {
+    const networkStatus = document.getElementById('network-status');
+    if (!networkStatus) return;
+
+    const updateStatus = () => {
+      const networkInfo = networkMonitor.getNetworkInfo();
+      const indicator = networkStatus.querySelector('.network-indicator');
+      const text = networkStatus.querySelector('.network-text');
+
+      if (indicator && text) {
+        const qualityIcons = {
+          'ultra': '📶',
+          'high': '📶',
+          'medium': '📶',
+          'low': '📶'
+        };
+
+        indicator.textContent = qualityIcons[networkInfo.quality] || '📶';
+        text.textContent = `${networkInfo.quality} (${networkInfo.bandwidth.toFixed(1)} Mbps)`;
+
+        // Update performance info
+        this.updatePerformanceInfo(networkInfo);
+      }
+    };
+
+    // Update immediately and then every 5 seconds
+    updateStatus();
+    setInterval(updateStatus, 5000);
+  }
+
+  updatePerformanceInfo(networkInfo) {
+    const bandwidthValue = document.getElementById('bandwidth-value');
+    const bufferValue = document.getElementById('buffer-value');
+    const cacheValue = document.getElementById('cache-value');
+
+    if (bandwidthValue) {
+      bandwidthValue.textContent = `${networkInfo.bandwidth.toFixed(1)} Mbps`;
+    }
+
+    if (bufferValue) {
+      bufferValue.textContent = `${networkInfo.latency.toFixed(0)}ms`;
+    }
+
+    if (cacheValue) {
+      const cacheStats = videoCacheManager.getStats();
+      cacheValue.textContent = cacheStats.cacheUsage;
+    }
+  }
+
+  setupVideoPerformanceMonitoring(slug, epSlug) {
+    // Monitor video performance metrics
+    setInterval(() => {
+      const performanceData = enhancedPerformanceMonitor.getPerformanceData();
+
+      // Update UI with performance data
+      this.updatePerformanceInfo(performanceData.realTimeStats);
+
+      // Record performance metrics
+      recordVideoEvent('performance_snapshot', {
+        movieSlug: slug,
+        episodeSlug: epSlug,
+        ...performanceData.realTimeStats
+      });
+
+    }, 10000); // Every 10 seconds
+  }
+
+  startVideoPerformanceTracking(videoPlayer) {
+    setInterval(() => {
+      if (videoPlayer && videoPlayer.video) {
+        const bufferHealth = videoPlayer.getBufferHealth();
+        const stats = videoPlayer.getStats();
+
+        // Record buffer health
+        recordVideoEvent('buffer_health', {
+          value: bufferHealth,
+          ...stats
+        });
+
+        // Update buffer display
+        const bufferValue = document.getElementById('buffer-value');
+        if (bufferValue) {
+          bufferValue.textContent = `${bufferHealth.toFixed(1)}s`;
+        }
+      }
+    }, 5000); // Every 5 seconds
   }
 }
 

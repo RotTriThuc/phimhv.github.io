@@ -15,11 +15,13 @@ const SWLogger = {
   critical: (...args) => console.error('🚨 [SW-CRITICAL]', ...args)
 };
 
-const CACHE_NAME = 'xemphim-v1.2.0';
-const STATIC_CACHE = 'xemphim-static-v1.2.0';
-const DYNAMIC_CACHE = 'xemphim-dynamic-v1.2.0';
-const API_CACHE = 'xemphim-api-v1.2.0';
-const IMAGE_CACHE = 'xemphim-images-v1.2.0';
+const CACHE_NAME = 'xemphim-v1.3.0';
+const STATIC_CACHE = 'xemphim-static-v1.3.0';
+const DYNAMIC_CACHE = 'xemphim-dynamic-v1.3.0';
+const API_CACHE = 'xemphim-api-v1.3.0';
+const IMAGE_CACHE = 'xemphim-images-v1.3.0';
+const VIDEO_CACHE = 'xemphim-video-v1.3.0';
+const VIDEO_SEGMENT_CACHE = 'xemphim-video-segments-v1.3.0';
 
 // Cache strategies configuration
 const CACHE_STRATEGIES = {
@@ -53,6 +55,23 @@ const CACHE_STRATEGIES = {
     strategy: 'network-first',
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     maxEntries: 20
+  },
+
+  // Video streams - Special handling for HLS and video files
+  video: {
+    pattern: /\.(m3u8|ts|mp4|webm|mkv)$/,
+    strategy: 'video-cache-first',
+    maxAge: 2 * 60 * 60 * 1000, // 2 hours for video segments
+    maxEntries: 100,
+    supportRangeRequests: true
+  },
+
+  // Video manifests - Network first with short cache
+  videoManifest: {
+    pattern: /\.m3u8$/,
+    strategy: 'network-first',
+    maxAge: 30 * 1000, // 30 seconds
+    maxEntries: 20
   }
 };
 
@@ -72,6 +91,9 @@ const STATIC_ASSETS = [
   '/modules/error-boundaries.js',
   '/modules/performance-monitor.js',
   '/modules/testing.js',
+  '/modules/network-monitor.js',
+  '/modules/video-player.js',
+  '/modules/video-cache.js',
   '/firebase-config.js',
   '/manifest.json'
 ];
@@ -118,7 +140,7 @@ self.addEventListener('activate', (event) => {
     Promise.all([
       // Clean up old caches
       caches.keys().then((cacheNames) => {
-        const validCaches = [STATIC_CACHE, DYNAMIC_CACHE, API_CACHE, IMAGE_CACHE];
+        const validCaches = [STATIC_CACHE, DYNAMIC_CACHE, API_CACHE, IMAGE_CACHE, VIDEO_CACHE, VIDEO_SEGMENT_CACHE];
 
         return Promise.all(
           cacheNames.map((cacheName) => {
@@ -171,6 +193,8 @@ async function handleRequest(request) {
         return await networkFirst(request, strategy);
       case 'stale-while-revalidate':
         return await staleWhileRevalidate(request, strategy);
+      case 'video-cache-first':
+        return await videoCacheFirst(request, strategy);
       default:
         return await networkFirst(request, strategy);
     }
@@ -183,27 +207,37 @@ async function handleRequest(request) {
 // Determine cache strategy for request
 function getCacheStrategy(request) {
   const url = new URL(request.url);
-  
+
+  // Video manifest requests (.m3u8)
+  if (CACHE_STRATEGIES.videoManifest.pattern.test(url.pathname)) {
+    return { ...CACHE_STRATEGIES.videoManifest, cacheName: VIDEO_CACHE };
+  }
+
+  // Video segment requests (.ts, .mp4, etc.)
+  if (CACHE_STRATEGIES.video.pattern.test(url.pathname)) {
+    return { ...CACHE_STRATEGIES.video, cacheName: VIDEO_SEGMENT_CACHE };
+  }
+
   // API requests
   if (CACHE_STRATEGIES.api.pattern.test(url.href)) {
     return { ...CACHE_STRATEGIES.api, cacheName: API_CACHE };
   }
-  
+
   // Image requests
   if (CACHE_STRATEGIES.images.pattern.test(url.pathname)) {
     return { ...CACHE_STRATEGIES.images, cacheName: IMAGE_CACHE };
   }
-  
+
   // Static assets
   if (CACHE_STRATEGIES.static.pattern.test(url.pathname)) {
     return { ...CACHE_STRATEGIES.static, cacheName: STATIC_CACHE };
   }
-  
+
   // Page requests
   if (CACHE_STRATEGIES.pages.pattern.test(url.href)) {
     return { ...CACHE_STRATEGIES.pages, cacheName: DYNAMIC_CACHE };
   }
-  
+
   // Default to network first
   return { ...CACHE_STRATEGIES.pages, cacheName: DYNAMIC_CACHE };
 }
@@ -316,16 +350,135 @@ function isExpired(response, maxAge) {
   return (now - responseTime) > maxAge;
 }
 
+// Video cache first strategy with range request support
+async function videoCacheFirst(request, strategy) {
+  const cache = await caches.open(strategy.cacheName);
+  const url = new URL(request.url);
+
+  // Handle range requests for video segments
+  if (request.headers.get('range')) {
+    return await handleRangeRequest(request, cache, strategy);
+  }
+
+  // Regular video request handling
+  const cachedResponse = await cache.match(request);
+
+  if (cachedResponse && !isExpired(cachedResponse, strategy.maxAge)) {
+    SWLogger.debug('Video cache hit:', url.pathname);
+    return cachedResponse;
+  }
+
+  try {
+    const networkResponse = await fetch(request);
+
+    if (networkResponse.ok) {
+      // Clone response before caching
+      const responseClone = networkResponse.clone();
+      await cache.put(request, responseClone);
+      await cleanupCache(cache, strategy.maxEntries);
+
+      SWLogger.debug('Video cached:', url.pathname);
+    }
+
+    return networkResponse;
+  } catch (error) {
+    // Return stale cache if network fails
+    if (cachedResponse) {
+      SWLogger.debug('Serving stale video cache due to network error');
+      return cachedResponse;
+    }
+    throw error;
+  }
+}
+
+// Handle range requests for video streaming
+async function handleRangeRequest(request, cache, strategy) {
+  const url = new URL(request.url);
+  const rangeHeader = request.headers.get('range');
+
+  SWLogger.debug('Handling range request:', rangeHeader, 'for:', url.pathname);
+
+  // Try to get full cached response first
+  const cachedResponse = await cache.match(request.url);
+
+  if (cachedResponse && !isExpired(cachedResponse, strategy.maxAge)) {
+    // Extract range from cached response
+    const responseBuffer = await cachedResponse.arrayBuffer();
+    return createRangeResponse(responseBuffer, rangeHeader, cachedResponse.headers);
+  }
+
+  // Fetch from network with range request
+  try {
+    const networkResponse = await fetch(request);
+
+    if (networkResponse.ok) {
+      // For partial content, cache the full resource if possible
+      if (networkResponse.status === 206) {
+        // Try to fetch full resource for caching (without range header)
+        const fullRequest = new Request(request.url, {
+          method: 'GET',
+          headers: new Headers(request.headers)
+        });
+        fullRequest.headers.delete('range');
+
+        // Fetch full resource in background for caching
+        fetch(fullRequest).then(async (fullResponse) => {
+          if (fullResponse.ok && fullResponse.status === 200) {
+            const responseClone = fullResponse.clone();
+            await cache.put(fullRequest, responseClone);
+            await cleanupCache(cache, strategy.maxEntries);
+            SWLogger.debug('Full video cached for future range requests:', url.pathname);
+          }
+        }).catch(() => {
+          // Silent fail for background caching
+        });
+      }
+    }
+
+    return networkResponse;
+  } catch (error) {
+    // Fallback to cached response if available
+    if (cachedResponse) {
+      const responseBuffer = await cachedResponse.arrayBuffer();
+      return createRangeResponse(responseBuffer, rangeHeader, cachedResponse.headers);
+    }
+    throw error;
+  }
+}
+
+// Create range response from cached buffer
+function createRangeResponse(buffer, rangeHeader, originalHeaders) {
+  const rangeMatch = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+  if (!rangeMatch) {
+    return new Response(buffer, { status: 200, headers: originalHeaders });
+  }
+
+  const start = parseInt(rangeMatch[1]);
+  const end = rangeMatch[2] ? parseInt(rangeMatch[2]) : buffer.byteLength - 1;
+  const slicedBuffer = buffer.slice(start, end + 1);
+
+  const headers = new Headers(originalHeaders);
+  headers.set('Content-Range', `bytes ${start}-${end}/${buffer.byteLength}`);
+  headers.set('Content-Length', slicedBuffer.byteLength.toString());
+  headers.set('Accept-Ranges', 'bytes');
+
+  return new Response(slicedBuffer, {
+    status: 206,
+    statusText: 'Partial Content',
+    headers: headers
+  });
+}
+
 // Clean up cache to maintain size limits
 async function cleanupCache(cache, maxEntries) {
   if (!maxEntries) return;
-  
+
   const keys = await cache.keys();
-  
+
   if (keys.length > maxEntries) {
     // Remove oldest entries (simple FIFO)
     const entriesToDelete = keys.slice(0, keys.length - maxEntries);
-    
+
     await Promise.all(
       entriesToDelete.map(key => cache.delete(key))
     );
