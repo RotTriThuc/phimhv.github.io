@@ -1,73 +1,73 @@
 {
-  "lastUpdate": "2025-08-31T11:38:53.178Z",
-  "totalMovies": 198,
+  "lastUpdate": "2025-09-01T13:04:19.263Z",
+  "totalMovies": 225,
   "stats": {
-    "newMovies": 34,
-    "newEpisodes": 20,
+    "newMovies": 27,
+    "newEpisodes": 25,
     "updatedMovies": 0
   },
   "recentMovies": [
     {
-      "name": "Hải Hôn Hành",
-      "slug": "hai-hon-hanh",
-      "year": 2025,
-      "added": "2025-08-31T11:38:53.169Z"
+      "name": "Thám Tử Lừng Danh Conan",
+      "slug": "tham-tu-lung-danh-conan",
+      "year": 1996,
+      "added": "2025-09-01T13:04:19.247Z"
     },
     {
-      "name": "Yêu Lại Từ Đầu",
-      "slug": "yeu-lai-tu-dau-2025",
+      "name": "Phải Lòng Cún Con",
+      "slug": "phai-long-cun-con",
       "year": 2025,
-      "added": "2025-08-31T11:38:53.169Z"
+      "added": "2025-09-01T13:04:19.247Z"
     },
     {
-      "name": "Tại Hạ Anh Đài",
-      "slug": "tai-ha-anh-dai",
+      "name": "Khách Sạn Inhumans",
+      "slug": "khach-san-inhumans",
       "year": 2025,
-      "added": "2025-08-31T11:38:53.169Z"
+      "added": "2025-09-01T13:04:19.247Z"
     },
     {
-      "name": "Chuyện Chưa Kể Về Kẻ Bất Tử",
-      "slug": "chuyen-chua-ke-ve-ke-bat-tu",
+      "name": "Chiến Binh Xấu Xí (Dũng Sĩ Otaku Béo)",
+      "slug": "chien-binh-xau-xi-dung-si-otaku-beo",
       "year": 2025,
-      "added": "2025-08-31T11:38:53.169Z"
+      "added": "2025-09-01T13:04:19.247Z"
     },
     {
-      "name": "Đón Lấy Bình Minh (Season 3)",
-      "slug": "don-lay-binh-minh-season-3",
+      "name": "Khải Huyền Dị Giới Mynoghra: Chinh Phục Thế Giới Từ Nền Văn Minh Suy Tàn",
+      "slug": "khai-huyen-di-gioi-mynoghra-chinh-phuc-the-gioi-tu-nen-van-minh-suy-tan",
       "year": 2025,
-      "added": "2025-08-31T11:38:53.169Z"
+      "added": "2025-09-01T13:04:19.247Z"
     }
   ],
   "recentEpisodes": [
     {
-      "name": "Tử Dạ Quy",
-      "slug": "tu-da-quy",
-      "episode": "Tập 31",
-      "updated": "2025-08-31T17:42:27.000Z"
+      "name": "Yêu Lại Từ Đầu",
+      "slug": "yeu-lai-tu-dau-2025",
+      "episode": "Tập 8",
+      "updated": "2025-09-01T18:59:33.000Z"
     },
     {
       "name": "Trong Tầm Mắt",
       "slug": "trong-tam-mat",
-      "episode": "Tập 10",
-      "updated": "2025-08-31T17:25:03.000Z"
+      "episode": "Hoàn Tất (16/8)",
+      "updated": "2025-09-01T18:59:01.000Z"
     },
     {
-      "name": "Hiến Ngư",
-      "slug": "hien-ngu",
-      "episode": "Tập 29",
-      "updated": "2025-08-31T17:22:54.000Z"
-    },
-    {
-      "name": "Dữ Tấn Trường An",
-      "slug": "du-tan-truong-an",
-      "episode": "Tập 20",
-      "updated": "2025-08-31T17:22:19.000Z"
+      "name": "Tấn Giai Đích Vương Phi",
+      "slug": "tan-giai-dich-vuong-phi",
+      "episode": "Tập 11",
+      "updated": "2025-09-01T18:58:08.000Z"
     },
     {
       "name": "Sống Trong Một Ngày Suốt Trăm Nghìn Năm",
       "slug": "song-trong-mot-ngay-suot-tram-nghin-nam",
-      "episode": "Tập 12",
-      "updated": "2025-08-31T16:58:49.000Z"
+      "episode": "Tập 14",
+      "updated": "2025-09-01T18:57:46.000Z"
+    },
+    {
+      "name": "Quy Tắc Hắc Nguyệt Quang",
+      "slug": "quy-tac-hac-nguyet-quang",
+      "episode": "Hoàn Tất (24/24)",
+      "updated": "2025-09-01T18:57:16.000Z"
     }
   ]
 }
