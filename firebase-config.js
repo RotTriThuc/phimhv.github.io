@@ -34,6 +34,7 @@ const FirebaseLogger = {
 
 // Backward compatibility
 const log = {
+  debug: FirebaseLogger.debug,
   info: FirebaseLogger.info,
   warn: FirebaseLogger.warn,
   error: FirebaseLogger.error
@@ -1561,9 +1562,13 @@ class MovieCommentSystem {
         if (!readBy.includes(currentUserId)) {
           readBy.push(currentUserId);
 
+          // Tính toán giá trị mới cho totalReads
+          const currentTotalReads = (data.stats && data.stats.totalReads) || 0;
+          const newTotalReads = currentTotalReads + 1;
+
           transaction.update(notificationRef, {
             readBy,
-            'stats.totalReads': firebase.firestore.FieldValue.increment(1)
+            'stats.totalReads': newTotalReads
           });
         }
       });
