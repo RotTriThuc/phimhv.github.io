@@ -130,6 +130,12 @@
   <!-- Load JavaScript without cache-busting for better caching -->
   <script src="./firebase-config.js" defer></script>
 
+  <!-- 🔐 Firebase Auth Fix for GitHub Pages -->
+  <script src="./firebase-auth-fix.js" defer></script>
+
+  <!-- 🧪 Firebase Auth Fix Test Suite (only runs in dev or with ?test=firebase-auth) -->
+  <script src="./test-firebase-auth-fix.js" defer></script>
+
   <!-- 🔥 Firebase Primary Storage System -->
   <script src="./firebase-primary-storage.js" defer></script>
   <script src="./moviecomments-primary-integration.js" defer></script>

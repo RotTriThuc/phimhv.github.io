@@ -111,14 +111,15 @@ class MovieCommentSystem {
 
   // Load Firebase SDK - Using v8 compat for easier integration
   async loadFirebase() {
-    if (window.firebase && window.firebase.firestore) {
+    if (window.firebase && window.firebase.firestore && window.firebase.auth) {
       log.info('🔄 Firebase already loaded, skipping...');
       return;
     }
 
     const scripts = [
       'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
-      'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js'
+      'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js',
+      'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js'
     ];
 
     for (const src of scripts) {
@@ -174,8 +175,21 @@ class MovieCommentSystem {
 
   // 🔑 CROSS-BROWSER USER ID SYSTEM
   // Tạo User ID persistent cross-browser với multiple storage methods
-  getUserId() {
-    // Try multiple storage methods for cross-browser persistence
+  async getUserId() {
+    // Try Firebase Auth Fix first (for GitHub Pages persistence)
+    if (window.firebaseAuthFix) {
+      try {
+        const authUserId = await window.firebaseAuthFix.getUserId();
+        if (authUserId) {
+          log.info('🔐 Using Firebase Auth User ID:', authUserId);
+          return authUserId;
+        }
+      } catch (error) {
+        log.warn('⚠️ Firebase Auth Fix failed, falling back:', error);
+      }
+    }
+
+    // Fallback to original method
     let userId = this._tryGetUserIdFromStorage();
 
     if (!userId) {
@@ -309,7 +323,7 @@ class MovieCommentSystem {
   // 🔐 SYNC CODE SYSTEM for Cross-Browser Sync
   // Generate sync code for user
   async generateSyncCode() {
-    const userId = this.getUserId();
+    const userId = await this.getUserId();
     const userName = this.getUserName();
 
     // Create 6-digit sync code
@@ -611,8 +625,8 @@ class MovieCommentSystem {
   // Thêm comment mới
   async addComment(movieSlug, content) {
     if (!this.initialized) await this.init();
-    
-    const userId = this.getUserId();
+
+    const userId = await this.getUserId();
     const userName = this.getUserName();
     
     if (!movieSlug || !content || content.trim().length < 3) {
@@ -685,7 +699,7 @@ class MovieCommentSystem {
 
   // Like/unlike comment
   async toggleLike(commentId) {
-    const userId = this.getUserId();
+    const userId = await this.getUserId();
     const commentRef = this.db.collection('movieComments').doc(commentId);
 
     try {
@@ -721,7 +735,7 @@ class MovieCommentSystem {
 
   // Report comment
   async reportComment(commentId, reason = 'inappropriate') {
-    const userId = this.getUserId();
+    const userId = await this.getUserId();
     const commentRef = this.db.collection('movieComments').doc(commentId);
 
     try {
@@ -903,9 +917,10 @@ class MovieCommentSystem {
   }
 
   // Render single comment
-  renderComment(comment) {
+  async renderComment(comment) {
     const timeAgo = this.getTimeAgo(comment.timestamp);
-    const isLiked = comment.likedBy?.includes(this.getUserId());
+    const userId = await this.getUserId();
+    const isLiked = comment.likedBy?.includes(userId);
     
     return `
       <div class="comment" data-comment-id="${comment.id}">
@@ -1117,7 +1132,7 @@ class MovieCommentSystem {
   async saveMovie(movie) {
     if (!this.initialized) await this.init();
 
-    const userId = this.getUserId();
+    const userId = await this.getUserId();
     const userName = this.getUserName();
 
     const movieData = {
@@ -1176,7 +1191,7 @@ class MovieCommentSystem {
   async removeSavedMovie(slug) {
     if (!this.initialized) await this.init();
 
-    const userId = this.getUserId();
+    const userId = await this.getUserId();
 
     try {
       const snapshot = await this.db.collection('savedMovies')
@@ -1227,7 +1242,7 @@ class MovieCommentSystem {
   async getSavedMovies() {
     if (!this.initialized) await this.init();
 
-    const userId = this.getUserId();
+    const userId = await this.getUserId();
 
     try {
       // Try with orderBy first (requires composite index)
@@ -1271,7 +1286,7 @@ class MovieCommentSystem {
   async isMovieSaved(slug) {
     if (!this.initialized) await this.init();
 
-    const userId = this.getUserId();
+    const userId = await this.getUserId();
 
     try {
       const snapshot = await this.db.collection('savedMovies')
@@ -1292,7 +1307,7 @@ class MovieCommentSystem {
   async clearAllSavedMovies() {
     if (!this.initialized) await this.init();
 
-    const userId = this.getUserId();
+    const userId = await this.getUserId();
 
     try {
       const snapshot = await this.db.collection('savedMovies')
@@ -1324,7 +1339,7 @@ class MovieCommentSystem {
   async setWatchProgress(movieSlug, episodeInfo) {
     if (!this.initialized) await this.init();
 
-    const userId = this.getUserId();
+    const userId = await this.getUserId();
     const progressData = {
       movieSlug: movieSlug,
       userId: userId,
@@ -1346,7 +1361,7 @@ class MovieCommentSystem {
   async getWatchProgress(movieSlug) {
     if (!this.initialized) await this.init();
 
-    const userId = this.getUserId();
+    const userId = await this.getUserId();
     const docId = `${userId}_${movieSlug}`;
 
     try {
@@ -1406,7 +1421,7 @@ class MovieCommentSystem {
   async clearWatchProgress(movieSlug) {
     if (!this.initialized) await this.init();
 
-    const userId = this.getUserId();
+    const userId = await this.getUserId();
     const docId = `${userId}_${movieSlug}`;
 
     try {
