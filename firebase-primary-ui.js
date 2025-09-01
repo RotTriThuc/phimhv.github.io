@@ -74,10 +74,10 @@ class FirebasePrimaryUI {
     const moviesHTML = movies.map(movie => `
       <div class="movie-item" data-slug="${movie.slug}">
         <div class="movie-poster">
-          <img src="${movie.poster_url || '/assets/images/no-poster.jpg'}" 
-               alt="${movie.name}" 
+          <img src="${movie.poster_url || '/assets/images/no-poster.svg'}"
+               alt="${movie.name}"
                loading="lazy"
-               onerror="this.src='/assets/images/no-poster.jpg'">
+               onerror="this.src='/assets/images/no-poster.svg'">
           <div class="movie-overlay">
             <button class="btn-remove-movie" data-slug="${movie.slug}" title="Xóa khỏi danh sách">
               <i class="fas fa-trash"></i>

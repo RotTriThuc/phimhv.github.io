@@ -176,20 +176,7 @@ class MovieCommentSystem {
   // 🔑 CROSS-BROWSER USER ID SYSTEM
   // Tạo User ID persistent cross-browser với multiple storage methods
   async getUserId() {
-    // Try Firebase Auth Fix first (for GitHub Pages persistence)
-    if (window.firebaseAuthFix) {
-      try {
-        const authUserId = await window.firebaseAuthFix.getUserId();
-        if (authUserId) {
-          log.info('🔐 Using Firebase Auth User ID:', authUserId);
-          return authUserId;
-        }
-      } catch (error) {
-        log.warn('⚠️ Firebase Auth Fix failed, falling back:', error);
-      }
-    }
-
-    // Fallback to original method
+    // Get user ID from storage
     let userId = this._tryGetUserIdFromStorage();
 
     if (!userId) {

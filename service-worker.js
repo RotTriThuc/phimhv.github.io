@@ -95,7 +95,8 @@ const STATIC_ASSETS = [
   '/modules/video-player.js',
   '/modules/video-cache.js',
   '/firebase-config.js',
-  '/manifest.json'
+  '/manifest.json',
+  '/assets/images/no-poster.svg'
 ];
 
 // Offline fallback pages

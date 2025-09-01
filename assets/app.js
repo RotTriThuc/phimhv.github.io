@@ -1308,14 +1308,14 @@ function renderError(message, onRetry) {
 }
 
 function movieCard(movie) {
-  const poster = movie.poster_url || movie.thumb_url || '';
+  const poster = movie.poster_url || movie.thumb_url || '/assets/images/no-poster.svg';
   const languages = movie.lang || movie.language || '';
   const title = movie.name || movie.origin_name || 'Không tên';
   const year = movie.year || '';
   const slug = movie.slug;
 
   const card = createEl('article', 'card');
-  
+
   // Check if movie is saved and has progress (async)
   let isSaved = false;
   let progress = null;
@@ -1340,14 +1340,14 @@ function movieCard(movie) {
   } catch (error) {
     log.warn('⚠️ Error checking movie status:', error);
   }
-  
+
   const badges = [];
   if (languages) badges.push(`<span class="card__badge">${languages}</span>`);
 
   card.innerHTML = `
     ${badges.join('')}
     <div class="card__img-container">
-      <img class="card__img" alt="${title}" data-src="${poster}">
+      <img class="card__img" alt="${title}" data-src="${poster}" onerror="this.src='/assets/images/no-poster.svg'">
     </div>
     <div class="card__meta">
       <h3 class="card__title">${title}</h3>
@@ -2084,12 +2084,13 @@ async function renderDetail(root, slug) {
 
     const wrap = createEl('div', 'detail');
 
-    const posterUrl = movie.poster_url || movie.thumb_url;
+    const posterUrl = movie.poster_url || movie.thumb_url || '/assets/images/no-poster.svg';
     const poster = createEl('img', 'detail__poster');
     poster.referrerPolicy = 'no-referrer';
     poster.alt = movie.name || 'Poster';
     poster.dataset.src = posterUrl;
     poster.style.opacity = '0'; // Start hidden
+    poster.onerror = () => poster.src = '/assets/images/no-poster.svg';
     
     // Create container for poster if needed
     const posterContainer = createEl('div', 'detail__poster-container');
@@ -3926,10 +3927,10 @@ class MovieBannerSlider {
     `).join('');
     
     const thumbnailsHtml = this.slides.map((movie, index) => `
-      <div class="banner-thumbnail ${index === 0 ? 'active' : ''}" 
-           data-index="${index}" 
+      <div class="banner-thumbnail ${index === 0 ? 'active' : ''}"
+           data-index="${index}"
            aria-label="${movie.name}">
-        <img src="${movie.poster_url}" alt="${movie.name}" loading="lazy">
+        <img src="${movie.poster_url || '/assets/images/no-poster.svg'}" alt="${movie.name}" loading="lazy" onerror="this.src='/assets/images/no-poster.svg'">
       </div>
     `).join('');
     
@@ -4166,16 +4167,18 @@ class MovieBannerSlider {
   
   preloadImages() {
     // Only preload first image immediately, others on demand
-    if (this.slides.length > 0 && this.slides[0].poster_url) {
+    if (this.slides.length > 0) {
       const img = new Image();
-      img.src = this.slides[0].poster_url;
+      img.src = this.slides[0].poster_url || '/assets/images/no-poster.svg';
+      img.onerror = () => img.src = '/assets/images/no-poster.svg';
     }
-    
+
     // Preload second image after a delay
     if (this.slides.length > 1) {
       requestAnimationFrame(() => {
         const img = new Image();
-        img.src = this.slides[1].poster_url;
+        img.src = this.slides[1].poster_url || '/assets/images/no-poster.svg';
+        img.onerror = () => img.src = '/assets/images/no-poster.svg';
       });
     }
   }
@@ -4183,10 +4186,11 @@ class MovieBannerSlider {
   preloadNextImage() {
     const nextIndex = (this.currentIndex + 1) % this.slides.length;
     const nextMovie = this.slides[nextIndex];
-    
-    if (nextMovie?.poster_url) {
+
+    if (nextMovie) {
       const img = new Image();
-      img.src = nextMovie.poster_url;
+      img.src = nextMovie.poster_url || '/assets/images/no-poster.svg';
+      img.onerror = () => img.src = '/assets/images/no-poster.svg';
     }
   }
   

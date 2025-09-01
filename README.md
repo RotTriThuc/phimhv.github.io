@@ -224,7 +224,7 @@ CACHE_DURATION: 60 * 60 * 1000 // 1 hour
 **Images not loading:**
 ```javascript
 // Fallback to placeholder
-img.onerror = () => img.src = 'placeholder.svg';
+img.onerror = () => img.src = '/assets/images/no-poster.svg';
 ```
 
 ## 🤝 Contributing
