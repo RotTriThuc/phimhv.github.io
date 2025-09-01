@@ -119,12 +119,10 @@
   transform: scale(1.1);
 }
 
-.btn-remove-movie {
-  color: #e74c3c;
-}
-
+/* Hide specific overlay buttons */
+.btn-remove-movie,
 .btn-watch-movie {
-  color: #27ae60;
+  display: none !important;
 }
 
 /* Movie Info */
