@@ -988,8 +988,8 @@ const Storage = {
         }
       }
 
-      log.info('🔥 Loading movies from Firebase...');
-      const movies = await window.movieComments.getSavedMovies();
+      log.info('🔥 Loading movies from Firebase Primary Storage...');
+      const movies = await window.Storage.getSavedMovies();
 
       // Update cache
       this._savedMoviesCache = movies;
@@ -1015,7 +1015,7 @@ const Storage = {
         throw new Error('Firebase chưa sẵn sàng. Vui lòng thử lại sau.');
       }
 
-      const success = await window.movieComments.saveMovie(movie);
+      const success = await window.Storage.saveMovie(movie);
 
       // Clear cache to force refresh
       this._savedMoviesCache = null;
@@ -1036,7 +1036,7 @@ const Storage = {
         throw new Error('Firebase chưa sẵn sàng. Vui lòng thử lại sau.');
       }
 
-      const success = await window.movieComments.removeSavedMovie(slug);
+      const success = await window.Storage.removeMovie(slug);
 
       // Clear cache to force refresh
       this._savedMoviesCache = null;
@@ -1073,6 +1073,12 @@ const Storage = {
         }
       }
 
+      // Use Firebase Primary Storage directly to avoid circular reference
+      if (window.FirebasePrimaryStorage && window.FirebasePrimaryStorage.initialized) {
+        return await window.FirebasePrimaryStorage.isMovieSaved(slug);
+      }
+
+      // Fallback to movieComments if Firebase Primary Storage not available
       return await window.movieComments.isMovieSaved(slug);
     } catch (error) {
       log.error('❌ Check movie saved failed:', error);
@@ -3172,7 +3178,7 @@ window.immediateRefreshSavedMovies = async function() {
   }
 };
 
-// Render trang phim đã lưu
+// Render trang phim đã lưu với Firebase Primary UI
 async function renderSavedMovies(root) {
   if (root.dataset.rendering === 'saved-movies') {
     return;
@@ -3182,9 +3188,34 @@ async function renderSavedMovies(root) {
   root.dataset.rendering = 'saved-movies';
   root.offsetHeight;
 
+  // Create container for Firebase Primary UI
+  const savedMoviesContainer = createEl('div', 'saved-movies-container');
+  savedMoviesContainer.id = 'saved-movies-container';
+  root.appendChild(savedMoviesContainer);
+
+  // Use Firebase Primary UI to render movies
+  if (window.FirebasePrimaryUI) {
+    try {
+      await window.FirebasePrimaryUI.renderSavedMoviesList('saved-movies-container');
+      log.info('✅ Firebase Primary UI rendered saved movies');
+    } catch (error) {
+      log.error('❌ Firebase Primary UI failed:', error);
+      // Fallback to old rendering
+      await renderSavedMoviesLegacy(root, savedMoviesContainer);
+    }
+  } else {
+    log.warn('⚠️ Firebase Primary UI not available, using legacy rendering');
+    await renderSavedMoviesLegacy(root, savedMoviesContainer);
+  }
+
+  delete root.dataset.rendering;
+}
+
+// Legacy rendering as fallback
+async function renderSavedMoviesLegacy(root, container) {
   // Show loading state
   const loadingHeader = sectionHeader('❤️ Phim đã lưu');
-  root.appendChild(loadingHeader);
+  container.appendChild(loadingHeader);
 
   const loadingState = createEl('div', 'loading-state');
   loadingState.style.cssText = 'text-align:center;padding:40px 20px;color:var(--muted);';
@@ -3192,10 +3223,10 @@ async function renderSavedMovies(root) {
     <div style="font-size:32px;margin-bottom:16px;">⏳</div>
     <p>Đang tải danh sách phim đã lưu...</p>
     <div style="font-size:12px;margin-top:8px;">
-      ${window.movieComments?.initialized ? 'Từ Firebase' : 'Từ bộ nhớ local'}
+      ${window.movieComments?.initialized ? 'Từ Firebase Primary Storage' : 'Từ bộ nhớ local'}
     </div>
   `;
-  root.appendChild(loadingState);
+  container.appendChild(loadingState);
 
   try {
     // Load saved movies (async)
@@ -3219,10 +3250,10 @@ async function renderSavedMovies(root) {
           <button class="btn sync-device-btn-empty" style="background:#6c5ce7;color:white;">📱 Sync thiết bị</button>
         </div>
         <div style="font-size:12px;margin-top:16px;color:var(--muted);">
-          💡 Phim được lưu trên ${window.movieComments?.initialized ? 'Firebase - sync mọi thiết bị' : 'thiết bị này'}
+          💡 Phim được lưu trên Firebase Primary Storage - sync mọi thiết bị
         </div>
       `;
-      root.appendChild(emptyState);
+      container.appendChild(emptyState);
 
       // Add event listener for empty state sync button
       const emptySyncBtn = emptyState.querySelector('.sync-device-btn-empty');
@@ -3232,62 +3263,59 @@ async function renderSavedMovies(root) {
         });
       }
 
-      delete root.dataset.rendering;
       return;
     }
   
-  // Thông tin thống kê
-  const stats = createEl('div', 'saved-stats');
-  stats.style.cssText = 'margin-bottom:20px;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:12px;';
-  stats.innerHTML = `
-    <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:14px;color:var(--muted);">
-      <div>📊 Tổng cộng: <strong style="color:var(--text);">${savedMovies.length}</strong> phim</div>
-      <div>📅 Lưu gần nhất: <strong style="color:var(--text);">${new Date(savedMovies[0]?.savedAt).toLocaleDateString('vi-VN')}</strong></div>
-    </div>
-  `;
-  root.appendChild(stats);
-  
-  // Sync status indicator with cross-device sync button
-  const syncStatus = createEl('div', 'sync-status');
-  syncStatus.style.cssText = 'margin-bottom:20px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:13px;';
+    // Thông tin thống kê
+    const stats = createEl('div', 'saved-stats');
+    stats.style.cssText = 'margin-bottom:20px;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:12px;';
+    stats.innerHTML = `
+      <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:14px;color:var(--muted);">
+        <div>📊 Tổng cộng: <strong style="color:var(--text);">${savedMovies.length}</strong> phim</div>
+        <div>📅 Lưu gần nhất: <strong style="color:var(--text);">${new Date(savedMovies[0]?.savedAt).toLocaleDateString('vi-VN')}</strong></div>
+      </div>
+    `;
+    container.appendChild(stats);
 
-  const isFirebaseReady = window.movieComments?.initialized;
-  const currentUser = isFirebaseReady ? window.movieComments.getUserName() : 'Khách';
+    // Sync status indicator with cross-device sync button
+    const syncStatus = createEl('div', 'sync-status');
+    syncStatus.style.cssText = 'margin-bottom:20px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:13px;';
 
-  // Debug log
-  Logger.debug('Sync Button Debug - renderSavedMovies:', {
-    isFirebaseReady,
-    currentUser,
-    hasMovieComments: !!window.movieComments,
-    location: window.location.hash
-  });
+    const isFirebaseReady = window.movieComments?.initialized;
+    const currentUser = isFirebaseReady ? window.movieComments.getUserName() : 'Khách';
 
-  syncStatus.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:16px;">${isFirebaseReady ? '🔄' : '💾'}</span>
-        <div>
-          <div style="font-weight:500;color:var(--text);">
-            ${isFirebaseReady ? 'Đồng bộ Firebase' : 'Đang kết nối Firebase'} • ${currentUser}
-          </div>
-          <div style="color:var(--muted);font-size:12px;">
-            ${isFirebaseReady ?
-              'Phim được sync trên mọi thiết bị và trình duyệt' :
-              'Đang tải dữ liệu từ Firebase...'}
+    // Debug log
+    Logger.debug('Sync Button Debug - renderSavedMovies:', {
+      isFirebaseReady,
+      currentUser,
+      hasMovieComments: !!window.movieComments,
+      location: window.location.hash
+    });
+
+    syncStatus.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:16px;">${isFirebaseReady ? '🔄' : '💾'}</span>
+          <div>
+            <div style="font-weight:500;color:var(--text);">
+              Firebase Primary Storage • ${currentUser}
+            </div>
+            <div style="color:var(--muted);font-size:12px;">
+              Phim được lưu trên Firebase - sync mọi thiết bị
+            </div>
           </div>
         </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn--ghost refresh-firebase-btn" style="font-size:12px;padding:6px 12px;background:#00b894;color:white;" title="Làm mới Firebase và trang web (F5)">
+            🔄 Làm mới
+          </button>
+          <button class="btn btn--ghost sync-device-btn" style="font-size:12px;padding:6px 12px;background:#6c5ce7;color:white;">
+            📱 Sync thiết bị
+          </button>
+        </div>
       </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn--ghost refresh-firebase-btn" style="font-size:12px;padding:6px 12px;background:#00b894;color:white;" title="Làm mới Firebase và trang web (F5)">
-          🔄 Làm mới
-        </button>
-        <button class="btn btn--ghost sync-device-btn" style="font-size:12px;padding:6px 12px;background:#6c5ce7;color:white;">
-          📱 Sync thiết bị
-        </button>
-      </div>
-    </div>
-  `;
-  root.appendChild(syncStatus);
+    `;
+    container.appendChild(syncStatus);
 
   // Add F5 keyboard shortcut for Firebase + page refresh (only on saved movies page)
   const handleKeyPress = (event) => {
@@ -3440,7 +3468,7 @@ async function renderSavedMovies(root) {
 
     // Danh sách phim
     const moviesGrid = listGrid(savedMovies, 'grid');
-    root.appendChild(moviesGrid);
+    container.appendChild(moviesGrid);
 
   } catch (error) {
     Logger.error('Load saved movies failed:', error);
@@ -3454,10 +3482,8 @@ async function renderSavedMovies(root) {
       <p style="margin:0 0 20px 0;">Có lỗi xảy ra khi tải phim đã lưu</p>
       <button class="btn btn--ghost" onclick="renderSavedMovies(document.getElementById('app'))">Thử lại</button>
     `;
-    root.appendChild(errorState);
+    container.appendChild(errorState);
   }
-
-  delete root.dataset.rendering;
 }
 
 /* App bootstrap */
