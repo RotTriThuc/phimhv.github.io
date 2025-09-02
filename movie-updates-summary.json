@@ -1,73 +1,24 @@
 {
-  "lastUpdate": "2025-09-01T13:04:19.263Z",
+  "lastUpdate": "2025-09-02T02:36:19.310Z",
   "totalMovies": 225,
   "stats": {
-    "newMovies": 27,
-    "newEpisodes": 25,
+    "newMovies": 0,
+    "newEpisodes": 2,
     "updatedMovies": 0
   },
-  "recentMovies": [
-    {
-      "name": "Thám Tử Lừng Danh Conan",
-      "slug": "tham-tu-lung-danh-conan",
-      "year": 1996,
-      "added": "2025-09-01T13:04:19.247Z"
-    },
-    {
-      "name": "Phải Lòng Cún Con",
-      "slug": "phai-long-cun-con",
-      "year": 2025,
-      "added": "2025-09-01T13:04:19.247Z"
-    },
-    {
-      "name": "Khách Sạn Inhumans",
-      "slug": "khach-san-inhumans",
-      "year": 2025,
-      "added": "2025-09-01T13:04:19.247Z"
-    },
-    {
-      "name": "Chiến Binh Xấu Xí (Dũng Sĩ Otaku Béo)",
-      "slug": "chien-binh-xau-xi-dung-si-otaku-beo",
-      "year": 2025,
-      "added": "2025-09-01T13:04:19.247Z"
-    },
-    {
-      "name": "Khải Huyền Dị Giới Mynoghra: Chinh Phục Thế Giới Từ Nền Văn Minh Suy Tàn",
-      "slug": "khai-huyen-di-gioi-mynoghra-chinh-phuc-the-gioi-tu-nen-van-minh-suy-tan",
-      "year": 2025,
-      "added": "2025-09-01T13:04:19.247Z"
-    }
-  ],
+  "recentMovies": [],
   "recentEpisodes": [
     {
-      "name": "Yêu Lại Từ Đầu",
-      "slug": "yeu-lai-tu-dau-2025",
-      "episode": "Tập 8",
-      "updated": "2025-09-01T18:59:33.000Z"
+      "name": "Lữ Trình Thanh Xuân",
+      "slug": "lu-trinh-thanh-xuan",
+      "episode": "Hoàn Tất (10/10)",
+      "updated": "2025-09-01T22:11:46.000Z"
     },
     {
-      "name": "Trong Tầm Mắt",
-      "slug": "trong-tam-mat",
-      "episode": "Hoàn Tất (16/8)",
-      "updated": "2025-09-01T18:59:01.000Z"
-    },
-    {
-      "name": "Tấn Giai Đích Vương Phi",
-      "slug": "tan-giai-dich-vuong-phi",
-      "episode": "Tập 11",
-      "updated": "2025-09-01T18:58:08.000Z"
-    },
-    {
-      "name": "Sống Trong Một Ngày Suốt Trăm Nghìn Năm",
-      "slug": "song-trong-mot-ngay-suot-tram-nghin-nam",
-      "episode": "Tập 14",
-      "updated": "2025-09-01T18:57:46.000Z"
-    },
-    {
-      "name": "Quy Tắc Hắc Nguyệt Quang",
-      "slug": "quy-tac-hac-nguyet-quang",
-      "episode": "Hoàn Tất (24/24)",
-      "updated": "2025-09-01T18:57:16.000Z"
+      "name": "Mười Hai Con Giáp",
+      "slug": "muoi-hai-con-giap",
+      "episode": "Tập 4",
+      "updated": "2025-09-01T22:11:11.000Z"
     }
   ]
 }

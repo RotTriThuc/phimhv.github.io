@@ -119,7 +119,7 @@ class NotificationIntegration {
       id: `new_episodes_${Date.now()}`,
       title,
       content,
-      type: 'new_movie', // Sử dụng chung type với phim mới
+      type: 'new_episode', // Sửa type cho đúng
       status: 'active',
       createdAt: new Date().toISOString(),
       metadata: {

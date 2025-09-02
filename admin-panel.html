@@ -420,6 +420,53 @@
           <div class="stat-number" id="notification-stat-reads">-</div>
           <div class="stat-label">Lượt đọc</div>
         </div>
+        <div class="stat-card">
+          <div class="stat-number" id="notification-stat-auto">-</div>
+          <div class="stat-label">Tự động</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="notification-stat-manual">-</div>
+          <div class="stat-label">Thủ công</div>
+        </div>
+      </div>
+
+      <!-- Auto-Notification Controls -->
+      <div class="notification-form-container">
+        <h3>🤖 Quản lý thông báo tự động</h3>
+        <div class="auto-notification-controls">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Thông báo phim mới</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="btn btn-secondary" id="btn-toggle-movie-auto" onclick="window.notificationAdmin.toggleAutoMovieNotification()">
+                  <span id="movie-auto-status">🔄 Kiểm tra...</span>
+                </button>
+                <button class="btn btn-primary" onclick="window.notificationAdmin.manualCheckMovies()">
+                  🔍 Kiểm tra ngay
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Thông báo tập mới</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="btn btn-secondary" id="btn-toggle-episode-auto" onclick="window.notificationAdmin.toggleAutoEpisodeNotification()">
+                  <span id="episode-auto-status">🔄 Kiểm tra...</span>
+                </button>
+                <button class="btn btn-primary" onclick="window.notificationAdmin.manualCheckEpisodes()">
+                  🔍 Kiểm tra ngay
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Thống kê auto-notification</label>
+              <div id="auto-notification-stats" style="color: #888; font-size: 13px;">
+                Đang tải thống kê...
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Create Notification Form -->
@@ -436,6 +483,8 @@
               <label for="notification-type">Loại thông báo</label>
               <select id="notification-type" required>
                 <option value="admin_announcement">📢 Thông báo từ Admin</option>
+              <option value="new_movie">🎬 Phim mới</option>
+              <option value="new_episode">📺 Tập mới</option>
                 <option value="system">⚙️ Thông báo hệ thống</option>
                 <option value="update">🔄 Cập nhật</option>
               </select>
@@ -524,6 +573,9 @@
           await this.loadNotificationStats();
           await this.loadNotifications();
 
+          // Initialize auto-notification status
+          await this.initAutoNotificationStatus();
+
           console.log('✅ Notification admin ready');
         } catch (error) {
           console.error('❌ Notification admin init failed:', error);
@@ -568,11 +620,15 @@
           ]);
 
           const totalReads = total.reduce((sum, n) => sum + (n.stats?.totalReads || 0), 0);
+          const autoNotifications = total.filter(n => n.type === 'new_movie' || n.type === 'new_episode');
+          const manualNotifications = total.filter(n => n.type === 'admin_announcement' || n.type === 'system');
 
           document.getElementById('notification-stat-total').textContent = total.length;
           document.getElementById('notification-stat-active').textContent = active.length;
           document.getElementById('notification-stat-scheduled').textContent = scheduled.length;
           document.getElementById('notification-stat-reads').textContent = totalReads;
+          document.getElementById('notification-stat-auto').textContent = autoNotifications.length;
+          document.getElementById('notification-stat-manual').textContent = manualNotifications.length;
         } catch (error) {
           console.error('Load notification stats failed:', error);
         }
@@ -743,6 +799,200 @@
       bindNotificationActions() {
         // Actions are bound via onclick in the HTML for simplicity
         // In production, you might want to use event delegation
+      }
+
+      // Auto-notification management methods
+      async initAutoNotificationStatus() {
+        try {
+          // Check if auto-notification managers are available
+          const movieManager = window.NewMovieNotificationManager;
+          const episodeManager = window.NewEpisodeNotificationManager;
+
+          // Update movie auto status
+          if (movieManager) {
+            const movieStats = movieManager.getStats();
+            const movieStatus = document.getElementById('movie-auto-status');
+            if (movieStatus) {
+              movieStatus.textContent = movieStats.isAutoCheckRunning ? '✅ Đang chạy' : '⏸️ Đã dừng';
+            }
+          }
+
+          // Update episode auto status
+          if (episodeManager) {
+            const episodeStats = episodeManager.getStats();
+            const episodeStatus = document.getElementById('episode-auto-status');
+            if (episodeStatus) {
+              episodeStatus.textContent = episodeStats.isAutoCheckRunning ? '✅ Đang chạy' : '⏸️ Đã dừng';
+            }
+          }
+
+          // Update auto-notification stats
+          await this.updateAutoNotificationStats();
+
+        } catch (error) {
+          console.error('Init auto-notification status failed:', error);
+        }
+      }
+
+      async updateAutoNotificationStats() {
+        try {
+          const statsContainer = document.getElementById('auto-notification-stats');
+          if (!statsContainer) return;
+
+          const movieManager = window.NewMovieNotificationManager;
+          const episodeManager = window.NewEpisodeNotificationManager;
+
+          let statsText = '';
+
+          if (movieManager) {
+            const movieStats = movieManager.getStats();
+            statsText += `📽️ Phim theo dõi: ${movieStats.knownMoviesCount} • `;
+          }
+
+          if (episodeManager) {
+            const episodeStats = episodeManager.getStats();
+            statsText += `📺 Phim tracking: ${episodeStats.trackedMoviesCount} • `;
+          }
+
+          statsText += `⏰ Cập nhật cuối: ${new Date().toLocaleTimeString('vi-VN')}`;
+          statsContainer.textContent = statsText;
+
+        } catch (error) {
+          console.error('Update auto-notification stats failed:', error);
+        }
+      }
+
+      async toggleAutoMovieNotification() {
+        try {
+          const manager = window.NewMovieNotificationManager;
+          if (!manager) {
+            alert('❌ New Movie Notification Manager không khả dụng');
+            return;
+          }
+
+          const stats = manager.getStats();
+          const statusElement = document.getElementById('movie-auto-status');
+
+          if (stats.isAutoCheckRunning) {
+            manager.stopAutoCheck();
+            statusElement.textContent = '⏸️ Đã dừng';
+            alert('⏸️ Đã dừng auto-check phim mới');
+          } else {
+            manager.startAutoCheck();
+            statusElement.textContent = '✅ Đang chạy';
+            alert('✅ Đã bắt đầu auto-check phim mới');
+          }
+
+          await this.updateAutoNotificationStats();
+
+        } catch (error) {
+          console.error('Toggle auto movie notification failed:', error);
+          alert('❌ Lỗi: ' + error.message);
+        }
+      }
+
+      async toggleAutoEpisodeNotification() {
+        try {
+          const manager = window.NewEpisodeNotificationManager;
+          if (!manager) {
+            alert('❌ New Episode Notification Manager không khả dụng');
+            return;
+          }
+
+          const stats = manager.getStats();
+          const statusElement = document.getElementById('episode-auto-status');
+
+          if (stats.isAutoCheckRunning) {
+            manager.stopAutoCheck();
+            statusElement.textContent = '⏸️ Đã dừng';
+            alert('⏸️ Đã dừng auto-check tập mới');
+          } else {
+            manager.startAutoCheck();
+            statusElement.textContent = '✅ Đang chạy';
+            alert('✅ Đã bắt đầu auto-check tập mới');
+          }
+
+          await this.updateAutoNotificationStats();
+
+        } catch (error) {
+          console.error('Toggle auto episode notification failed:', error);
+          alert('❌ Lỗi: ' + error.message);
+        }
+      }
+
+      async manualCheckMovies() {
+        try {
+          const manager = window.NewMovieNotificationManager;
+          if (!manager) {
+            alert('❌ New Movie Notification Manager không khả dụng');
+            return;
+          }
+
+          const button = event.target;
+          const originalText = button.textContent;
+          button.textContent = '🔄 Đang kiểm tra...';
+          button.disabled = true;
+
+          const notifications = await manager.manualCheck();
+
+          button.textContent = originalText;
+          button.disabled = false;
+
+          if (notifications.length > 0) {
+            alert(`✅ Tìm thấy ${notifications.length} phim mới và đã tạo thông báo!`);
+            await this.loadNotificationStats();
+            await this.loadNotifications();
+          } else {
+            alert('📭 Không có phim mới nào');
+          }
+
+          await this.updateAutoNotificationStats();
+
+        } catch (error) {
+          console.error('Manual check movies failed:', error);
+          alert('❌ Lỗi: ' + error.message);
+          event.target.disabled = false;
+          event.target.textContent = '🔍 Kiểm tra ngay';
+        }
+      }
+
+      async manualCheckEpisodes() {
+        try {
+          const manager = window.NewEpisodeNotificationManager;
+          if (!manager) {
+            alert('❌ New Episode Notification Manager không khả dụng');
+            return;
+          }
+
+          const button = event.target;
+          const originalText = button.textContent;
+          button.textContent = '🔄 Đang kiểm tra...';
+          button.disabled = true;
+
+          // Sync với saved movies trước
+          await manager.syncWithSavedMovies();
+
+          const notifications = await manager.manualCheck();
+
+          button.textContent = originalText;
+          button.disabled = false;
+
+          if (notifications.length > 0) {
+            alert(`✅ Tìm thấy ${notifications.length} tập mới và đã tạo thông báo!`);
+            await this.loadNotificationStats();
+            await this.loadNotifications();
+          } else {
+            alert('📭 Không có tập mới nào');
+          }
+
+          await this.updateAutoNotificationStats();
+
+        } catch (error) {
+          console.error('Manual check episodes failed:', error);
+          alert('❌ Lỗi: ' + error.message);
+          event.target.disabled = false;
+          event.target.textContent = '🔍 Kiểm tra ngay';
+        }
       }
     }
 

@@ -59,6 +59,13 @@ class NotificationUI {
       // Start auto-update
       this.startAutoUpdate();
 
+      // Add RSS subscription button
+      setTimeout(() => {
+        if (window.NotificationRSSGenerator) {
+          window.NotificationRSSGenerator.addRSSSubscriptionButton();
+        }
+      }, 1000);
+
       Logger.info('✅ Notification UI ready!');
       return true;
     } catch (error) {
@@ -325,6 +332,38 @@ class NotificationUI {
         text-align: center;
         color: #666;
       }
+
+      .notification-actions {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+      }
+
+      .btn-action {
+        background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-right: 8px;
+      }
+
+      .btn-action:hover {
+        background: linear-gradient(135deg, #5a4fcf, #8b7ff7);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(108, 92, 231, 0.3);
+      }
+
+      .btn-watch {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+      }
+
+      .btn-watch:hover {
+        background: linear-gradient(135deg, #c0392b, #a93226);
+      }
       
       @media (max-width: 768px) {
         .notification-dropdown {
@@ -465,13 +504,17 @@ class NotificationUI {
       const typeLabels = {
         'admin_announcement': '📢 Admin',
         'new_movie': '🎬 Phim mới',
+        'new_episode': '📺 Tập mới',
         'system': '⚙️ Hệ thống',
         'update': '🔄 Cập nhật'
       };
 
+      // Tạo action button cho notification
+      const actionButton = this.createActionButton(notification);
+
       return `
-        <div class="notification-item ${!isRead ? 'unread' : ''}" 
-             data-id="${notification.id}" 
+        <div class="notification-item ${!isRead ? 'unread' : ''}"
+             data-id="${notification.id}"
              onclick="notificationUI.markAsRead('${notification.id}')">
           <div class="notification-title">${notification.title}</div>
           <div class="notification-content">${notification.content}</div>
@@ -479,9 +522,44 @@ class NotificationUI {
             <span class="notification-type">${typeLabels[notification.type] || notification.type}</span>
             <span>${createdAt}</span>
           </div>
+          ${actionButton}
         </div>
       `;
     }).join('');
+  }
+
+  /**
+   * Tạo action button cho notification
+   */
+  createActionButton(notification) {
+    if (!notification.metadata) return '';
+
+    const metadata = notification.metadata;
+    let actionButton = '';
+
+    // Button cho phim mới
+    if (notification.type === 'new_movie' && metadata.movieSlug) {
+      actionButton = `
+        <div class="notification-actions">
+          <button class="btn-action btn-watch" onclick="notificationUI.goToMovie('${metadata.movieSlug}'); event.stopPropagation();">
+            🎬 Xem ngay
+          </button>
+        </div>
+      `;
+    }
+
+    // Button cho tập mới
+    if (notification.type === 'new_episode' && metadata.movieSlug) {
+      actionButton = `
+        <div class="notification-actions">
+          <button class="btn-action btn-watch" onclick="notificationUI.watchEpisode('${metadata.movieSlug}'); event.stopPropagation();">
+            📺 Xem tập mới
+          </button>
+        </div>
+      `;
+    }
+
+    return actionButton;
   }
 
   /**
@@ -611,6 +689,27 @@ class NotificationUI {
     if (hours > 0) return `${hours} giờ trước`;
     if (minutes > 0) return `${minutes} phút trước`;
     return 'Vừa xong';
+  }
+
+  /**
+   * Navigation methods for notification actions
+   */
+  goToMovie(movieSlug) {
+    if (window.router && window.router.navigate) {
+      window.router.navigate(`/phim/${movieSlug}`);
+    } else {
+      window.location.href = `#/phim/${movieSlug}`;
+    }
+    this.close();
+  }
+
+  watchEpisode(movieSlug) {
+    if (window.router && window.router.navigate) {
+      window.router.navigate(`/xem/${movieSlug}`);
+    } else {
+      window.location.href = `#/xem/${movieSlug}`;
+    }
+    this.close();
   }
 
   /**
