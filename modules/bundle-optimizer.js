@@ -31,55 +31,43 @@ export class ModuleLoader {
       this.loadedModules.set(modulePath, module);
       this.loadingPromises.delete(modulePath);
       this.retryAttempts.delete(modulePath);
-
+      
       Logger.debug(`Module loaded successfully: ${modulePath}`);
       return module;
     } catch (error) {
       this.loadingPromises.delete(modulePath);
-
+      
       if (retryCount < this.maxRetries) {
-        Logger.warn(
-          `Module load failed, retrying (${retryCount + 1}/${this.maxRetries}): ${modulePath}`
-        );
-        await new Promise((resolve) =>
-          setTimeout(resolve, Math.pow(2, retryCount) * 1000)
-        );
+        Logger.warn(`Module load failed, retrying (${retryCount + 1}/${this.maxRetries}): ${modulePath}`);
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
         return this.loadModule(modulePath, retryCount + 1);
       }
-
-      Logger.error(
-        `Module load failed after ${this.maxRetries} attempts: ${modulePath}`,
-        error
-      );
+      
+      Logger.error(`Module load failed after ${this.maxRetries} attempts: ${modulePath}`, error);
       throw error;
     }
   }
 
   async performModuleLoad(modulePath) {
     const startTime = performance.now();
-
+    
     try {
       const module = await import(modulePath);
       const loadTime = performance.now() - startTime;
-
-      Logger.debug(
-        `Module load time: ${modulePath} - ${loadTime.toFixed(2)}ms`
-      );
-
+      
+      Logger.debug(`Module load time: ${modulePath} - ${loadTime.toFixed(2)}ms`);
+      
       return module;
     } catch (error) {
       const loadTime = performance.now() - startTime;
-      Logger.error(
-        `Module load failed: ${modulePath} - ${loadTime.toFixed(2)}ms`,
-        error
-      );
+      Logger.error(`Module load failed: ${modulePath} - ${loadTime.toFixed(2)}ms`, error);
       throw error;
     }
   }
 
   preloadModule(modulePath) {
     // Preload module without waiting
-    this.loadModule(modulePath).catch((error) => {
+    this.loadModule(modulePath).catch(error => {
       Logger.warn(`Module preload failed: ${modulePath}`, error);
     });
   }
@@ -140,7 +128,7 @@ export class CodeSplitter {
       await this.loadDependencies(chunkName);
 
       // Load chunk modules
-      const modulePromises = chunk.modules.map((modulePath) =>
+      const modulePromises = chunk.modules.map(modulePath => 
         moduleLoader.loadModule(modulePath)
       );
 
@@ -160,14 +148,14 @@ export class CodeSplitter {
 
   async loadDependencies(chunkName) {
     const dependencies = this.dependencies.get(chunkName) || [];
-
+    
     for (const depName of dependencies) {
       await this.loadChunk(depName);
     }
   }
 
   preloadChunk(chunkName) {
-    this.loadChunk(chunkName).catch((error) => {
+    this.loadChunk(chunkName).catch(error => {
       Logger.warn(`Chunk preload failed: ${chunkName}`, error);
     });
   }
@@ -207,27 +195,24 @@ export class LazyLoader {
       return;
     }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !this.loadedElements.has(entry.target)) {
-            this.loadedElements.add(entry.target);
-            observer.unobserve(entry.target);
-
-            try {
-              loadCallback(entry.target);
-              Logger.debug('Lazy component loaded:', entry.target.className);
-            } catch (error) {
-              Logger.error('Lazy component load failed:', error);
-            }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !this.loadedElements.has(entry.target)) {
+          this.loadedElements.add(entry.target);
+          observer.unobserve(entry.target);
+          
+          try {
+            loadCallback(entry.target);
+            Logger.debug('Lazy component loaded:', entry.target.className);
+          } catch (error) {
+            Logger.error('Lazy component load failed:', error);
           }
-        });
-      },
-      {
-        rootMargin: options.rootMargin || '50px',
-        threshold: options.threshold || 0.1
-      }
-    );
+        }
+      });
+    }, {
+      rootMargin: options.rootMargin || '50px',
+      threshold: options.threshold || 0.1
+    });
 
     observer.observe(element);
     this.observers.set(element, observer);
@@ -242,25 +227,22 @@ export class LazyLoader {
     const handleInteraction = () => {
       if (!this.loadedElements.has(element)) {
         this.loadedElements.add(element);
-
+        
         // Remove event listeners
-        events.forEach((event) => {
+        events.forEach(event => {
           element.removeEventListener(event, handleInteraction);
         });
 
         try {
           loadCallback(element);
-          Logger.debug(
-            'Interaction-triggered component loaded:',
-            element.className
-          );
+          Logger.debug('Interaction-triggered component loaded:', element.className);
         } catch (error) {
           Logger.error('Interaction-triggered component load failed:', error);
         }
       }
     };
 
-    events.forEach((event) => {
+    events.forEach(event => {
       element.addEventListener(event, handleInteraction, { once: true });
     });
   }
@@ -274,7 +256,7 @@ export class LazyLoader {
     setTimeout(() => {
       if (!this.loadedElements.has(element)) {
         this.loadedElements.add(element);
-
+        
         try {
           loadCallback(element);
           Logger.debug('Delay-triggered component loaded:', element.className);
@@ -286,7 +268,7 @@ export class LazyLoader {
   }
 
   cleanup() {
-    this.observers.forEach((observer) => observer.disconnect());
+    this.observers.forEach(observer => observer.disconnect());
     this.observers.clear();
   }
 }
@@ -368,7 +350,7 @@ export class ResourcePreloader {
 
     while (this.preloadQueue.length > 0) {
       const resource = this.preloadQueue.shift();
-
+      
       try {
         await this.loadResource(resource);
         this.preloadedResources.add(resource.src);
@@ -380,7 +362,7 @@ export class ResourcePreloader {
       }
 
       // Small delay to prevent blocking
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 10));
     }
 
     this.isProcessing = false;
@@ -391,26 +373,26 @@ export class ResourcePreloader {
       let element;
 
       switch (resource.type) {
-      case 'script':
-        element = document.createElement('script');
-        element.src = resource.src;
-        element.async = true;
-        break;
+        case 'script':
+          element = document.createElement('script');
+          element.src = resource.src;
+          element.async = true;
+          break;
 
-      case 'stylesheet':
-        element = document.createElement('link');
-        element.rel = 'stylesheet';
-        element.href = resource.src;
-        break;
+        case 'stylesheet':
+          element = document.createElement('link');
+          element.rel = 'stylesheet';
+          element.href = resource.src;
+          break;
 
-      case 'image':
-        element = new Image();
-        element.src = resource.src;
-        break;
+        case 'image':
+          element = new Image();
+          element.src = resource.src;
+          break;
 
-      default:
-        reject(new Error(`Unknown resource type: ${resource.type}`));
-        return;
+        default:
+          reject(new Error(`Unknown resource type: ${resource.type}`));
+          return;
       }
 
       element.onload = resolve;
@@ -446,13 +428,13 @@ export class BundleAnalyzer {
   analyzeBundle() {
     // Analyze loaded modules
     this.analyzeModules();
-
+    
     // Analyze chunks
     this.analyzeChunks();
-
+    
     // Find duplicates
     this.findDuplicates();
-
+    
     return this.generateReport();
   }
 
@@ -460,15 +442,15 @@ export class BundleAnalyzer {
     // This would analyze actual module sizes in a real implementation
     // For now, we'll simulate with performance entries
     const resources = performance.getEntriesByType('resource');
-
-    resources.forEach((resource) => {
+    
+    resources.forEach(resource => {
       if (resource.name.includes('.js') || resource.name.includes('.css')) {
         this.bundleStats.modules.set(resource.name, {
           size: resource.transferSize || 0,
           loadTime: resource.duration,
           type: resource.name.includes('.js') ? 'javascript' : 'stylesheet'
         });
-
+        
         this.bundleStats.totalSize += resource.transferSize || 0;
       }
     });
@@ -485,13 +467,13 @@ export class BundleAnalyzer {
   findDuplicates() {
     // Simple duplicate detection based on similar names
     const moduleNames = Array.from(this.bundleStats.modules.keys());
-
-    moduleNames.forEach((name) => {
+    
+    moduleNames.forEach(name => {
       const baseName = name.split('/').pop().split('?')[0];
-      const similar = moduleNames.filter(
-        (n) => n !== name && n.includes(baseName)
+      const similar = moduleNames.filter(n => 
+        n !== name && n.includes(baseName)
       );
-
+      
       if (similar.length > 0) {
         this.bundleStats.duplicates.set(baseName, [name, ...similar]);
       }
@@ -540,8 +522,7 @@ export class BundleAnalyzer {
     const recommendations = [];
 
     // Large bundle warning
-    if (this.bundleStats.totalSize > 1024 * 1024) {
-      // 1MB
+    if (this.bundleStats.totalSize > 1024 * 1024) { // 1MB
       recommendations.push({
         type: 'warning',
         message: 'Bundle size is large (>1MB). Consider code splitting.',
@@ -560,7 +541,7 @@ export class BundleAnalyzer {
 
     // Performance recommendations
     const slowModules = this.getSlowestModules(5);
-    if (slowModules.some((m) => parseFloat(m.loadTime) > 1000)) {
+    if (slowModules.some(m => parseFloat(m.loadTime) > 1000)) {
       recommendations.push({
         type: 'info',
         message: 'Some modules are loading slowly (>1s).',
@@ -581,25 +562,25 @@ export class BundleAnalyzer {
 
   printReport() {
     const report = this.analyzeBundle();
-
+    
     Logger.info('\n📦 Bundle Analysis Report:');
     Logger.info(`Total Modules: ${report.summary.totalModules}`);
     Logger.info(`Total Size: ${report.summary.totalSize}`);
     Logger.info(`Duplicates: ${report.summary.duplicates}`);
-
+    
     Logger.info('\n🔍 Largest Modules:');
-    report.largestModules.forEach((module) => {
+    report.largestModules.forEach(module => {
       Logger.info(`  ${module.name}: ${module.size}`);
     });
-
+    
     Logger.info('\n⏱️ Slowest Modules:');
-    report.slowestModules.forEach((module) => {
+    report.slowestModules.forEach(module => {
       Logger.info(`  ${module.name}: ${module.loadTime}`);
     });
-
+    
     if (report.recommendations.length > 0) {
       Logger.info('\n💡 Recommendations:');
-      report.recommendations.forEach((rec) => {
+      report.recommendations.forEach(rec => {
         Logger.info(`  ${rec.type.toUpperCase()}: ${rec.message}`);
         Logger.info(`    Action: ${rec.action}`);
       });
@@ -615,34 +596,26 @@ export const resourcePreloader = new ResourcePreloader();
 export const bundleAnalyzer = new BundleAnalyzer();
 
 // Initialize code splitting configuration
-codeSplitter.defineChunk(
-  'core',
-  ['./modules/logger.js', './modules/utils.js', './modules/api.js'],
-  []
-);
+codeSplitter.defineChunk('core', [
+  './modules/logger.js',
+  './modules/utils.js',
+  './modules/api.js'
+], []);
 
-codeSplitter.defineChunk(
-  'ui',
-  ['./modules/ui-components.js', './modules/image-loader.js'],
-  ['core']
-);
+codeSplitter.defineChunk('ui', [
+  './modules/ui-components.js',
+  './modules/image-loader.js'
+], ['core']);
 
-codeSplitter.defineChunk(
-  'pages',
-  ['./modules/pages.js', './modules/router.js'],
-  ['core', 'ui']
-);
+codeSplitter.defineChunk('pages', [
+  './modules/pages.js',
+  './modules/router.js'
+], ['core', 'ui']);
 
-codeSplitter.defineChunk(
-  'advanced',
-  [
-    './modules/error-boundaries.js',
-    './modules/performance-monitor.js',
-    './modules/testing.js'
-  ],
-  ['core']
-);
+codeSplitter.defineChunk('advanced', [
+  './modules/error-boundaries.js',
+  './modules/performance-monitor.js',
+  './modules/testing.js'
+], ['core']);
 
-Logger.info(
-  '📦 Bundle optimizer initialized with code splitting configuration'
-);
+Logger.info('📦 Bundle optimizer initialized with code splitting configuration');

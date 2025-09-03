@@ -25,11 +25,7 @@ import { initRouter, registerPageRenderers } from './modules/router.js';
 import { networkMonitor } from './modules/network-monitor.js';
 import { createVideoPlayer } from './modules/video-player.js';
 import { videoCacheManager } from './modules/video-cache.js';
-import {
-  enhancedPerformanceMonitor,
-  recordVideoEvent,
-  recordApiEvent
-} from './modules/performance-monitor-enhanced.js';
+import { enhancedPerformanceMonitor, recordVideoEvent, recordApiEvent } from './modules/performance-monitor-enhanced.js';
 
 // Import page renderers
 import {
@@ -83,23 +79,24 @@ class XemPhimApp {
 
       // Initialize core systems
       await this.initCore();
-
+      
       // Initialize UI
       await this.initUI();
-
+      
       // Initialize page renderers
       await this.initPageRenderers();
-
+      
       // Initialize router
       initRouter();
-
+      
       // Initialize additional features
       await this.initFeatures();
-
+      
       this.initialized = true;
       AppState.initialized = true;
-
+      
       Logger.info('✅ XemPhim SPA initialized successfully');
+      
     } catch (error) {
       Logger.critical('Failed to initialize app:', error);
       this.showFatalError(error);
@@ -125,6 +122,7 @@ class XemPhimApp {
           });
         }
       });
+
     } catch (error) {
       Logger.warn('⚠️ Network monitoring initialization failed:', error);
     }
@@ -151,6 +149,7 @@ class XemPhimApp {
           duration: 5000
         });
       });
+
     } catch (error) {
       Logger.warn('⚠️ Performance monitoring initialization failed:', error);
     }
@@ -171,13 +170,13 @@ class XemPhimApp {
   async initUI() {
     // Bind header interactions
     this.bindHeader();
-
+    
     // Initialize notification system
     this.initNotificationSystem();
-
+    
     // Initialize keyboard shortcuts
     this.initKeyboardShortcuts();
-
+    
     Logger.debug('UI systems initialized');
   }
 
@@ -188,28 +187,22 @@ class XemPhimApp {
         onError: (error) => errorBoundaryMonitor.recordError(error, 'HomePage')
       }),
       renderSearch: withErrorBoundary(renderSearch, {
-        onError: (error) =>
-          errorBoundaryMonitor.recordError(error, 'SearchPage')
+        onError: (error) => errorBoundaryMonitor.recordError(error, 'SearchPage')
       }),
       renderCombinedFilter: withErrorBoundary(renderCombinedFilter, {
-        onError: (error) =>
-          errorBoundaryMonitor.recordError(error, 'FilterPage')
+        onError: (error) => errorBoundaryMonitor.recordError(error, 'FilterPage')
       }),
       renderAllCategories: withErrorBoundary(renderAllCategories, {
-        onError: (error) =>
-          errorBoundaryMonitor.recordError(error, 'CategoriesPage')
+        onError: (error) => errorBoundaryMonitor.recordError(error, 'CategoriesPage')
       }),
       renderSavedMovies: withErrorBoundary(renderSavedMovies, {
-        onError: (error) =>
-          errorBoundaryMonitor.recordError(error, 'SavedMoviesPage')
+        onError: (error) => errorBoundaryMonitor.recordError(error, 'SavedMoviesPage')
       }),
       renderDetail: withErrorBoundary(this.renderDetail.bind(this), {
-        onError: (error) =>
-          errorBoundaryMonitor.recordError(error, 'DetailPage')
+        onError: (error) => errorBoundaryMonitor.recordError(error, 'DetailPage')
       }),
       renderWatch: withErrorBoundary(this.renderWatch.bind(this), {
-        onError: (error) =>
-          errorBoundaryMonitor.recordError(error, 'WatchPage')
+        onError: (error) => errorBoundaryMonitor.recordError(error, 'WatchPage')
       })
     };
 
@@ -309,9 +302,7 @@ class XemPhimApp {
     if (searchForm) {
       searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        const keyword = searchForm
-          .querySelector('input[name="keyword"]')
-          .value.trim();
+        const keyword = searchForm.querySelector('input[name="keyword"]').value.trim();
         if (keyword) {
           window.location.hash = `#/tim-kiem?keyword=${encodeURIComponent(keyword)}`;
         }
@@ -340,7 +331,7 @@ class XemPhimApp {
 
     // Make showNotification globally available
     window.showNotification = showNotification;
-
+    
     Logger.debug('Notification system initialized');
   }
 
@@ -387,9 +378,7 @@ class XemPhimApp {
 
       // F5 refresh handling for saved movies page
       if (event.key === 'F5' && window.location.hash === '#/phim-da-luu') {
-        Logger.debug(
-          'F5 pressed on saved movies page - clearing Firebase cache before reload'
-        );
+        Logger.debug('F5 pressed on saved movies page - clearing Firebase cache before reload');
 
         // Clear Firebase cache before page reload
         if (window.Storage) {
@@ -408,15 +397,13 @@ class XemPhimApp {
   async populateFilters() {
     try {
       // Populate category filter
-      const categorySelects = document.querySelectorAll(
-        'select[name="category"]'
-      );
+      const categorySelects = document.querySelectorAll('select[name="category"]');
       if (categorySelects.length > 0) {
         const categories = await Api.getCategories();
         const categoryOptions = categories?.data?.items || [];
-
-        categorySelects.forEach((select) => {
-          categoryOptions.forEach((cat) => {
+        
+        categorySelects.forEach(select => {
+          categoryOptions.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat.slug;
             option.textContent = cat.name;
@@ -426,15 +413,13 @@ class XemPhimApp {
       }
 
       // Populate country filter
-      const countrySelects = document.querySelectorAll(
-        'select[name="country"]'
-      );
+      const countrySelects = document.querySelectorAll('select[name="country"]');
       if (countrySelects.length > 0) {
         const countries = await Api.getCountries();
         const countryOptions = countries?.data?.items || [];
-
-        countrySelects.forEach((select) => {
-          countryOptions.forEach((country) => {
+        
+        countrySelects.forEach(select => {
+          countryOptions.forEach(country => {
             const option = document.createElement('option');
             option.value = country.slug;
             option.textContent = country.name;
@@ -447,7 +432,7 @@ class XemPhimApp {
       const yearSelects = document.querySelectorAll('select[name="year"]');
       if (yearSelects.length > 0) {
         const currentYear = new Date().getFullYear();
-        yearSelects.forEach((select) => {
+        yearSelects.forEach(select => {
           for (let year = currentYear; year >= 1990; year--) {
             const option = document.createElement('option');
             option.value = year;
@@ -466,7 +451,7 @@ class XemPhimApp {
   // Page renderer methods (simplified versions - full implementations would be larger)
   async renderHome(root) {
     root.innerHTML = '<div class="page-loading">Đang tải trang chủ...</div>';
-
+    
     try {
       // This would contain the full home page rendering logic
       // For now, just a placeholder
@@ -478,15 +463,13 @@ class XemPhimApp {
       `;
     } catch (error) {
       Logger.error('Home page render failed:', error);
-      root.appendChild(
-        renderError('Không thể tải trang chủ', () => this.renderHome(root))
-      );
+      root.appendChild(renderError('Không thể tải trang chủ', () => this.renderHome(root)));
     }
   }
 
   async renderSearch(root, params) {
     root.innerHTML = '<div class="page-loading">Đang tìm kiếm...</div>';
-
+    
     try {
       // Search page rendering logic would go here
       root.innerHTML = `
@@ -497,17 +480,13 @@ class XemPhimApp {
       `;
     } catch (error) {
       Logger.error('Search page render failed:', error);
-      root.appendChild(
-        renderError('Không thể tải kết quả tìm kiếm', () =>
-          this.renderSearch(root, params)
-        )
-      );
+      root.appendChild(renderError('Không thể tải kết quả tìm kiếm', () => this.renderSearch(root, params)));
     }
   }
 
   async renderCombinedFilter(root, params) {
     root.innerHTML = '<div class="page-loading">Đang lọc phim...</div>';
-
+    
     try {
       // Filter page rendering logic would go here
       root.innerHTML = `
@@ -518,17 +497,13 @@ class XemPhimApp {
       `;
     } catch (error) {
       Logger.error('Filter page render failed:', error);
-      root.appendChild(
-        renderError('Không thể tải danh sách lọc', () =>
-          this.renderCombinedFilter(root, params)
-        )
-      );
+      root.appendChild(renderError('Không thể tải danh sách lọc', () => this.renderCombinedFilter(root, params)));
     }
   }
 
   async renderAllCategories(root) {
     root.innerHTML = '<div class="page-loading">Đang tải thể loại...</div>';
-
+    
     try {
       // Categories page rendering logic would go here
       root.innerHTML = `
@@ -539,17 +514,13 @@ class XemPhimApp {
       `;
     } catch (error) {
       Logger.error('Categories page render failed:', error);
-      root.appendChild(
-        renderError('Không thể tải danh sách thể loại', () =>
-          this.renderAllCategories(root)
-        )
-      );
+      root.appendChild(renderError('Không thể tải danh sách thể loại', () => this.renderAllCategories(root)));
     }
   }
 
   async renderSavedMovies(root) {
     root.innerHTML = '<div class="page-loading">Đang tải phim đã lưu...</div>';
-
+    
     try {
       // Saved movies page rendering logic would go here
       root.innerHTML = `
@@ -560,18 +531,13 @@ class XemPhimApp {
       `;
     } catch (error) {
       Logger.error('Saved movies page render failed:', error);
-      root.appendChild(
-        renderError('Không thể tải danh sách phim đã lưu', () =>
-          this.renderSavedMovies(root)
-        )
-      );
+      root.appendChild(renderError('Không thể tải danh sách phim đã lưu', () => this.renderSavedMovies(root)));
     }
   }
 
   async renderDetail(root, slug) {
-    root.innerHTML =
-      '<div class="page-loading">Đang tải chi tiết phim...</div>';
-
+    root.innerHTML = '<div class="page-loading">Đang tải chi tiết phim...</div>';
+    
     try {
       // Movie detail page rendering logic would go here
       root.innerHTML = `
@@ -582,11 +548,7 @@ class XemPhimApp {
       `;
     } catch (error) {
       Logger.error('Detail page render failed:', error);
-      root.appendChild(
-        renderError('Không thể tải chi tiết phim', () =>
-          this.renderDetail(root, slug)
-        )
-      );
+      root.appendChild(renderError('Không thể tải chi tiết phim', () => this.renderDetail(root, slug)));
     }
   }
 
@@ -623,9 +585,9 @@ class XemPhimApp {
       }
 
       // Find current episode and server
-      const currentEpisode = episodes.find((ep) =>
-        ep.server_data?.some(
-          (server) => server.slug === epSlug || server.name === epSlug
+      const currentEpisode = episodes.find(ep =>
+        ep.server_data?.some(server =>
+          server.slug === epSlug || server.name === epSlug
         )
       );
 
@@ -633,9 +595,7 @@ class XemPhimApp {
         throw new Error('Episode not found');
       }
 
-      const server =
-        currentEpisode.server_data[serverIndex] ||
-        currentEpisode.server_data[0];
+      const server = currentEpisode.server_data[serverIndex] || currentEpisode.server_data[0];
       if (!server) {
         throw new Error('Server not found');
       }
@@ -692,18 +652,14 @@ class XemPhimApp {
       `;
 
       // Initialize enhanced video player
-      await this.initializeEnhancedVideoPlayer(
-        server,
-        movie,
-        epSlug,
-        serverIndex
-      );
+      await this.initializeEnhancedVideoPlayer(server, movie, epSlug, serverIndex);
 
       // Update network status display
       this.updateNetworkStatusDisplay();
 
       // Setup performance monitoring for this video session
       this.setupVideoPerformanceMonitoring(slug, epSlug);
+
     } catch (error) {
       Logger.error('Watch page render failed:', error);
       recordVideoEvent('session_error', {
@@ -712,11 +668,7 @@ class XemPhimApp {
         error: error.message
       });
 
-      root.appendChild(
-        renderError('Không thể tải trình phát', () =>
-          this.renderWatch(root, slug, params)
-        )
-      );
+      root.appendChild(renderError('Không thể tải trình phát', () => this.renderWatch(root, slug, params)));
     }
   }
 
@@ -791,6 +743,7 @@ class XemPhimApp {
 
       // Start performance monitoring
       this.startVideoPerformanceTracking(videoPlayer);
+
     } catch (error) {
       Logger.error('Video player initialization failed:', error);
       container.innerHTML = `
@@ -836,10 +789,10 @@ class XemPhimApp {
 
       if (indicator && text) {
         const qualityIcons = {
-          ultra: '📶',
-          high: '📶',
-          medium: '📶',
-          low: '📶'
+          'ultra': '📶',
+          'high': '📶',
+          'medium': '📶',
+          'low': '📶'
         };
 
         indicator.textContent = qualityIcons[networkInfo.quality] || '📶';
@@ -888,6 +841,7 @@ class XemPhimApp {
         episodeSlug: epSlug,
         ...performanceData.realTimeStats
       });
+
     }, 10000); // Every 10 seconds
   }
 

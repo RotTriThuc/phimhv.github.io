@@ -1,20 +1,16 @@
 # 🔥 Firebase Index Setup Guide
 
 ## 🚨 **Current Issue:**
-
 ```
 FirebaseError: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/phim-comments/firestore/indexes?create_composite=...
 ```
 
 ## 🔍 **Root Cause:**
-
 Firebase Firestore requires composite indexes for queries that:
-
 - Use `where()` with one field AND
 - Use `orderBy()` with another field
 
 Our query:
-
 ```javascript
 .where('userId', '==', userId)
 .orderBy('savedAt', 'desc')
@@ -25,7 +21,6 @@ Our query:
 ### **Option A: Create Firebase Index (Recommended)**
 
 1. **Click the provided link** in the error message:
-
    ```
    https://console.firebase.google.com/v1/r/project/phim-comments/firestore/indexes?create_composite=...
    ```
@@ -44,20 +39,17 @@ Our query:
 ### **Option B: Code Fallback (Already Implemented)**
 
 Code đã được update với fallback logic:
-
 ```javascript
 try {
   // Try with orderBy (requires index)
-  snapshot = await db
-    .collection("savedMovies")
-    .where("userId", "==", userId)
-    .orderBy("savedAt", "desc")
+  snapshot = await db.collection('savedMovies')
+    .where('userId', '==', userId)
+    .orderBy('savedAt', 'desc')
     .get();
 } catch (indexError) {
   // Fallback: Query without orderBy
-  snapshot = await db
-    .collection("savedMovies")
-    .where("userId", "==", userId)
+  snapshot = await db.collection('savedMovies')
+    .where('userId', '==', userId)
     .get();
 }
 
@@ -68,7 +60,6 @@ movies.sort((a, b) => b.savedAt - a.savedAt);
 ## 📋 **Required Indexes:**
 
 ### **1. savedMovies Collection:**
-
 ```
 Collection ID: savedMovies
 Fields:
@@ -77,16 +68,14 @@ Fields:
 ```
 
 ### **2. watchProgress Collection (if needed):**
-
 ```
-Collection ID: watchProgress
+Collection ID: watchProgress  
 Fields:
 - userId (Ascending)
 - updatedAt (Descending)
 ```
 
 ### **3. comments Collection (if needed):**
-
 ```
 Collection ID: comments
 Fields:
@@ -97,14 +86,12 @@ Fields:
 ## 🚀 **Quick Fix Steps:**
 
 ### **Immediate (Already Done):**
-
 - ✅ Code updated with fallback logic
 - ✅ Manual sorting implemented
 - ✅ Error handling improved
 - ✅ Website continues working
 
 ### **Long-term (Recommended):**
-
 1. **Create Firebase indexes** for better performance
 2. **Monitor query performance** in Firebase Console
 3. **Optimize queries** based on usage patterns
@@ -112,13 +99,11 @@ Fields:
 ## 📊 **Performance Impact:**
 
 ### **Without Index (Current Fallback):**
-
 - ✅ **Works**: Query executes successfully
 - ⚠️ **Slower**: Manual sorting in JavaScript
 - ⚠️ **Limited**: Can't efficiently handle large datasets
 
 ### **With Index (Recommended):**
-
 - ✅ **Fast**: Database-level sorting
 - ✅ **Scalable**: Handles thousands of movies
 - ✅ **Efficient**: Minimal data transfer
@@ -126,14 +111,12 @@ Fields:
 ## 🎯 **Expected Results:**
 
 ### **Before Index Creation:**
-
 ```
 ⚠️ Composite index not found, querying without orderBy
 📚 Loaded 5 saved movies from Firebase
 ```
 
 ### **After Index Creation:**
-
 ```
 📚 Loaded 5 saved movies from Firebase (with orderBy)
 ```
@@ -143,7 +126,6 @@ Fields:
 If you prefer not to create indexes, consider:
 
 ### **Simple Queries (No Index Required):**
-
 ```javascript
 // Option 1: Query by userId only
 .where('userId', '==', userId)

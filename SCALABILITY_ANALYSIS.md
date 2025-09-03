@@ -3,7 +3,6 @@
 ## 🎯 Tóm Tắt Nhanh
 
 **Ước tính an toàn cho website phim miễn phí:**
-
 - **500-1,000 users active/ngày**
 - **50-100 users đồng thời** không lag
 - **10,000+ phim được lưu/tháng**
@@ -12,15 +11,14 @@
 
 ### 🌐 GitHub Pages Limits
 
-| Metric           | Free Limit  | Ước Tính Capacity      |
-| ---------------- | ----------- | ---------------------- |
-| Bandwidth        | 100GB/tháng | ~10,000 sessions/tháng |
-| Concurrent Users | Unlimited   | 100+ đồng thời OK      |
-| Storage          | 1GB repo    | Unlimited static files |
-| CDN              | Global      | Tốc độ tải nhanh       |
+| Metric | Free Limit | Ước Tính Capacity |
+|--------|------------|-------------------|
+| Bandwidth | 100GB/tháng | ~10,000 sessions/tháng |
+| Concurrent Users | Unlimited | 100+ đồng thời OK |
+| Storage | 1GB repo | Unlimited static files |
+| CDN | Global | Tốc độ tải nhanh |
 
 **Tính toán thực tế:**
-
 ```
 Mỗi user session:
 - Trang chủ: 2MB (images, CSS, JS)
@@ -35,17 +33,16 @@ Trung bình: ~4MB/session
 
 ### 🔥 Firebase Firestore Limits
 
-| Operation   | Free Limit/Day | Movie App Usage           |
-| ----------- | -------------- | ------------------------- |
-| **Reads**   | 50,000         | Xem danh sách phim đã lưu |
-| **Writes**  | 20,000         | Lưu phim, comments        |
-| **Deletes** | 20,000         | Xóa phim đã lưu           |
-| **Storage** | 1GB            | Metadata phim + comments  |
+| Operation | Free Limit/Day | Movie App Usage |
+|-----------|----------------|-----------------|
+| **Reads** | 50,000 | Xem danh sách phim đã lưu |
+| **Writes** | 20,000 | Lưu phim, comments |
+| **Deletes** | 20,000 | Xóa phim đã lưu |
+| **Storage** | 1GB | Metadata phim + comments |
 
 **Ước tính Firebase Usage:**
 
 #### Saved Movies:
-
 ```javascript
 // Mỗi saved movie ≈ 500 bytes
 {
@@ -61,7 +58,6 @@ Trung bình: ~4MB/session
 ```
 
 #### Daily Operations:
-
 ```
 Reads (50,000/day):
 - Load saved movies: 1 read/user/session
@@ -77,7 +73,6 @@ Writes (20,000/day):
 ### 🎬 Movie App Specific Analysis
 
 #### **User Behavior Patterns:**
-
 ```
 Casual User (80%):
 - 2-3 movies saved/tháng
@@ -98,13 +93,11 @@ Power User (5%):
 #### **Capacity Estimates:**
 
 **Conservative (An toàn):**
-
 - **500 daily active users**
 - **100 concurrent users** peak time
 - **5,000 movie saves/ngày**
 
 **Optimistic (Tối đa):**
-
 - **1,000 daily active users**
 - **200 concurrent users** peak time
 - **15,000 movie saves/ngày**
@@ -112,14 +105,12 @@ Power User (5%):
 ## ⚡ Performance Optimization Đã Có
 
 ### 🚀 Frontend Optimizations:
-
 - **Service Worker**: Cache static assets
 - **Lazy Loading**: Images load on demand
 - **CDN**: GitHub Pages global CDN
 - **Minified**: CSS/JS compressed
 
 ### 🔥 Firebase Optimizations:
-
 - **Indexed Queries**: Faster database reads
 - **Batch Operations**: Reduce API calls
 - **Offline Support**: Cache data locally
@@ -130,14 +121,12 @@ Power User (5%):
 ### 🔍 Key Metrics to Watch:
 
 #### GitHub Pages:
-
 ```bash
 # Check bandwidth usage (monthly)
 # GitHub Settings → Pages → Usage
 ```
 
 #### Firebase Console:
-
 ```
 Firestore → Usage tab:
 - Document reads/writes per day
@@ -148,12 +137,10 @@ Firestore → Usage tab:
 ### 🚨 Warning Signs:
 
 **GitHub Pages:**
-
 - Bandwidth > 80GB/tháng → Cần optimize images
 - Slow loading → Check CDN performance
 
 **Firebase:**
-
 - Reads > 40,000/day → Implement better caching
 - Writes > 15,000/day → Optimize save operations
 - Storage > 800MB → Clean up old data
@@ -161,14 +148,12 @@ Firestore → Usage tab:
 ## 🎯 Scaling Solutions (Khi Cần)
 
 ### 📈 Free Tier Extensions:
-
 1. **Multiple Firebase Projects**: Shard data across projects
 2. **Image Optimization**: WebP, compression
 3. **Caching Strategy**: Aggressive localStorage caching
 4. **CDN Images**: Use external image CDN
 
 ### 💰 Paid Upgrades (Nếu Cần):
-
 1. **Firebase Blaze Plan**: Pay-as-you-go
 2. **Cloudflare**: Free CDN + caching
 3. **GitHub Pro**: Increased limits
@@ -176,7 +161,6 @@ Firestore → Usage tab:
 ## 🎮 Real-World Examples
 
 ### Similar Movie Sites:
-
 ```
 Small Movie Site (500 DAU):
 - 2-5GB bandwidth/tháng
@@ -185,7 +169,7 @@ Small Movie Site (500 DAU):
 ✅ Hoàn toàn OK với free tier
 
 Medium Site (2,000 DAU):
-- 10-20GB bandwidth/tháng
+- 10-20GB bandwidth/tháng  
 - 100,000+ Firebase operations/day
 ❌ Cần upgrade Firebase
 ```
@@ -193,20 +177,17 @@ Medium Site (2,000 DAU):
 ## 🏆 Kết Luận
 
 ### ✅ **An Toàn Với Free Tier:**
-
 - **500-800 daily active users**
 - **50-100 concurrent users**
 - **10,000+ saved movies/tháng**
 - **Smooth performance** với optimizations hiện tại
 
 ### ⚠️ **Cần Theo Dõi:**
-
 - Firebase usage qua console
 - GitHub Pages bandwidth
 - Site performance metrics
 
 ### 🚀 **Growth Path:**
-
 1. **0-500 users**: Free tier hoàn hảo
 2. **500-2,000 users**: Cần optimize + monitor
 3. **2,000+ users**: Consider paid plans

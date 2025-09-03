@@ -1,7 +1,7 @@
 /**
  * Series Update Manager
  * Quản lý việc tự động kiểm tra và cập nhật các phần mới của series
- *
+ * 
  * Tính năng:
  * - Background checking cho series đang theo dõi
  * - Smart cache invalidation
@@ -23,16 +23,16 @@ const Logger = window.Logger || {
 const UPDATE_CONFIG = {
   // Thời gian check định kỳ (30 phút)
   checkInterval: 30 * 60 * 1000,
-
+  
   // Thời gian cache cho series metadata (1 giờ)
   seriesMetadataCacheDuration: 60 * 60 * 1000,
-
+  
   // Số lượng series tối đa để track
   maxTrackedSeries: 50,
-
+  
   // Thời gian timeout cho API calls
   apiTimeout: 10000,
-
+  
   // Minimum interval giữa các lần check cùng series (15 phút)
   minCheckInterval: 15 * 60 * 1000
 };
@@ -142,11 +142,9 @@ export class SeriesUpdateManager {
   async checkAllTrackedSeries() {
     if (this.trackedSeries.size === 0) return;
 
-    console.log(
-      `🔍 Checking ${this.trackedSeries.size} tracked series for updates...`
-    );
+    console.log(`🔍 Checking ${this.trackedSeries.size} tracked series for updates...`);
 
-    const promises = Array.from(this.trackedSeries.keys()).map((seriesId) =>
+    const promises = Array.from(this.trackedSeries.keys()).map(seriesId =>
       this.checkSeriesForUpdates(seriesId)
     );
 
@@ -181,11 +179,11 @@ export class SeriesUpdateManager {
 
       // Import dependencies dynamically
       const { findRelatedSeasons } = await import('./series-navigator.js');
-
+      
       // Get fresh data from API
       const api = window.Api;
       const extractItems = window.extractItems;
-
+      
       if (!api || !extractItems) {
         console.warn('API or extractItems not available for series check');
         return false;
@@ -204,10 +202,8 @@ export class SeriesUpdateManager {
       );
 
       if (hasUpdates) {
-        console.log(
-          `🆕 Found updates for series: ${metadata.seriesInfo.baseName}`
-        );
-
+        console.log(`🆕 Found updates for series: ${metadata.seriesInfo.baseName}`);
+        
         // Update metadata
         metadata.lastKnownSeasons = freshSeasons;
         metadata.lastUpdateCheck = now;
@@ -235,6 +231,7 @@ export class SeriesUpdateManager {
       this.trackedSeries.set(seriesId, metadata);
 
       return false;
+
     } catch (error) {
       console.error(`❌ Error checking series ${seriesId}:`, error);
       return false;
@@ -262,8 +259,8 @@ export class SeriesUpdateManager {
     }
 
     // Check từng season
-    const oldSlugs = new Set(oldSeasons.map((s) => s.slug));
-    const newSlugs = new Set(newSeasons.map((s) => s.slug));
+    const oldSlugs = new Set(oldSeasons.map(s => s.slug));
+    const newSlugs = new Set(newSeasons.map(s => s.slug));
 
     // Check nếu có season mới
     for (const slug of newSlugs) {
@@ -292,9 +289,7 @@ export class SeriesUpdateManager {
     });
 
     window.dispatchEvent(event);
-    console.log(
-      `📡 Triggered seriesUpdated event for: ${metadata.seriesInfo.baseName}`
-    );
+    console.log(`📡 Triggered seriesUpdated event for: ${metadata.seriesInfo.baseName}`);
   }
 
   /**

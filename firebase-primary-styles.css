@@ -88,11 +88,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(0, 0, 0, 0.8) 100%
-  );
+  background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -205,12 +201,8 @@
 }
 
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Empty State */
@@ -378,7 +370,7 @@
 }
 
 .sync-code {
-  font-family: "Courier New", monospace;
+  font-family: 'Courier New', monospace;
   font-size: 24px;
   font-weight: bold;
   color: #667eea;
@@ -532,26 +524,26 @@
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 15px;
   }
-
+  
   .saved-movies-header {
     flex-direction: column;
     gap: 15px;
     text-align: center;
   }
-
+  
   .movie-poster {
     height: 220px;
   }
-
+  
   .sync-modal-content {
     width: 95%;
     margin: 20px;
   }
-
+  
   .sync-input-group {
     flex-direction: column;
   }
-
+  
   .sync-input-group input {
     width: 100%;
   }

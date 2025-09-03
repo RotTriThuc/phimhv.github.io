@@ -7,25 +7,21 @@ Hệ thống Auto-Update cho phép tự động phát hiện và cập nhật c�
 ## ✨ Tính Năng Chính
 
 ### 🔍 **Background Monitoring**
-
 - Tự động kiểm tra phần mới mỗi 30 phút
 - Chỉ track các series user đang xem/quan tâm
 - Intelligent scheduling để tránh overload API
 
 ### 🧠 **Smart Cache Management**
-
 - Cache invalidation khi có dữ liệu mới
 - Shorter cache duration cho popular series
 - LRU eviction cho memory optimization
 
 ### 🔔 **Real-time Notifications**
-
 - Toast notifications khi có season mới
 - Visual indicators trong navigation menu
 - Event-driven updates cho UI components
 
 ### 🔄 **Manual Refresh**
-
 - Refresh button trong series navigator
 - Force refresh capability
 - Immediate feedback cho user actions
@@ -52,14 +48,12 @@ Hệ thống Auto-Update cho phép tự động phát hiện và cập nhật c�
 ## 🚀 Cách Sử Dụng
 
 ### **Automatic Tracking**
-
 ```javascript
 // Tự động được setup khi user truy cập series
 // Không cần code thêm - hoạt động ngầm
 ```
 
 ### **Manual Refresh**
-
 ```javascript
 // Click refresh button trong series navigator
 // Hoặc programmatically:
@@ -69,10 +63,9 @@ if (window.seriesUpdateManager) {
 ```
 
 ### **Event Listening**
-
 ```javascript
 // Listen for series updates
-window.addEventListener("seriesUpdated", (event) => {
+window.addEventListener('seriesUpdated', (event) => {
   const { seriesId, seriesInfo, newSeasons } = event.detail;
   console.log(`New seasons found for ${seriesInfo.baseName}`);
 });
@@ -81,30 +74,27 @@ window.addEventListener("seriesUpdated", (event) => {
 ## ⚙️ Configuration
 
 ### **Update Intervals**
-
 ```javascript
 const UPDATE_CONFIG = {
-  checkInterval: 30 * 60 * 1000, // 30 phút
-  minCheckInterval: 15 * 60 * 1000, // 15 phút minimum
+  checkInterval: 30 * 60 * 1000,        // 30 phút
+  minCheckInterval: 15 * 60 * 1000,     // 15 phút minimum
   seriesMetadataCacheDuration: 60 * 60 * 1000, // 1 giờ
-  maxTrackedSeries: 50, // Tối đa 50 series
+  maxTrackedSeries: 50                   // Tối đa 50 series
 };
 ```
 
 ### **Cache Strategy**
-
 ```javascript
 const CACHE_DURATIONS = {
-  search: 2 * 60 * 1000, // 2 phút cho search
-  "series-navigator": 5 * 60 * 1000, // 5 phút cho navigator
-  "movie-detail": 15 * 60 * 1000, // 15 phút cho detail
+  'search': 2 * 60 * 1000,      // 2 phút cho search
+  'series-navigator': 5 * 60 * 1000, // 5 phút cho navigator
+  'movie-detail': 15 * 60 * 1000      // 15 phút cho detail
 };
 ```
 
 ## 🔧 Technical Implementation
 
 ### **Series Detection Algorithm**
-
 1. Extract series info từ movie name using regex patterns
 2. Generate unique seriesId cho tracking
 3. Search API với series base name
@@ -112,14 +102,13 @@ const CACHE_DURATIONS = {
 5. Compare với cached data để detect changes
 
 ### **Update Detection Logic**
-
 ```javascript
 // So sánh số lượng seasons
 if (oldSeasons.length !== newSeasons.length) return true;
 
 // So sánh từng season slug
-const oldSlugs = new Set(oldSeasons.map((s) => s.slug));
-const newSlugs = new Set(newSeasons.map((s) => s.slug));
+const oldSlugs = new Set(oldSeasons.map(s => s.slug));
+const newSlugs = new Set(newSeasons.map(s => s.slug));
 
 for (const slug of newSlugs) {
   if (!oldSlugs.has(slug)) return true; // Found new season
@@ -127,7 +116,6 @@ for (const slug of newSlugs) {
 ```
 
 ### **Memory Management**
-
 - Automatic cleanup khi navigate away từ page
 - LRU eviction cho tracked series
 - Event listener cleanup để tránh memory leaks
@@ -135,19 +123,16 @@ for (const slug of newSlugs) {
 ## 📊 Performance Considerations
 
 ### **API Rate Limiting**
-
 - Minimum 15 phút interval giữa các lần check
 - Staggered checking để tránh API burst
 - Timeout protection (10 giây)
 
 ### **Memory Usage**
-
 - Maximum 50 tracked series
 - Automatic cleanup của old cache entries
 - Efficient data structures (Map, Set)
 
 ### **User Experience**
-
 - Non-blocking background operations
 - Immediate feedback cho manual actions
 - Graceful error handling
@@ -157,14 +142,12 @@ for (const slug of newSlugs) {
 ### **Common Issues**
 
 1. **Auto-update không hoạt động**
-
    ```javascript
    // Check if manager is initialized
    console.log(window.seriesUpdateManager?.getStats());
    ```
 
 2. **Refresh button không phản hồi**
-
    ```javascript
    // Check API availability
    console.log(window.Api, window.extractItems);
@@ -177,13 +160,12 @@ for (const slug of newSlugs) {
    ```
 
 ### **Debug Commands**
-
 ```javascript
 // Get update manager stats
 window.seriesUpdateManager?.getStats();
 
 // Force check specific series
-window.seriesUpdateManager?.forceCheckSeries("seriesId");
+window.seriesUpdateManager?.forceCheckSeries('seriesId');
 
 // Clear all tracked series
 window.seriesUpdateManager?.clearAll();
@@ -192,7 +174,6 @@ window.seriesUpdateManager?.clearAll();
 ## 🔮 Future Enhancements
 
 ### **Planned Features**
-
 - [ ] Webhook integration cho real-time updates
 - [ ] User preferences cho update frequency
 - [ ] Batch notifications cho multiple updates
@@ -200,7 +181,6 @@ window.seriesUpdateManager?.clearAll();
 - [ ] Offline support với sync khi online
 
 ### **Performance Optimizations**
-
 - [ ] Intelligent prefetching cho popular series
 - [ ] CDN-aware caching strategy
 - [ ] Background service worker integration
@@ -209,7 +189,6 @@ window.seriesUpdateManager?.clearAll();
 ## 📝 Changelog
 
 ### **v1.0.0** - Initial Release
-
 - ✅ Background monitoring system
 - ✅ Smart cache invalidation
 - ✅ Manual refresh capability
@@ -232,7 +211,6 @@ Khi contribute vào auto-update system:
 ## 📞 Support
 
 Nếu gặp vấn đề với auto-update system:
-
 1. Check browser console cho error messages
 2. Verify API connectivity
 3. Test với manual refresh trước

@@ -27,7 +27,7 @@ class MigrationTool {
 
       // Check for old user data
       const hasOldData = this._hasLegacyData();
-
+      
       if (hasOldData) {
         console.log('🔄 Migration needed - found legacy data');
         return true;
@@ -35,7 +35,7 @@ class MigrationTool {
 
       // Check for users with old user ID format
       const hasOldUserId = await this._hasOldUserIdFormat();
-
+      
       if (hasOldUserId) {
         console.log('🔄 Migration needed - old user ID format detected');
         return true;
@@ -43,6 +43,7 @@ class MigrationTool {
 
       console.log('✅ No migration needed');
       return false;
+
     } catch (error) {
       console.error('❌ Migration check failed:', error);
       return false;
@@ -53,25 +54,24 @@ class MigrationTool {
     // Check for old localStorage data
     const legacyKeys = [
       'savedMovies',
-      'watchProgress',
+      'watchProgress', 
       'movie_commenter_id',
       'movie_commenter_name'
     ];
 
-    return legacyKeys.some((key) => localStorage.getItem(key) !== null);
+    return legacyKeys.some(key => localStorage.getItem(key) !== null);
   }
 
   async _hasOldUserIdFormat() {
     try {
       const userId = localStorage.getItem('movie_commenter_id');
-
+      
       if (!userId) return false;
-
+      
       // Check if it's old format (contains timestamp or random without 'det' prefix)
-      return (
-        !userId.includes('user_det_') &&
-        (userId.includes('user_') || userId.length < 20)
-      );
+      return !userId.includes('user_det_') && 
+             (userId.includes('user_') || userId.length < 20);
+             
     } catch (error) {
       return false;
     }
@@ -80,48 +80,46 @@ class MigrationTool {
   // 🚀 Start Migration Process
   async startMigration() {
     console.log('🚀 Starting migration to enhanced Firebase system...');
-
+    
     this.migrationResults.startTime = Date.now();
-
+    
     try {
       // Step 1: Create backup
       await this._createBackup();
-
+      
       // Step 2: Migrate user identity
       await this._migrateUserIdentity();
-
+      
       // Step 3: Migrate saved movies
       await this._migrateSavedMovies();
-
+      
       // Step 4: Migrate watch progress
       await this._migrateWatchProgress();
-
+      
       // Step 5: Update user preferences
       await this._migrateUserPreferences();
-
+      
       // Step 6: Cleanup old data
       await this._cleanupLegacyData();
-
+      
       // Step 7: Mark migration complete
       this._markMigrationComplete();
-
+      
       this.migrationResults.endTime = Date.now();
-
-      console.log(
-        '✅ Migration completed successfully:',
-        this.migrationResults
-      );
-
+      
+      console.log('✅ Migration completed successfully:', this.migrationResults);
+      
       return {
         success: true,
         results: this.migrationResults
       };
+
     } catch (error) {
       console.error('❌ Migration failed:', error);
-
+      
       // Attempt rollback
       await this._rollbackMigration();
-
+      
       return {
         success: false,
         error: error.message,
@@ -133,7 +131,7 @@ class MigrationTool {
   // 💾 Create Backup
   async _createBackup() {
     console.log('💾 Creating backup of existing data...');
-
+    
     try {
       const backup = {
         timestamp: Date.now(),
@@ -156,11 +154,12 @@ class MigrationTool {
 
       // Save backup to IndexedDB
       await this._saveBackupToIndexedDB(backup);
-
+      
       // Also save to localStorage as fallback
       localStorage.setItem(this.backupKey, JSON.stringify(backup));
-
+      
       console.log('✅ Backup created successfully');
+
     } catch (error) {
       console.error('❌ Backup creation failed:', error);
       throw new Error('Failed to create backup: ' + error.message);
@@ -170,24 +169,24 @@ class MigrationTool {
   async _saveBackupToIndexedDB(backup) {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open('MovieAppMigration', 1);
-
+      
       request.onupgradeneeded = (e) => {
         const db = e.target.result;
         if (!db.objectStoreNames.contains('backups')) {
           db.createObjectStore('backups');
         }
       };
-
+      
       request.onsuccess = (e) => {
         const db = e.target.result;
         const transaction = db.transaction(['backups'], 'readwrite');
         const store = transaction.objectStore('backups');
-
+        
         const putRequest = store.put(backup, this.backupKey);
         putRequest.onsuccess = () => resolve();
         putRequest.onerror = () => reject(putRequest.error);
       };
-
+      
       request.onerror = () => reject(request.error);
     });
   }
@@ -195,11 +194,11 @@ class MigrationTool {
   // 🆔 Migrate User Identity
   async _migrateUserIdentity() {
     console.log('🆔 Migrating user identity...');
-
+    
     try {
       const oldUserId = localStorage.getItem('movie_commenter_id');
       const oldUserName = localStorage.getItem('movie_commenter_name');
-
+      
       if (!oldUserId) {
         console.log('⚠️ No existing user ID found, will generate new one');
         return;
@@ -227,6 +226,7 @@ class MigrationTool {
 
       console.log(`✅ User identity migrated: ${oldUserId} → ${newUserId}`);
       this.migrationResults.usersProcessed++;
+
     } catch (error) {
       console.error('❌ User identity migration failed:', error);
       this.migrationResults.errors.push('User identity: ' + error.message);
@@ -249,6 +249,7 @@ class MigrationTool {
         .set(mapping);
 
       console.log('✅ User mapping created in Firebase');
+
     } catch (error) {
       console.warn('⚠️ Failed to create user mapping:', error);
     }
@@ -263,7 +264,7 @@ class MigrationTool {
   // 🎬 Migrate Saved Movies
   async _migrateSavedMovies() {
     console.log('🎬 Migrating saved movies...');
-
+    
     try {
       // Get old saved movies from localStorage
       const oldMoviesData = localStorage.getItem('savedMovies');
@@ -278,13 +279,10 @@ class MigrationTool {
         return;
       }
 
-      const newUserId =
-        localStorage.getItem('movie_user_id_v2') ||
-        localStorage.getItem('movie_commenter_id');
-      const userName =
-        localStorage.getItem('movie_user_name_v2') ||
-        localStorage.getItem('movie_commenter_name') ||
-        'Khách';
+      const newUserId = localStorage.getItem('movie_user_id_v2') || 
+                       localStorage.getItem('movie_commenter_id');
+      const userName = localStorage.getItem('movie_user_name_v2') || 
+                      localStorage.getItem('movie_commenter_name') || 'Khách';
 
       if (!window.movieComments?.db) {
         throw new Error('Firebase not available for movie migration');
@@ -311,20 +309,13 @@ class MigrationTool {
             migrationDate: new Date()
           };
 
-          const docRef = window.movieComments.db
-            .collection('savedMovies')
-            .doc();
+          const docRef = window.movieComments.db.collection('savedMovies').doc();
           batch.set(docRef, movieData);
           migratedCount++;
+
         } catch (movieError) {
-          console.warn(
-            '⚠️ Failed to prepare movie for migration:',
-            movie.slug,
-            movieError
-          );
-          this.migrationResults.errors.push(
-            `Movie ${movie.slug}: ${movieError.message}`
-          );
+          console.warn('⚠️ Failed to prepare movie for migration:', movie.slug, movieError);
+          this.migrationResults.errors.push(`Movie ${movie.slug}: ${movieError.message}`);
         }
       }
 
@@ -334,6 +325,7 @@ class MigrationTool {
         console.log(`✅ Migrated ${migratedCount} movies to Firebase`);
         this.migrationResults.dataPreserved += migratedCount;
       }
+
     } catch (error) {
       console.error('❌ Saved movies migration failed:', error);
       this.migrationResults.errors.push('Saved movies: ' + error.message);
@@ -343,7 +335,7 @@ class MigrationTool {
   // 📺 Migrate Watch Progress
   async _migrateWatchProgress() {
     console.log('📺 Migrating watch progress...');
-
+    
     try {
       const oldProgressData = localStorage.getItem('watchProgress');
       if (!oldProgressData) {
@@ -357,9 +349,8 @@ class MigrationTool {
         return;
       }
 
-      const newUserId =
-        localStorage.getItem('movie_user_id_v2') ||
-        localStorage.getItem('movie_commenter_id');
+      const newUserId = localStorage.getItem('movie_user_id_v2') || 
+                       localStorage.getItem('movie_commenter_id');
 
       if (!window.movieComments?.db) {
         throw new Error('Firebase not available for progress migration');
@@ -380,31 +371,23 @@ class MigrationTool {
           };
 
           const docId = `${newUserId}_${movieSlug}`;
-          const docRef = window.movieComments.db
-            .collection('watchProgress')
-            .doc(docId);
+          const docRef = window.movieComments.db.collection('watchProgress').doc(docId);
           batch.set(docRef, progressData, { merge: true });
           migratedCount++;
+
         } catch (progressError) {
-          console.warn(
-            '⚠️ Failed to prepare progress for migration:',
-            movieSlug,
-            progressError
-          );
-          this.migrationResults.errors.push(
-            `Progress ${movieSlug}: ${progressError.message}`
-          );
+          console.warn('⚠️ Failed to prepare progress for migration:', movieSlug, progressError);
+          this.migrationResults.errors.push(`Progress ${movieSlug}: ${progressError.message}`);
         }
       }
 
       // Commit batch
       if (migratedCount > 0) {
         await batch.commit();
-        console.log(
-          `✅ Migrated ${migratedCount} watch progress entries to Firebase`
-        );
+        console.log(`✅ Migrated ${migratedCount} watch progress entries to Firebase`);
         this.migrationResults.dataPreserved += migratedCount;
       }
+
     } catch (error) {
       console.error('❌ Watch progress migration failed:', error);
       this.migrationResults.errors.push('Watch progress: ' + error.message);
@@ -414,7 +397,7 @@ class MigrationTool {
   // ⚙️ Migrate User Preferences
   async _migrateUserPreferences() {
     console.log('⚙️ Migrating user preferences...');
-
+    
     try {
       const preferences = {
         theme: localStorage.getItem('theme'),
@@ -430,12 +413,10 @@ class MigrationTool {
 
       if (Object.keys(validPreferences).length > 0) {
         // Save to new format
-        localStorage.setItem(
-          'user_preferences_v2',
-          JSON.stringify(validPreferences)
-        );
+        localStorage.setItem('user_preferences_v2', JSON.stringify(validPreferences));
         console.log('✅ User preferences migrated');
       }
+
     } catch (error) {
       console.error('❌ User preferences migration failed:', error);
       this.migrationResults.errors.push('User preferences: ' + error.message);
@@ -445,7 +426,7 @@ class MigrationTool {
   // 🧹 Cleanup Legacy Data
   async _cleanupLegacyData() {
     console.log('🧹 Cleaning up legacy data...');
-
+    
     try {
       const legacyKeys = [
         'savedMovies',
@@ -455,9 +436,9 @@ class MigrationTool {
       ];
 
       // Don't remove immediately - keep for a grace period
-      const cleanupDate = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
-
-      legacyKeys.forEach((key) => {
+      const cleanupDate = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days
+      
+      legacyKeys.forEach(key => {
         const value = localStorage.getItem(key);
         if (value) {
           // Mark for cleanup instead of immediate removal
@@ -467,6 +448,7 @@ class MigrationTool {
       });
 
       console.log('✅ Legacy data marked for cleanup');
+
     } catch (error) {
       console.error('❌ Legacy data cleanup failed:', error);
       this.migrationResults.errors.push('Cleanup: ' + error.message);
@@ -483,11 +465,11 @@ class MigrationTool {
   // 🔄 Rollback Migration
   async _rollbackMigration() {
     console.log('🔄 Attempting migration rollback...');
-
+    
     try {
       // Get backup from IndexedDB
       const backup = await this._getBackupFromIndexedDB();
-
+      
       if (backup) {
         // Restore localStorage
         Object.entries(backup.localStorage).forEach(([key, value]) => {
@@ -503,6 +485,7 @@ class MigrationTool {
       } else {
         console.warn('⚠️ No backup found for rollback');
       }
+
     } catch (error) {
       console.error('❌ Migration rollback failed:', error);
     }
@@ -511,23 +494,23 @@ class MigrationTool {
   async _getBackupFromIndexedDB() {
     return new Promise((resolve) => {
       const request = indexedDB.open('MovieAppMigration', 1);
-
+      
       request.onsuccess = (e) => {
         const db = e.target.result;
-
+        
         if (!db.objectStoreNames.contains('backups')) {
           resolve(null);
           return;
         }
-
+        
         const transaction = db.transaction(['backups'], 'readonly');
         const store = transaction.objectStore('backups');
         const getRequest = store.get(this.backupKey);
-
+        
         getRequest.onsuccess = () => resolve(getRequest.result || null);
         getRequest.onerror = () => resolve(null);
       };
-
+      
       request.onerror = () => resolve(null);
     });
   }
@@ -535,7 +518,7 @@ class MigrationTool {
   // 🎯 Public API
   async autoMigrate() {
     const needsMigration = await this.checkMigrationNeeded();
-
+    
     if (needsMigration) {
       console.log('🚀 Auto-migration starting...');
       return await this.startMigration();
@@ -547,7 +530,7 @@ class MigrationTool {
   getMigrationStatus() {
     const migrationStatus = localStorage.getItem(this.migrationKey);
     const migrationDate = localStorage.getItem(`${this.migrationKey}_date`);
-
+    
     return {
       version: migrationStatus,
       date: migrationDate ? new Date(parseInt(migrationDate)) : null,

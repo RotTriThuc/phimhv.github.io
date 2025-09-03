@@ -18,7 +18,7 @@ class AutoRecoverySystem {
   async detectDataLoss() {
     try {
       console.log('🔍 Checking for potential data loss...');
-
+      
       const indicators = {
         newUserId: false,
         noSavedMovies: false,
@@ -54,20 +54,17 @@ class AutoRecoverySystem {
 
       // Calculate data loss probability
       const lossIndicators = Object.values(indicators).filter(Boolean).length;
-      const dataLossProbability =
-        lossIndicators / Object.keys(indicators).length;
+      const dataLossProbability = lossIndicators / Object.keys(indicators).length;
 
       console.log('📊 Data loss indicators:', indicators);
-      console.log(
-        '📊 Data loss probability:',
-        Math.round(dataLossProbability * 100) + '%'
-      );
+      console.log('📊 Data loss probability:', Math.round(dataLossProbability * 100) + '%');
 
       return {
         hasDataLoss: dataLossProbability > 0.5,
         probability: dataLossProbability,
         indicators
       };
+
     } catch (error) {
       console.error('❌ Data loss detection failed:', error);
       return { hasDataLoss: false, probability: 0, indicators: {} };
@@ -84,17 +81,15 @@ class AutoRecoverySystem {
     this.isRecovering = true;
     this.recoveryAttempts++;
 
-    console.log(
-      `🔄 Starting auto-recovery attempt ${this.recoveryAttempts}/${this.maxRecoveryAttempts}...`
-    );
+    console.log(`🔄 Starting auto-recovery attempt ${this.recoveryAttempts}/${this.maxRecoveryAttempts}...`);
 
     try {
       // Step 1: Try enhanced user ID recovery
       const userIdResult = await this._recoverUserId();
-
+      
       // Step 2: Try data recovery
       const dataResult = await this._recoverUserData();
-
+      
       // Step 3: Validate recovery
       const validationResult = await this._validateRecovery();
 
@@ -106,10 +101,7 @@ class AutoRecoverySystem {
         validationPassed: validationResult.success
       };
 
-      if (
-        this.recoveryResults.userIdRecovered ||
-        this.recoveryResults.dataRecovered
-      ) {
+      if (this.recoveryResults.userIdRecovered || this.recoveryResults.dataRecovered) {
         console.log('✅ Auto-recovery successful:', this.recoveryResults);
         this._showRecoverySuccessNotification();
       } else {
@@ -118,6 +110,7 @@ class AutoRecoverySystem {
       }
 
       return this.recoveryResults;
+
     } catch (error) {
       console.error('❌ Auto-recovery error:', error);
       this._showRecoveryErrorNotification(error);
@@ -134,14 +127,9 @@ class AutoRecoverySystem {
     try {
       // Method 1: Enhanced user manager
       if (window.enhancedUserManager) {
-        const recoveredId =
-          await window.enhancedUserManager.attemptAutoRecovery();
+        const recoveredId = await window.enhancedUserManager.attemptAutoRecovery();
         if (recoveredId) {
-          return {
-            success: true,
-            method: 'enhanced_manager',
-            userId: recoveredId
-          };
+          return { success: true, method: 'enhanced_manager', userId: recoveredId };
         }
       }
 
@@ -154,14 +142,11 @@ class AutoRecoverySystem {
       // Method 3: Device fingerprint matching
       const fingerprintId = await this._matchDeviceFingerprint();
       if (fingerprintId) {
-        return {
-          success: true,
-          method: 'fingerprint_match',
-          userId: fingerprintId
-        };
+        return { success: true, method: 'fingerprint_match', userId: fingerprintId };
       }
 
       return { success: false, method: null };
+
     } catch (error) {
       console.error('❌ User ID recovery failed:', error);
       return { success: false, error: error.message };
@@ -199,7 +184,7 @@ class AutoRecoverySystem {
 
       // Get current device signature
       const deviceSignature = this._getDeviceSignature();
-
+      
       // Search for users with similar device signatures
       // Note: This requires Firebase schema to include deviceSignature
       const snapshot = await window.movieComments.db
@@ -234,14 +219,14 @@ class AutoRecoverySystem {
       }
 
       // Try to load saved movies
-      const movies = (await window.Storage?.getSavedMovies()) || [];
-
+      const movies = await window.Storage?.getSavedMovies() || [];
+      
       if (movies.length > 0) {
         console.log(`✅ Found ${movies.length} saved movies`);
-        return {
-          success: true,
+        return { 
+          success: true, 
           method: 'firebase_direct',
-          moviesFound: movies.length
+          moviesFound: movies.length 
         };
       }
 
@@ -252,6 +237,7 @@ class AutoRecoverySystem {
       }
 
       return { success: false, reason: 'no_data_found' };
+
     } catch (error) {
       console.error('❌ Data recovery failed:', error);
       return { success: false, error: error.message };
@@ -263,8 +249,8 @@ class AutoRecoverySystem {
       // Try direct Firebase query with different user ID patterns
       const possibleUserIds = [
         userId,
-        userId.replace('_det_', '_'), // Try old format
-        userId.replace('user_det_', 'user_') // Try without deterministic prefix
+        userId.replace('_det_', '_'),  // Try old format
+        userId.replace('user_det_', 'user_'),  // Try without deterministic prefix
       ];
 
       for (const testUserId of possibleUserIds) {
@@ -276,10 +262,10 @@ class AutoRecoverySystem {
 
         if (!snapshot.empty) {
           console.log(`✅ Found data with alternative user ID: ${testUserId}`);
-
+          
           // Update current user ID to the working one
           localStorage.setItem('movie_commenter_id', testUserId);
-
+          
           return {
             success: true,
             method: 'alternative_user_id',
@@ -313,8 +299,8 @@ class AutoRecoverySystem {
       }
 
       // Check if data is accessible
-      const movies = (await window.Storage?.getSavedMovies()) || [];
-
+      const movies = await window.Storage?.getSavedMovies() || [];
+      
       // Try to save a test item to verify write access
       try {
         const testMovie = {
@@ -323,28 +309,30 @@ class AutoRecoverySystem {
           poster_url: 'test',
           year: 2025
         };
-
+        
         await window.movieComments.saveMovie(testMovie);
-
+        
         // Remove test movie
         await window.movieComments.removeSavedMovie(testMovie.slug);
-
+        
         console.log('✅ Recovery validation passed');
-        return {
-          success: true,
-          userId,
+        return { 
+          success: true, 
+          userId, 
           moviesCount: movies.length,
-          writeAccess: true
+          writeAccess: true 
         };
+        
       } catch (writeError) {
         console.warn('Write access test failed:', writeError);
-        return {
-          success: true,
-          userId,
+        return { 
+          success: true, 
+          userId, 
           moviesCount: movies.length,
-          writeAccess: false
+          writeAccess: false 
         };
       }
+
     } catch (error) {
       console.error('❌ Recovery validation failed:', error);
       return { success: false, error: error.message };
@@ -360,7 +348,7 @@ class AutoRecoverySystem {
         screen.width + 'x' + screen.height,
         navigator.maxTouchPoints || 0
       ].join('|');
-
+      
       return this._hashString(signature);
     } catch (error) {
       return 'unknown-device';
@@ -371,7 +359,7 @@ class AutoRecoverySystem {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
+      hash = ((hash << 5) - hash) + char;
       hash = hash & hash;
     }
     return Math.abs(hash).toString(36);
@@ -380,45 +368,42 @@ class AutoRecoverySystem {
   async _getFromIndexedDB(key) {
     return new Promise((resolve) => {
       const request = indexedDB.open('MovieAppStorage', 2);
-
+      
       request.onsuccess = (e) => {
         const db = e.target.result;
-
+        
         if (!db.objectStoreNames.contains('userSettings')) {
           resolve(null);
           return;
         }
-
+        
         const transaction = db.transaction(['userSettings'], 'readonly');
         const store = transaction.objectStore('userSettings');
         const getRequest = store.get(key);
-
+        
         getRequest.onsuccess = () => resolve(getRequest.result || null);
         getRequest.onerror = () => resolve(null);
       };
-
+      
       request.onerror = () => resolve(null);
     });
   }
 
   async _getFromServiceWorker(key) {
     if (!navigator.serviceWorker.controller) return null;
-
+    
     return new Promise((resolve) => {
       const channel = new MessageChannel();
-
+      
       channel.port1.onmessage = (event) => {
         resolve(event.data.value || null);
       };
-
-      navigator.serviceWorker.controller.postMessage(
-        {
-          type: 'GET_USER_DATA',
-          key
-        },
-        [channel.port2]
-      );
-
+      
+      navigator.serviceWorker.controller.postMessage({
+        type: 'GET_USER_DATA',
+        key
+      }, [channel.port2]);
+      
       setTimeout(() => resolve(null), 2000);
     });
   }
@@ -452,7 +437,7 @@ class AutoRecoverySystem {
   // 🎯 Public API
   async checkAndRecover() {
     const dataLoss = await this.detectDataLoss();
-
+    
     if (dataLoss.hasDataLoss) {
       console.log('🚨 Data loss detected, starting auto-recovery...');
       return await this.startAutoRecovery();

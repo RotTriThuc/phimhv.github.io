@@ -5,7 +5,7 @@
     "module": "ES2020",
     "moduleResolution": "node",
     "lib": ["ES2020", "DOM", "DOM.Iterable", "WebWorker"],
-
+    
     // Output
     "outDir": "./dist",
     "rootDir": "./",
@@ -14,7 +14,7 @@
     "sourceMap": true,
     "removeComments": false,
     "importHelpers": true,
-
+    
     // Type Checking
     "strict": true,
     "noImplicitAny": true,
@@ -27,26 +27,26 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-
+    
     // Additional Checks
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noPropertyAccessFromIndexSignature": false,
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,
-
+    
     // Module Resolution
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-
+    
     // Advanced
     "skipLibCheck": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-
+    
     // Path Mapping
     "baseUrl": "./",
     "paths": {
@@ -56,9 +56,14 @@
       "@utils/*": ["./modules/utils/*"]
     }
   },
-
-  "include": ["modules/**/*", "types/**/*", "*.ts", "*.js"],
-
+  
+  "include": [
+    "modules/**/*",
+    "types/**/*",
+    "*.ts",
+    "*.js"
+  ],
+  
   "exclude": [
     "node_modules",
     "dist",
@@ -66,7 +71,7 @@
     "**/*.spec.ts",
     "coverage"
   ],
-
+  
   "ts-node": {
     "esm": true,
     "experimentalSpecifierResolution": "node"

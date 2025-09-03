@@ -1,19 +1,13 @@
 /* UI Components - Reusable UI elements and rendering functions */
 
 import { Logger } from './logger.js';
-import {
-  createEl,
-  safeRemove,
-  formatTime,
-  formatDate,
-  sanitizeHtml
-} from './utils.js';
+import { createEl, safeRemove, formatTime, formatDate, sanitizeHtml } from './utils.js';
 import { imageLoader } from './image-loader.js';
 
 // Loading Components
 export function renderLoadingCards(count = 12) {
   const container = createEl('div', 'grid grid--loading');
-
+  
   for (let i = 0; i < count; i++) {
     const card = createEl('div', 'card card--loading');
     card.innerHTML = `
@@ -25,7 +19,7 @@ export function renderLoadingCards(count = 12) {
     `;
     container.appendChild(card);
   }
-
+  
   return container;
 }
 
@@ -46,12 +40,12 @@ export function renderError(message, retryCallback) {
     <div class="error-state__message">${message}</div>
     ${retryCallback ? '<button class="btn btn--primary error-state__retry">Thử lại</button>' : ''}
   `;
-
+  
   if (retryCallback) {
     const retryBtn = errorEl.querySelector('.error-state__retry');
     retryBtn.addEventListener('click', retryCallback);
   }
-
+  
   return errorEl;
 }
 
@@ -60,11 +54,11 @@ export function sectionHeader(title, actionElement = null) {
   const header = createEl('div', 'section__header');
   const titleEl = createEl('h2', 'section__title', title);
   header.appendChild(titleEl);
-
+  
   if (actionElement) {
     header.appendChild(actionElement);
   }
-
+  
   return header;
 }
 
@@ -76,7 +70,7 @@ export function createMovieCard(movie) {
   }
 
   const card = createEl('article', 'card');
-
+  
   // Check if movie is saved and has progress (async)
   let isSaved = false;
   let progress = null;
@@ -84,36 +78,32 @@ export function createMovieCard(movie) {
   try {
     // Async check for saved status and progress
     if (window.Storage) {
-      window.Storage.isMovieSaved(movie.slug)
-        .then((saved) => {
-          isSaved = saved;
-          if (saved) {
-            card.classList.add('card--saved');
-            const saveIcon = card.querySelector('.card__save-icon');
-            if (saveIcon) {
-              saveIcon.textContent = '❤️';
-              saveIcon.classList.add('card__save-icon--saved');
-            }
+      window.Storage.isMovieSaved(movie.slug).then(saved => {
+        isSaved = saved;
+        if (saved) {
+          card.classList.add('card--saved');
+          const saveIcon = card.querySelector('.card__save-icon');
+          if (saveIcon) {
+            saveIcon.textContent = '❤️';
+            saveIcon.classList.add('card__save-icon--saved');
           }
-        })
-        .catch((error) => {
-          Logger.warn('Failed to check saved status:', error);
-        });
+        }
+      }).catch(error => {
+        Logger.warn('Failed to check saved status:', error);
+      });
 
-      window.Storage.getWatchProgress(movie.slug)
-        .then((prog) => {
-          progress = prog;
-          if (prog && prog.episodeName) {
-            const progressEl = card.querySelector('.card__progress');
-            if (progressEl) {
-              progressEl.textContent = `Đã xem: ${prog.episodeName}`;
-              progressEl.style.display = 'block';
-            }
+      window.Storage.getWatchProgress(movie.slug).then(prog => {
+        progress = prog;
+        if (prog && prog.episodeName) {
+          const progressEl = card.querySelector('.card__progress');
+          if (progressEl) {
+            progressEl.textContent = `Đã xem: ${prog.episodeName}`;
+            progressEl.style.display = 'block';
           }
-        })
-        .catch((error) => {
-          Logger.warn('Failed to get watch progress:', error);
-        });
+        }
+      }).catch(error => {
+        Logger.warn('Failed to get watch progress:', error);
+      });
     }
   } catch (error) {
     Logger.warn('Error in async movie card setup:', error);
@@ -169,7 +159,7 @@ function setupCardImageLoading(card, movie) {
     Logger.warn('No slug found for movie:', movie);
     return;
   }
-
+  
   // Ensure DOM is fully ready before image loading
   requestAnimationFrame(() => {
     // Double-check element is still in DOM
@@ -177,7 +167,7 @@ function setupCardImageLoading(card, movie) {
       Logger.warn('Image element removed from DOM before loading');
       return;
     }
-
+    
     // Immediate load if likely to be visible
     try {
       const rect = card.getBoundingClientRect();
@@ -214,17 +204,17 @@ function setupCardInteractions(card, movie) {
     saveBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
-
+      
       saveBtn.disabled = true;
-
+      
       try {
         if (typeof window.toggleSaveMovie === 'function') {
           await window.toggleSaveMovie(movie.slug);
-
+          
           // Update UI immediately
           const saveIcon = card.querySelector('.card__save-icon');
           const isSaved = await window.Storage.isMovieSaved(movie.slug);
-
+          
           if (isSaved) {
             card.classList.add('card--saved');
             saveIcon.textContent = '❤️';
@@ -260,7 +250,7 @@ function setupCardInteractions(card, movie) {
 // Grid Component
 export function listGrid(items, className = 'grid') {
   const grid = createEl('div', className);
-
+  
   if (!items || items.length === 0) {
     const emptyState = createEl('div', 'empty-state');
     emptyState.innerHTML = `
@@ -271,7 +261,7 @@ export function listGrid(items, className = 'grid') {
     return grid;
   }
 
-  items.forEach((item) => {
+  items.forEach(item => {
     const card = createMovieCard(item);
     grid.appendChild(card);
   });
@@ -316,10 +306,7 @@ export function createPagination(currentPage, totalPages, baseUrl) {
     list.appendChild(firstItem);
 
     if (startPage > 2) {
-      const ellipsis = createEl(
-        'li',
-        'pagination__item pagination__item--ellipsis'
-      );
+      const ellipsis = createEl('li', 'pagination__item pagination__item--ellipsis');
       ellipsis.textContent = '...';
       list.appendChild(ellipsis);
     }
@@ -328,24 +315,21 @@ export function createPagination(currentPage, totalPages, baseUrl) {
   for (let i = startPage; i <= endPage; i++) {
     const item = createEl('li', 'pagination__item');
     const link = createEl('a', 'pagination__link', i.toString());
-
+    
     if (i === currentPage) {
       item.classList.add('pagination__item--current');
       link.setAttribute('aria-current', 'page');
     } else {
       link.href = `${baseUrl}&page=${i}`;
     }
-
+    
     item.appendChild(link);
     list.appendChild(item);
   }
 
   if (endPage < totalPages) {
     if (endPage < totalPages - 1) {
-      const ellipsis = createEl(
-        'li',
-        'pagination__item pagination__item--ellipsis'
-      );
+      const ellipsis = createEl('li', 'pagination__item pagination__item--ellipsis');
       ellipsis.textContent = '...';
       list.appendChild(ellipsis);
     }
@@ -400,7 +384,7 @@ export function createSearchForm(initialValues = {}) {
       </select>
     </div>
   `;
-
+  
   return form;
 }
 
@@ -419,19 +403,19 @@ export function createModal(title, content) {
       </div>
     </div>
   `;
-
+  
   // Close handlers
   const closeBtn = modal.querySelector('.modal__close');
   const backdrop = modal.querySelector('.modal__backdrop');
-
+  
   const closeModal = () => {
     modal.classList.add('modal--closing');
     setTimeout(() => modal.remove(), 300);
   };
-
+  
   closeBtn.addEventListener('click', closeModal);
   backdrop.addEventListener('click', closeModal);
-
+  
   // ESC key handler
   const handleEsc = (e) => {
     if (e.key === 'Escape') {
@@ -440,6 +424,6 @@ export function createModal(title, content) {
     }
   };
   document.addEventListener('keydown', handleEsc);
-
+  
   return modal;
 }
