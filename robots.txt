@@ -1,0 +1,140 @@
+# Robots.txt for PhimHV - Anime Streaming Website
+# Website: https://phimhv.site
+# Generated: 2024-01-15
+
+# Allow all search engines to crawl the site
+User-agent: *
+Allow: /
+
+# Specific rules for Google
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+# Specific rules for Bing
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 2
+
+# Block access to admin and private areas
+Disallow: /admin/
+Disallow: /private/
+Disallow: /temp/
+Disallow: /cache/
+Disallow: /logs/
+
+# Block access to system files
+Disallow: /*.json$
+Disallow: /*.log$
+Disallow: /*.tmp$
+Disallow: /node_modules/
+Disallow: /.git/
+Disallow: /.env
+Disallow: /package.json
+Disallow: /package-lock.json
+Disallow: /webpack.config.js
+Disallow: /tsconfig.json
+
+# Block access to development files
+Disallow: /tests/
+Disallow: /docs/
+Disallow: /*.test.js$
+Disallow: /*.spec.js$
+Disallow: /coverage/
+Disallow: /reports/
+
+# Allow access to important assets
+Allow: /assets/
+Allow: /modules/
+Allow: /data/
+Allow: /*.css$
+Allow: /*.js$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.gif$
+Allow: /*.webp$
+Allow: /*.svg$
+Allow: /*.ico$
+
+# Allow access to API endpoints
+Allow: /api/
+
+# Block search result pages with parameters to avoid duplicate content
+Disallow: /*?*
+Disallow: /*&*
+Allow: /*?keyword=*
+Allow: /*?category=*
+Allow: /*?page=*
+
+# Block infinite scroll and AJAX endpoints
+Disallow: /ajax/
+Disallow: /api/internal/
+
+# Block user-specific pages
+Disallow: /user/
+Disallow: /profile/
+Disallow: /settings/
+
+# Block comment and rating endpoints
+Disallow: /comment/
+Disallow: /rating/
+Disallow: /vote/
+
+# Block download and streaming endpoints
+Disallow: /download/
+Disallow: /stream/
+Disallow: /embed/
+
+# Allow social media crawlers
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+# Block bad bots and scrapers
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MajesticSEO
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+# Block aggressive crawlers
+User-agent: *
+Crawl-delay: 5
+
+# Sitemap location
+Sitemap: https://phimhv.site/sitemap.xml
+
+# Additional sitemaps (if using sitemap index)
+# Sitemap: https://phimhv.site/sitemap-movies.xml
+# Sitemap: https://phimhv.site/sitemap-categories.xml
+# Sitemap: https://phimhv.site/sitemap-episodes.xml
+
+# Host directive (helps with canonicalization)
+Host: https://phimhv.site
