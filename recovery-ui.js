@@ -36,20 +36,20 @@ class RecoveryUI {
   // 🎨 Show Main Recovery Modal
   showManualRecoveryModal() {
     if (this.isShowing) return;
-    
+
     this.isShowing = true;
-    
+
     const modal = this._createModal();
     document.body.appendChild(modal);
-    
+
     // Add event listeners
     this._bindEvents();
-    
+
     // Show with animation
     requestAnimationFrame(() => {
       modal.classList.add('recovery-modal--visible');
     });
-    
+
     console.log('🎨 Recovery modal displayed');
   }
 
@@ -57,7 +57,7 @@ class RecoveryUI {
     const modal = document.createElement('div');
     modal.id = this.modalId;
     modal.className = 'recovery-modal';
-    
+
     modal.innerHTML = `
       <div class="recovery-modal__backdrop"></div>
       <div class="recovery-modal__container">
@@ -69,7 +69,7 @@ class RecoveryUI {
         
         <div class="recovery-modal__content">
           <div class="recovery-methods">
-            ${this.recoveryMethods.map(method => this._createMethodCard(method)).join('')}
+            ${this.recoveryMethods.map((method) => this._createMethodCard(method)).join('')}
           </div>
           
           <div class="recovery-status" id="recovery-status" style="display: none;">
@@ -88,10 +88,10 @@ class RecoveryUI {
         </div>
       </div>
     `;
-    
+
     // Add CSS styles
     this._injectStyles();
-    
+
     return modal;
   }
 
@@ -112,24 +112,28 @@ class RecoveryUI {
 
   _bindEvents() {
     const modal = document.getElementById(this.modalId);
-    
+
     // Close modal
-    modal.querySelector('.recovery-modal__close').addEventListener('click', () => {
-      this.hideModal();
-    });
-    
-    modal.querySelector('.recovery-modal__backdrop').addEventListener('click', () => {
-      this.hideModal();
-    });
-    
+    modal
+      .querySelector('.recovery-modal__close')
+      .addEventListener('click', () => {
+        this.hideModal();
+      });
+
+    modal
+      .querySelector('.recovery-modal__backdrop')
+      .addEventListener('click', () => {
+        this.hideModal();
+      });
+
     // Method buttons
-    modal.querySelectorAll('.recovery-method__button').forEach(button => {
+    modal.querySelectorAll('.recovery-method__button').forEach((button) => {
       button.addEventListener('click', (e) => {
         const action = e.target.dataset.action;
         this[action]();
       });
     });
-    
+
     // Escape key
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.isShowing) {
@@ -141,32 +145,30 @@ class RecoveryUI {
   // 🤖 Auto Recovery
   async attemptAutoRecovery() {
     this._showStatus('⏳ Đang thực hiện khôi phục tự động...', 'loading');
-    
+
     try {
       if (!window.autoRecovery) {
         throw new Error('Auto-recovery system không khả dụng');
       }
-      
+
       const result = await window.autoRecovery.startAutoRecovery();
-      
+
       if (result.userIdRecovered || result.dataRecovered) {
         this._showStatus(
           `✅ Khôi phục thành công! Tìm thấy ${result.moviesFound} phim đã lưu.`,
           'success'
         );
-        
+
         setTimeout(() => {
           this.hideModal();
           window.location.reload(); // Refresh to show recovered data
         }, 2000);
-        
       } else {
         this._showStatus(
           '❌ Khôi phục tự động thất bại. Hãy thử phương pháp khác.',
           'error'
         );
       }
-      
     } catch (error) {
       this._showStatus(`❌ Lỗi: ${error.message}`, 'error');
     }
@@ -196,56 +198,56 @@ class RecoveryUI {
         </div>
       </div>
     `;
-    
+
     this._showForm(form);
-    
+
     // Bind sync form events
     document.getElementById('sync-submit-btn').addEventListener('click', () => {
       this.submitSyncCode();
     });
-    
-    document.getElementById('sync-code-field').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        this.submitSyncCode();
-      }
-    });
-    
+
+    document
+      .getElementById('sync-code-field')
+      .addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          this.submitSyncCode();
+        }
+      });
+
     // Focus input
     document.getElementById('sync-code-field').focus();
   }
 
   async submitSyncCode() {
     const syncCode = document.getElementById('sync-code-field').value.trim();
-    
+
     if (!syncCode || syncCode.length !== 6) {
       this._showStatus('❌ Vui lòng nhập mã sync 6 số', 'error');
       return;
     }
-    
+
     this._showStatus('⏳ Đang đồng bộ dữ liệu...', 'loading');
-    
+
     try {
       if (!window.movieComments?.useSyncCode) {
         throw new Error('Sync system không khả dụng');
       }
-      
+
       const result = await window.movieComments.useSyncCode(syncCode);
-      
+
       if (result) {
         this._showStatus(
           `✅ Đồng bộ thành công với user: ${result.userName}`,
           'success'
         );
-        
+
         setTimeout(() => {
           this.hideModal();
           window.location.reload();
         }, 2000);
-        
       } else {
         this._showStatus('❌ Mã sync không hợp lệ hoặc đã hết hạn', 'error');
       }
-      
     } catch (error) {
       this._showStatus(`❌ Lỗi đồng bộ: ${error.message}`, 'error');
     }
@@ -279,34 +281,38 @@ class RecoveryUI {
         </div>
       </div>
     `;
-    
+
     this._showForm(form);
-    
-    document.getElementById('manual-search-btn').addEventListener('click', () => {
-      this.performManualSearch();
-    });
+
+    document
+      .getElementById('manual-search-btn')
+      .addEventListener('click', () => {
+        this.performManualSearch();
+      });
   }
 
   async performManualSearch() {
     const username = document.getElementById('search-username').value.trim();
     const movieName = document.getElementById('search-movie').value.trim();
-    
+
     if (!username && !movieName) {
-      this._showStatus('❌ Vui lòng nhập ít nhất một thông tin tìm kiếm', 'error');
+      this._showStatus(
+        '❌ Vui lòng nhập ít nhất một thông tin tìm kiếm',
+        'error'
+      );
       return;
     }
-    
+
     this._showStatus('⏳ Đang tìm kiếm...', 'loading');
-    
+
     try {
       const results = await this._searchUserData(username, movieName);
-      
+
       if (results.length > 0) {
         this._showSearchResults(results);
       } else {
         this._showStatus('❌ Không tìm thấy dữ liệu phù hợp', 'error');
       }
-      
     } catch (error) {
       this._showStatus(`❌ Lỗi tìm kiếm: ${error.message}`, 'error');
     }
@@ -316,9 +322,9 @@ class RecoveryUI {
     if (!window.movieComments?.db) {
       throw new Error('Firebase không khả dụng');
     }
-    
+
     const results = [];
-    
+
     // Search by username
     if (username) {
       const userQuery = await window.movieComments.db
@@ -326,8 +332,8 @@ class RecoveryUI {
         .where('userName', '==', username)
         .limit(10)
         .get();
-      
-      userQuery.forEach(doc => {
+
+      userQuery.forEach((doc) => {
         const data = doc.data();
         results.push({
           type: 'user',
@@ -337,7 +343,7 @@ class RecoveryUI {
         });
       });
     }
-    
+
     // Search by movie name
     if (movieName) {
       const movieQuery = await window.movieComments.db
@@ -346,8 +352,8 @@ class RecoveryUI {
         .where('name', '<=', movieName + '\uf8ff')
         .limit(10)
         .get();
-      
-      movieQuery.forEach(doc => {
+
+      movieQuery.forEach((doc) => {
         const data = doc.data();
         results.push({
           type: 'movie',
@@ -357,17 +363,19 @@ class RecoveryUI {
         });
       });
     }
-    
+
     return results;
   }
 
   _showSearchResults(results) {
     const resultsContainer = document.getElementById('search-results');
-    
+
     resultsContainer.innerHTML = `
       <h4>Kết quả tìm kiếm:</h4>
       <div class="search-results-list">
-        ${results.map(result => `
+        ${results
+    .map(
+      (result) => `
           <div class="search-result-item">
             <div class="search-result-info">
               <strong>${result.userName}</strong>
@@ -377,40 +385,43 @@ class RecoveryUI {
               Khôi phục
             </button>
           </div>
-        `).join('')}
+        `
+    )
+    .join('')}
       </div>
     `;
-    
+
     resultsContainer.style.display = 'block';
     this._hideStatus();
   }
 
   async recoverFromResult(userId) {
     this._showStatus('⏳ Đang khôi phục dữ liệu...', 'loading');
-    
+
     try {
       // Set the recovered user ID
       localStorage.setItem('movie_commenter_id', userId);
       sessionStorage.setItem('movie_commenter_id', userId);
-      
+
       // Verify data access
-      const movies = await window.Storage?.getSavedMovies() || [];
-      
+      const movies = (await window.Storage?.getSavedMovies()) || [];
+
       if (movies.length > 0) {
         this._showStatus(
           `✅ Khôi phục thành công! Tìm thấy ${movies.length} phim đã lưu.`,
           'success'
         );
-        
+
         setTimeout(() => {
           this.hideModal();
           window.location.reload();
         }, 2000);
-        
       } else {
-        this._showStatus('❌ Không thể truy cập dữ liệu với user ID này', 'error');
+        this._showStatus(
+          '❌ Không thể truy cập dữ liệu với user ID này',
+          'error'
+        );
       }
-      
     } catch (error) {
       this._showStatus(`❌ Lỗi khôi phục: ${error.message}`, 'error');
     }
@@ -421,19 +432,24 @@ class RecoveryUI {
     const confirmation = confirm(
       'Bạn có chắc chắn muốn bắt đầu mới? Điều này sẽ tạo tài khoản mới và không thể khôi phục dữ liệu cũ.'
     );
-    
+
     if (confirmation) {
       // Clear all storage
       localStorage.clear();
       sessionStorage.clear();
-      
+
       // Clear cookies
-      document.cookie.split(";").forEach(function(c) { 
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+      document.cookie.split(';').forEach(function(c) {
+        document.cookie = c
+          .replace(/^ +/, '')
+          .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
       });
-      
-      this._showStatus('✅ Đã tạo tài khoản mới. Trang sẽ được tải lại...', 'success');
-      
+
+      this._showStatus(
+        '✅ Đã tạo tài khoản mới. Trang sẽ được tải lại...',
+        'success'
+      );
+
       setTimeout(() => {
         window.location.reload();
       }, 2000);
@@ -462,29 +478,30 @@ class RecoveryUI {
         </div>
       </div>
     `;
-    
+
     this._showForm(form);
-    
-    document.getElementById('generate-sync-btn').addEventListener('click', () => {
-      this.generateSyncCode();
-    });
+
+    document
+      .getElementById('generate-sync-btn')
+      .addEventListener('click', () => {
+        this.generateSyncCode();
+      });
   }
 
   async generateSyncCode() {
     this._showStatus('⏳ Đang tạo mã sync...', 'loading');
-    
+
     try {
       if (!window.movieComments?.generateSyncCode) {
         throw new Error('Sync system không khả dụng');
       }
-      
+
       const syncCode = await window.movieComments.generateSyncCode();
-      
+
       document.querySelector('.sync-code-value').textContent = syncCode;
       document.getElementById('generated-sync-code').style.display = 'block';
-      
+
       this._hideStatus();
-      
     } catch (error) {
       this._showStatus(`❌ Lỗi tạo mã sync: ${error.message}`, 'error');
     }
@@ -503,21 +520,23 @@ class RecoveryUI {
     const formsContainer = document.getElementById('recovery-forms');
     formsContainer.innerHTML = formHTML;
     formsContainer.style.display = 'block';
-    
+
     // Hide methods
     document.querySelector('.recovery-methods').style.display = 'none';
   }
 
   _showStatus(message, type) {
     const statusContainer = document.getElementById('recovery-status');
-    const statusContent = statusContainer.querySelector('.recovery-status__content');
-    
+    const statusContent = statusContainer.querySelector(
+      '.recovery-status__content'
+    );
+
     statusContent.innerHTML = `
       <div class="recovery-status__message recovery-status__message--${type}">
         ${message}
       </div>
     `;
-    
+
     statusContainer.style.display = 'block';
   }
 
@@ -539,7 +558,7 @@ class RecoveryUI {
   // 🎨 Inject CSS Styles
   _injectStyles() {
     if (document.getElementById('recovery-ui-styles')) return;
-    
+
     const styles = document.createElement('style');
     styles.id = 'recovery-ui-styles';
     styles.textContent = `
@@ -825,7 +844,7 @@ class RecoveryUI {
         font-size: 14px;
       }
     `;
-    
+
     document.head.appendChild(styles);
   }
 }

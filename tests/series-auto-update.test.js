@@ -1,6 +1,6 @@
 /**
  * Test Suite cho Series Auto-Update System
- * 
+ *
  * Test cases:
  * 1. Series detection và tracking
  * 2. Background update checking
@@ -27,24 +27,24 @@ const mockCreateEl = jest.fn((tag, className, content) => {
 
 // Test data
 const mockMovie = {
-  name: "Gia Tộc Rồng (Phần 1)",
-  slug: "gia-toc-rong-phan-1",
+  name: 'Gia Tộc Rồng (Phần 1)',
+  slug: 'gia-toc-rong-phan-1',
   year: 2022,
-  episode_current: "Hoàn Tất (10/10)"
+  episode_current: 'Hoàn Tất (10/10)'
 };
 
 const mockSeason2 = {
-  name: "Gia Tộc Rồng (Phần 2)",
-  slug: "gia-toc-rong-phan-2", 
+  name: 'Gia Tộc Rồng (Phần 2)',
+  slug: 'gia-toc-rong-phan-2',
   year: 2024,
-  episode_current: "Tập 8"
+  episode_current: 'Tập 8'
 };
 
 const mockSeason3 = {
-  name: "Gia Tộc Rồng (Phần 3)",
-  slug: "gia-toc-rong-phan-3",
+  name: 'Gia Tộc Rồng (Phần 3)',
+  slug: 'gia-toc-rong-phan-3',
   year: 2025,
-  episode_current: "Sắp ra mắt"
+  episode_current: 'Sắp ra mắt'
 };
 
 describe('Series Auto-Update System', () => {
@@ -54,10 +54,10 @@ describe('Series Auto-Update System', () => {
   beforeEach(async () => {
     // Reset mocks
     jest.clearAllMocks();
-    
+
     // Setup DOM
     document.body.innerHTML = '<div id="app"></div>';
-    
+
     // Setup global mocks
     global.window = {
       Api: mockApi,
@@ -70,9 +70,11 @@ describe('Series Auto-Update System', () => {
     };
 
     // Import modules
-    const { SeriesUpdateManager } = await import('../modules/series-update-manager.js');
+    const { SeriesUpdateManager } = await import(
+      '../modules/series-update-manager.js'
+    );
     const navigator = await import('../modules/series-navigator.js');
-    
+
     seriesUpdateManager = new SeriesUpdateManager();
     seriesNavigator = navigator;
   });
@@ -87,19 +89,19 @@ describe('Series Auto-Update System', () => {
   describe('Series Detection', () => {
     test('should detect series info from movie name', () => {
       const seriesInfo = seriesNavigator.getSeriesBaseInfo(mockMovie);
-      
+
       expect(seriesInfo).toBeTruthy();
-      expect(seriesInfo.baseName).toBe("Gia Tộc Rồng");
+      expect(seriesInfo.baseName).toBe('Gia Tộc Rồng');
       expect(seriesInfo.season).toBe(1);
-      expect(seriesInfo.seriesId).toBe("Gia Tộc Rồng_SERIES");
+      expect(seriesInfo.seriesId).toBe('Gia Tộc Rồng_SERIES');
     });
 
     test('should return null for non-series movies', () => {
       const nonSeriesMovie = {
-        name: "Phim Độc Lập",
-        slug: "phim-doc-lap"
+        name: 'Phim Độc Lập',
+        slug: 'phim-doc-lap'
       };
-      
+
       const seriesInfo = seriesNavigator.getSeriesBaseInfo(nonSeriesMovie);
       expect(seriesInfo).toBeNull();
     });
@@ -109,30 +111,38 @@ describe('Series Auto-Update System', () => {
     test('should track series successfully', () => {
       const seriesInfo = seriesNavigator.getSeriesBaseInfo(mockMovie);
       const callback = jest.fn();
-      
-      const result = seriesUpdateManager.trackSeries(seriesInfo, mockMovie, callback);
-      
+
+      const result = seriesUpdateManager.trackSeries(
+        seriesInfo,
+        mockMovie,
+        callback
+      );
+
       expect(result).toBe(true);
-      expect(seriesUpdateManager.trackedSeries.has(seriesInfo.seriesId)).toBe(true);
-      expect(seriesUpdateManager.updateCallbacks.has(seriesInfo.seriesId)).toBe(true);
+      expect(seriesUpdateManager.trackedSeries.has(seriesInfo.seriesId)).toBe(
+        true
+      );
+      expect(seriesUpdateManager.updateCallbacks.has(seriesInfo.seriesId)).toBe(
+        true
+      );
     });
 
     test('should start periodic checking when tracking first series', () => {
       const seriesInfo = seriesNavigator.getSeriesBaseInfo(mockMovie);
-      
+
       expect(seriesUpdateManager.isRunning).toBe(false);
-      
+
       seriesUpdateManager.trackSeries(seriesInfo, mockMovie);
-      
+
       expect(seriesUpdateManager.isRunning).toBe(true);
     });
 
     test('should stop periodic checking when no series tracked', () => {
       const seriesInfo = seriesNavigator.getSeriesBaseInfo(mockMovie);
-      
+
       seriesUpdateManager.trackSeries(seriesInfo, mockMovie);
       expect(seriesUpdateManager.isRunning).toBe(true);
-      
+
       seriesUpdateManager.untrackSeries(seriesInfo.seriesId);
       expect(seriesUpdateManager.isRunning).toBe(false);
     });
@@ -142,18 +152,24 @@ describe('Series Auto-Update System', () => {
     test('should detect new seasons', () => {
       const oldSeasons = [mockMovie, mockSeason2];
       const newSeasons = [mockMovie, mockSeason2, mockSeason3];
-      
-      const hasUpdates = seriesUpdateManager.compareSeasons(oldSeasons, newSeasons);
-      
+
+      const hasUpdates = seriesUpdateManager.compareSeasons(
+        oldSeasons,
+        newSeasons
+      );
+
       expect(hasUpdates).toBe(true);
     });
 
     test('should not detect updates when no changes', () => {
       const oldSeasons = [mockMovie, mockSeason2];
       const newSeasons = [mockMovie, mockSeason2];
-      
-      const hasUpdates = seriesUpdateManager.compareSeasons(oldSeasons, newSeasons);
-      
+
+      const hasUpdates = seriesUpdateManager.compareSeasons(
+        oldSeasons,
+        newSeasons
+      );
+
       expect(hasUpdates).toBe(false);
     });
 
@@ -161,7 +177,7 @@ describe('Series Auto-Update System', () => {
       const hasUpdates1 = seriesUpdateManager.compareSeasons([], [mockMovie]);
       const hasUpdates2 = seriesUpdateManager.compareSeasons([mockMovie], []);
       const hasUpdates3 = seriesUpdateManager.compareSeasons([], []);
-      
+
       expect(hasUpdates1).toBe(true);
       expect(hasUpdates2).toBe(false);
       expect(hasUpdates3).toBe(false);
@@ -173,29 +189,35 @@ describe('Series Auto-Update System', () => {
       // Setup mock API response
       mockExtractItems.mockReturnValue([mockMovie, mockSeason2, mockSeason3]);
       mockApi.search.mockResolvedValue({ data: { items: [] } });
-      
+
       const seriesInfo = seriesNavigator.getSeriesBaseInfo(mockMovie);
       seriesUpdateManager.trackSeries(seriesInfo, mockMovie);
-      
+
       // Mock findRelatedSeasons
       jest.doMock('../modules/series-navigator.js', () => ({
-        findRelatedSeasons: jest.fn().mockResolvedValue([mockMovie, mockSeason2, mockSeason3])
+        findRelatedSeasons: jest
+          .fn()
+          .mockResolvedValue([mockMovie, mockSeason2, mockSeason3])
       }));
-      
-      const hasUpdates = await seriesUpdateManager.checkSeriesForUpdates(seriesInfo.seriesId);
-      
+
+      const hasUpdates = await seriesUpdateManager.checkSeriesForUpdates(
+        seriesInfo.seriesId
+      );
+
       expect(hasUpdates).toBe(true);
     });
 
     test('should respect minimum check interval', async () => {
       const seriesInfo = seriesNavigator.getSeriesBaseInfo(mockMovie);
       seriesUpdateManager.trackSeries(seriesInfo, mockMovie);
-      
+
       // Set recent check time
       seriesUpdateManager.lastCheckTimes.set(seriesInfo.seriesId, Date.now());
-      
-      const hasUpdates = await seriesUpdateManager.checkSeriesForUpdates(seriesInfo.seriesId);
-      
+
+      const hasUpdates = await seriesUpdateManager.checkSeriesForUpdates(
+        seriesInfo.seriesId
+      );
+
       expect(hasUpdates).toBe(false);
       expect(mockApi.search).not.toHaveBeenCalled();
     });
@@ -204,23 +226,26 @@ describe('Series Auto-Update System', () => {
   describe('Cache Management', () => {
     test('should invalidate cache on force refresh', async () => {
       const cacheKey = mockMovie.slug;
-      
+
       // Setup cache
       const mockCache = new Map();
       mockCache.set(cacheKey, {
         data: [mockMovie, mockSeason2],
         timestamp: Date.now()
       });
-      
+
       // Mock cache access
       jest.doMock('../modules/series-navigator.js', () => ({
         relatedSeasonsCache: mockCache
       }));
-      
+
       const result = await seriesNavigator.getCachedRelatedSeasons(
-        mockMovie, mockApi, mockExtractItems, true // force refresh
+        mockMovie,
+        mockApi,
+        mockExtractItems,
+        true // force refresh
       );
-      
+
       expect(mockApi.search).toHaveBeenCalled();
     });
   });
@@ -232,9 +257,13 @@ describe('Series Auto-Update System', () => {
         seriesInfo,
         currentMovie: mockMovie
       };
-      
-      seriesUpdateManager.triggerUpdateEvent(seriesInfo.seriesId, [mockMovie, mockSeason2], metadata);
-      
+
+      seriesUpdateManager.triggerUpdateEvent(
+        seriesInfo.seriesId,
+        [mockMovie, mockSeason2],
+        metadata
+      );
+
       expect(window.dispatchEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'seriesUpdated',
@@ -249,21 +278,25 @@ describe('Series Auto-Update System', () => {
     test('should call update callback', async () => {
       const callback = jest.fn();
       const seriesInfo = seriesNavigator.getSeriesBaseInfo(mockMovie);
-      
+
       seriesUpdateManager.trackSeries(seriesInfo, mockMovie, callback);
-      
+
       // Simulate update
-      const metadata = seriesUpdateManager.trackedSeries.get(seriesInfo.seriesId);
+      const metadata = seriesUpdateManager.trackedSeries.get(
+        seriesInfo.seriesId
+      );
       metadata.lastKnownSeasons = [mockMovie];
-      
+
       // Mock API to return new season
       mockExtractItems.mockReturnValue([mockMovie, mockSeason2]);
       jest.doMock('../modules/series-navigator.js', () => ({
-        findRelatedSeasons: jest.fn().mockResolvedValue([mockMovie, mockSeason2])
+        findRelatedSeasons: jest
+          .fn()
+          .mockResolvedValue([mockMovie, mockSeason2])
       }));
-      
+
       await seriesUpdateManager.checkSeriesForUpdates(seriesInfo.seriesId);
-      
+
       expect(callback).toHaveBeenCalledWith([mockMovie, mockSeason2], metadata);
     });
   });
@@ -272,11 +305,11 @@ describe('Series Auto-Update System', () => {
     test('should clear all tracked series', () => {
       const seriesInfo = seriesNavigator.getSeriesBaseInfo(mockMovie);
       seriesUpdateManager.trackSeries(seriesInfo, mockMovie);
-      
+
       expect(seriesUpdateManager.trackedSeries.size).toBe(1);
-      
+
       seriesUpdateManager.clearAll();
-      
+
       expect(seriesUpdateManager.trackedSeries.size).toBe(0);
       expect(seriesUpdateManager.isRunning).toBe(false);
     });
@@ -284,9 +317,9 @@ describe('Series Auto-Update System', () => {
     test('should provide stats', () => {
       const seriesInfo = seriesNavigator.getSeriesBaseInfo(mockMovie);
       seriesUpdateManager.trackSeries(seriesInfo, mockMovie);
-      
+
       const stats = seriesUpdateManager.getStats();
-      
+
       expect(stats).toHaveProperty('trackedSeriesCount', 1);
       expect(stats).toHaveProperty('isRunning', true);
       expect(stats).toHaveProperty('config');
@@ -296,27 +329,41 @@ describe('Series Auto-Update System', () => {
   describe('UI Integration', () => {
     test('should create series navigator with refresh button', () => {
       const relatedSeasons = [mockMovie, mockSeason2];
-      const navigator = seriesNavigator.createSeriesNavigator(mockMovie, relatedSeasons, mockCreateEl);
-      
+      const navigator = seriesNavigator.createSeriesNavigator(
+        mockMovie,
+        relatedSeasons,
+        mockCreateEl
+      );
+
       expect(navigator).toBeTruthy();
-      expect(mockCreateEl).toHaveBeenCalledWith('button', 'series-navigator__refresh-btn', '🔄');
+      expect(mockCreateEl).toHaveBeenCalledWith(
+        'button',
+        'series-navigator__refresh-btn',
+        '🔄'
+      );
     });
 
     test('should handle refresh button click', async () => {
       const relatedSeasons = [mockMovie, mockSeason2];
-      const navigator = seriesNavigator.createSeriesNavigator(mockMovie, relatedSeasons, mockCreateEl);
-      
+      const navigator = seriesNavigator.createSeriesNavigator(
+        mockMovie,
+        relatedSeasons,
+        mockCreateEl
+      );
+
       // Find refresh button
-      const refreshBtn = navigator.querySelector('.series-navigator__refresh-btn');
+      const refreshBtn = navigator.querySelector(
+        '.series-navigator__refresh-btn'
+      );
       expect(refreshBtn).toBeTruthy();
-      
+
       // Mock successful refresh
       mockApi.search.mockResolvedValue({ data: { items: [] } });
       mockExtractItems.mockReturnValue([mockMovie, mockSeason2, mockSeason3]);
-      
+
       // Simulate click
       await refreshBtn.click();
-      
+
       expect(window.showNotification).toHaveBeenCalledWith(
         expect.objectContaining({
           message: '✅ Đã cập nhật danh sách phần phim'

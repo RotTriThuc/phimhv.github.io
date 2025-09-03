@@ -45,32 +45,32 @@ Hệ thống Enhanced Firebase đã được phát triển để giải quyết 
 ```javascript
 // Trước (có vấn đề)
 function getUserId() {
-    let userId = localStorage.getItem('movie_commenter_id');
-    if (!userId) {
-        // Tạo ID random - sẽ khác mỗi lần clear storage
-        userId = `user_${Math.random()}_${Date.now()}`;
-        localStorage.setItem('movie_commenter_id', userId);
-    }
-    return userId;
+  let userId = localStorage.getItem("movie_commenter_id");
+  if (!userId) {
+    // Tạo ID random - sẽ khác mỗi lần clear storage
+    userId = `user_${Math.random()}_${Date.now()}`;
+    localStorage.setItem("movie_commenter_id", userId);
+  }
+  return userId;
 }
 
 // Sau (đã cải thiện)
 async function getEnhancedUserId() {
-    // 1. Thử lấy từ multiple storage
-    let userId = await this._tryGetUserIdFromAllStorage();
-    
-    if (!userId) {
-        // 2. Thử auto-recovery
-        userId = await this.attemptAutoRecovery();
-    }
-    
-    if (!userId) {
-        // 3. Tạo deterministic ID (giống nhau cho cùng device)
-        userId = this._generateDeterministicUserId();
-        await this._saveUserIdToAllStorage(userId);
-    }
-    
-    return userId;
+  // 1. Thử lấy từ multiple storage
+  let userId = await this._tryGetUserIdFromAllStorage();
+
+  if (!userId) {
+    // 2. Thử auto-recovery
+    userId = await this.attemptAutoRecovery();
+  }
+
+  if (!userId) {
+    // 3. Tạo deterministic ID (giống nhau cho cùng device)
+    userId = this._generateDeterministicUserId();
+    await this._saveUserIdToAllStorage(userId);
+  }
+
+  return userId;
 }
 ```
 
@@ -78,14 +78,14 @@ async function getEnhancedUserId() {
 
 ```javascript
 // Tự động chạy khi load trang
-window.addEventListener('load', async () => {
-    // Đợi Firebase khởi tạo
-    setTimeout(async () => {
-        if (window.movieComments?.initialized) {
-            // Kiểm tra và khôi phục tự động
-            await window.autoRecovery.checkAndRecover();
-        }
-    }, 2000);
+window.addEventListener("load", async () => {
+  // Đợi Firebase khởi tạo
+  setTimeout(async () => {
+    if (window.movieComments?.initialized) {
+      // Kiểm tra và khôi phục tự động
+      await window.autoRecovery.checkAndRecover();
+    }
+  }, 2000);
 });
 ```
 
@@ -94,18 +94,20 @@ window.addEventListener('load', async () => {
 ```javascript
 // Hiển thị UI khôi phục khi cần
 if (dataLossDetected) {
-    window.recoveryUI.showManualRecoveryModal();
+  window.recoveryUI.showManualRecoveryModal();
 }
 ```
 
 ## 📱 Tính Năng Chính
 
 ### 1. **Deterministic User ID**
+
 - Tạo User ID dựa trên device fingerprint
 - Giống nhau cho cùng device ngay cả khi clear storage
 - Sử dụng WebGL, Audio Context, Hardware info
 
 ### 2. **Multiple Storage Strategy**
+
 - localStorage (primary)
 - sessionStorage (backup)
 - IndexedDB (persistent)
@@ -113,12 +115,14 @@ if (dataLossDetected) {
 - Cookies (long-term)
 
 ### 3. **Auto-Recovery**
+
 - Phát hiện data loss tự động
 - Thử khôi phục từ multiple sources
 - Device signature matching
 - Deterministic ID regeneration
 
 ### 4. **Recovery UI**
+
 - Modal thân thiện cho user
 - 4 phương pháp khôi phục:
   - 🤖 Tự động khôi phục
@@ -127,6 +131,7 @@ if (dataLossDetected) {
   - 🆕 Bắt đầu mới
 
 ### 5. **Migration Tool**
+
 - Tự động migrate users hiện tại
 - Backup dữ liệu trước khi migrate
 - Rollback nếu có lỗi
@@ -147,17 +152,20 @@ open enhanced-firebase-test.html
 ### 2. Test Scenarios
 
 #### Test 1: Normal Usage
+
 1. Lưu vài phim
 2. Reload trang
 3. Kiểm tra phim vẫn còn
 
 #### Test 2: Clear Storage
+
 1. Lưu phim
 2. Clear localStorage + sessionStorage
 3. Reload trang
 4. Kiểm tra auto-recovery
 
 #### Test 3: Cross-browser Sync
+
 1. Tạo sync code ở browser A
 2. Sử dụng sync code ở browser B
 3. Kiểm tra data được sync
@@ -166,7 +174,7 @@ open enhanced-firebase-test.html
 
 ```javascript
 // Enable debug logging
-localStorage.setItem('firebase_debug', 'true');
+localStorage.setItem("firebase_debug", "true");
 
 // Check system status
 await window.autoRecovery.checkAndRecover();
@@ -176,7 +184,7 @@ window.recoveryUI.showManualRecoveryModal();
 
 // Migration status
 const status = window.migrationTool.getMigrationStatus();
-console.log('Migration status:', status);
+console.log("Migration status:", status);
 ```
 
 ## 🔍 Troubleshooting
@@ -184,57 +192,61 @@ console.log('Migration status:', status);
 ### Vấn đề Thường Gặp
 
 #### 1. **Auto-recovery không hoạt động**
+
 ```javascript
 // Kiểm tra components
-console.log('Enhanced User Manager:', !!window.enhancedUserManager);
-console.log('Auto Recovery:', !!window.autoRecovery);
-console.log('Firebase:', !!window.firebase);
+console.log("Enhanced User Manager:", !!window.enhancedUserManager);
+console.log("Auto Recovery:", !!window.autoRecovery);
+console.log("Firebase:", !!window.firebase);
 
 // Force recovery
 await window.autoRecovery.startAutoRecovery();
 ```
 
 #### 2. **User ID vẫn thay đổi**
+
 ```javascript
 // Kiểm tra deterministic ID
 const fingerprint = window.enhancedUserManager._getEnhancedFingerprint();
-console.log('Device fingerprint:', fingerprint);
+console.log("Device fingerprint:", fingerprint);
 
 // Kiểm tra storage
 const userId = await window.enhancedUserManager._tryGetUserIdFromAllStorage();
-console.log('Stored User ID:', userId);
+console.log("Stored User ID:", userId);
 ```
 
 #### 3. **Migration thất bại**
+
 ```javascript
 // Kiểm tra migration status
 const needsMigration = await window.migrationTool.checkMigrationNeeded();
-console.log('Needs migration:', needsMigration);
+console.log("Needs migration:", needsMigration);
 
 // Force migration
 const result = await window.migrationTool.startMigration();
-console.log('Migration result:', result);
+console.log("Migration result:", result);
 ```
 
 #### 4. **Sync code không hoạt động**
+
 ```javascript
 // Kiểm tra Firebase connection
-console.log('Firebase initialized:', window.movieComments?.initialized);
+console.log("Firebase initialized:", window.movieComments?.initialized);
 
 // Test sync code generation
 const syncCode = await window.movieComments.generateSyncCode();
-console.log('Generated sync code:', syncCode);
+console.log("Generated sync code:", syncCode);
 ```
 
 ## 📊 Performance Impact
 
 ### Before vs After
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Data Loss Rate | 100% | <5% | 95% reduction |
-| Recovery Success | 0% | >90% | Manual → Auto |
-| User Experience | Poor | Seamless | Significant |
+| Metric           | Before | After    | Improvement         |
+| ---------------- | ------ | -------- | ------------------- |
+| Data Loss Rate   | 100%   | <5%      | 95% reduction       |
+| Recovery Success | 0%     | >90%     | Manual → Auto       |
+| User Experience  | Poor   | Seamless | Significant         |
 | Setup Complexity | Simple | Moderate | Worth the trade-off |
 
 ### Resource Usage
@@ -249,19 +261,22 @@ console.log('Generated sync code:', syncCode);
 ### Regular Tasks
 
 1. **Monitor Recovery Success Rate**
+
 ```javascript
 // Check recovery statistics
 const stats = window.autoRecovery.getRecoveryStats();
-console.log('Recovery success rate:', stats.successRate);
+console.log("Recovery success rate:", stats.successRate);
 ```
 
 2. **Clean Up Old Data**
+
 ```javascript
 // Clean up expired sync codes (tự động)
 // Clean up old migration backups (sau 30 ngày)
 ```
 
 3. **Update Device Fingerprinting**
+
 ```javascript
 // Cập nhật fingerprinting methods khi có browser mới
 // Thêm fallback methods cho compatibility
@@ -283,6 +298,7 @@ if (migrationErrors > 5%) {
 ## 🚀 Deployment Checklist
 
 ### Pre-deployment
+
 - [ ] Test all recovery scenarios
 - [ ] Verify migration works with existing data
 - [ ] Check cross-browser compatibility
@@ -290,12 +306,14 @@ if (migrationErrors > 5%) {
 - [ ] Security review
 
 ### Deployment
+
 - [ ] Deploy scripts in correct order
 - [ ] Monitor error rates
 - [ ] Check user feedback
 - [ ] Verify analytics
 
 ### Post-deployment
+
 - [ ] Monitor recovery success rates
 - [ ] Check for any user complaints
 - [ ] Performance monitoring
@@ -304,6 +322,7 @@ if (migrationErrors > 5%) {
 ## 📈 Future Enhancements
 
 ### Phase 2 Features
+
 1. **Advanced Analytics**
    - Recovery success tracking
    - User behavior analysis
@@ -320,6 +339,7 @@ if (migrationErrors > 5%) {
    - Smart recovery suggestions
 
 ### Long-term Vision
+
 - Zero data loss guarantee
 - Seamless cross-device experience
 - Advanced user management
@@ -328,19 +348,21 @@ if (migrationErrors > 5%) {
 ## 🎯 Success Metrics
 
 ### Key Performance Indicators
+
 - **Data Recovery Rate**: >95%
 - **Auto-Recovery Success**: >90%
 - **User Satisfaction**: >4.5/5
 - **Support Tickets**: <1% of users
 
 ### Monitoring Dashboard
+
 ```javascript
 // Example metrics collection
 const metrics = {
-    recoveryAttempts: 0,
-    recoverySuccesses: 0,
-    migrationSuccesses: 0,
-    userSatisfaction: 0
+  recoveryAttempts: 0,
+  recoverySuccesses: 0,
+  migrationSuccesses: 0,
+  userSatisfaction: 0,
 };
 
 // Track and report monthly
@@ -351,6 +373,7 @@ const metrics = {
 ## 📞 Support
 
 Nếu gặp vấn đề, hãy:
+
 1. Kiểm tra console logs
 2. Chạy test scripts
 3. Xem troubleshooting guide

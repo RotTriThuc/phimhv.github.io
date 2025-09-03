@@ -1,6 +1,7 @@
 # 🎬 Movie Banner Slider Documentation
 
 ## Tổng quan
+
 Movie Banner Slider là component hiển thị slide banner phim tích hợp API phimapi.com, được thiết kế để hiển thị **chỉ trên trang chủ** với giao diện responsive và hiệu ứng mượt mà.
 
 > **⚠️ Lưu ý quan trọng**: Banner slider đã được loại bỏ khỏi trang lọc phim để cải thiện trải nghiệm người dùng và giúp họ tập trung vào việc tìm kiếm phim.
@@ -8,6 +9,7 @@ Movie Banner Slider là component hiển thị slide banner phim tích hợp API
 ## Tính năng chính
 
 ### ✨ UI/UX Features
+
 - **Responsive Design**: Tự động điều chỉnh theo kích thước màn hình
 - **Auto-play**: Tự động chuyển slide sau 5 giây
 - **Navigation Controls**: Nút prev/next và dots indicator
@@ -16,6 +18,7 @@ Movie Banner Slider là component hiển thị slide banner phim tích hợp API
 - **Hover Pause**: Tạm dừng auto-play khi hover
 
 ### 🚀 Performance Features
+
 - **Lazy Loading**: Chỉ tải ảnh khi cần thiết
 - **Image Preloading**: Preload 3 ảnh đầu tiên
 - **API Caching**: Sử dụng cache system có sẵn
@@ -23,6 +26,7 @@ Movie Banner Slider là component hiển thị slide banner phim tích hợp API
 - **Transition Throttling**: Ngăn spam click navigation
 
 ### 🎨 Visual Features
+
 - **Gradient Overlay**: Overlay tối để text dễ đọc
 - **Smooth Animations**: Transition mượt mà với CSS
 - **Theme Support**: Tương thích dark/light theme
@@ -31,6 +35,7 @@ Movie Banner Slider là component hiển thị slide banner phim tích hợp API
 ## Cấu trúc Code
 
 ### CSS Classes
+
 ```css
 .movie-banner              /* Container chính */
 .banner-slider            /* Slider wrapper */
@@ -47,35 +52,39 @@ Movie Banner Slider là component hiển thị slide banner phim tích hợp API
 ```
 
 ### JavaScript API
+
 ```javascript
 // Khởi tạo
 const banner = new MovieBannerSlider(container);
 
 // Public methods
-banner.nextSlide();       // Slide tiếp theo
-banner.prevSlide();       // Slide trước
-banner.goToSlide(index);  // Đi đến slide cụ thể
-banner.pauseAutoPlay();   // Tạm dừng auto-play
-banner.resumeAutoPlay();  // Tiếp tục auto-play
-banner.destroy();         // Cleanup
-banner.refresh();         // Tải lại
+banner.nextSlide(); // Slide tiếp theo
+banner.prevSlide(); // Slide trước
+banner.goToSlide(index); // Đi đến slide cụ thể
+banner.pauseAutoPlay(); // Tạm dừng auto-play
+banner.resumeAutoPlay(); // Tiếp tục auto-play
+banner.destroy(); // Cleanup
+banner.refresh(); // Tải lại
 ```
 
 ## Responsive Breakpoints
 
 ### Desktop (>768px)
+
 - Height: 400px
 - Full navigation controls
 - 3-line description
 - Horizontal action buttons
 
 ### Tablet (768px)
+
 - Height: 300px
 - Smaller navigation buttons
 - 2-line description
 - Vertical action buttons
 
 ### Mobile (<480px)
+
 - Height: 250px
 - Hidden navigation buttons (chỉ swipe)
 - 2-line description
@@ -84,12 +93,14 @@ banner.refresh();         // Tải lại
 ## API Integration
 
 ### Endpoint sử dụng
+
 - **URL**: `/danh-sach/phim-moi-cap-nhat-v3`
 - **Method**: GET
 - **Params**: `{ page: 1 }`
 - **Limit**: 6 phim đầu tiên
 
 ### Data mapping
+
 ```javascript
 {
   slug: movie.slug,                    // URL slug
@@ -105,18 +116,21 @@ banner.refresh();         // Tải lại
 ## Performance Optimizations
 
 ### 🖼️ Image Loading
+
 - **CDN Integration**: Sử dụng system image loader có sẵn
 - **Progressive Loading**: Hiển thị placeholder trước
 - **Preload Strategy**: Preload 3 ảnh đầu + next image
 - **Error Handling**: Fallback cho ảnh lỗi
 
 ### 🧠 Memory Management
+
 - **Auto Cleanup**: Tự động destroy khi rời trang
 - **Event Cleanup**: Remove event listeners
 - **Interval Cleanup**: Clear auto-play intervals
 - **DOM Cleanup**: Remove HTML elements
 
 ### ⚡ Performance Monitoring
+
 - **Transition Throttling**: Ngăn spam navigation
 - **DOM Check**: Kiểm tra element còn trong DOM
 - **Hash Check**: Chỉ init trên trang chủ
@@ -124,22 +138,26 @@ banner.refresh();         // Tải lại
 ## Integration với Codebase
 
 ### Tích hợp vào renderHome()
+
 ```javascript
 // Movie Banner Slider - CHỈ HIỂN THỊ TRÊN TRANG CHỦ
-const bannerContainer = createEl('div', 'movie-banner');
+const bannerContainer = createEl("div", "movie-banner");
 root.appendChild(bannerContainer);
 
 // Initialize với performance check
-createMovieBanner(bannerContainer, 'home');
+createMovieBanner(bannerContainer, "home");
 ```
 
 ### ❌ Đã loại bỏ khỏi trang lọc phim
+
 Banner slider đã được loại bỏ khỏi function `renderCombinedFilter()` để:
+
 - **Cải thiện UX**: Người dùng tập trung vào việc lọc phim
 - **Tối ưu performance**: Giảm tải tài nguyên không cần thiết
 - **Layout sạch sẽ**: Giao diện gọn gàng hơn khi lọc phim
 
 ### SPA Navigation Handling
+
 - **hashchange Event**: Cleanup khi rời trang chủ
 - **DOMContentLoaded**: Auto-init khi load trang
 - **Performance Check**: Chỉ init khi cần thiết
@@ -147,28 +165,33 @@ Banner slider đã được loại bỏ khỏi function `renderCombinedFilter()`
 ## Accessibility Features
 
 ### Keyboard Support
+
 - **Arrow Left/Right**: Navigation
 - **Focus Indicators**: Outline khi focus
 - **ARIA Labels**: Screen reader support
 
 ### Screen Reader
+
 - **aria-label**: Mô tả navigation buttons
 - **aria-live**: Thông báo slide changes
 - **Semantic HTML**: Proper heading structure
 
 ### Reduced Motion
+
 - **prefers-reduced-motion**: Tắt animation nếu user yêu cầu
 - **Fallback**: Static display cho accessibility
 
 ## Browser Support
 
 ### Modern Browsers
+
 - **Chrome 80+**: Full support
-- **Firefox 75+**: Full support  
+- **Firefox 75+**: Full support
 - **Safari 13+**: Full support
 - **Edge 80+**: Full support
 
 ### Fallbacks
+
 - **No IntersectionObserver**: Immediate loading
 - **No Touch Events**: Mouse-only navigation
 - **No CSS Grid**: Flexbox fallback
@@ -178,21 +201,25 @@ Banner slider đã được loại bỏ khỏi function `renderCombinedFilter()`
 ### Common Issues
 
 **Banner không hiển thị**
+
 - Kiểm tra API endpoint hoạt động
 - Verify CSS được load
 - Check console errors
 
 **Ảnh không load**
+
 - Kiểm tra image loader system
 - Verify CDN endpoints
 - Check network connectivity
 
 **Auto-play không hoạt động**
+
 - Kiểm tra slides.length > 1
 - Verify không bị pause
 - Check interval cleanup
 
 **Navigation không responsive**
+
 - Kiểm tra touch events
 - Verify CSS media queries
 - Check viewport meta tag
@@ -200,12 +227,14 @@ Banner slider đã được loại bỏ khỏi function `renderCombinedFilter()`
 ## Future Enhancements
 
 ### Planned Features
+
 - **Video Background**: Support video slides
 - **Parallax Effect**: Advanced visual effects
 - **Analytics**: Track slide interactions
 - **A/B Testing**: Different banner layouts
 
 ### Performance Improvements
+
 - **WebP Support**: Better image compression
 - **Service Worker**: Offline caching
 - **Critical CSS**: Inline critical styles

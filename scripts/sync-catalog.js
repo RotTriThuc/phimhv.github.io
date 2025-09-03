@@ -18,13 +18,14 @@ const DEFAULT_TYPES = [
   'hoat-hinh',
   'phim-vietsub',
   'phim-thuyet-minh',
-  'phim-long-tieng',
+  'phim-long-tieng'
 ];
 
 function buildUrl(p, params = {}) {
   const url = new URL(p, API_BASE);
   Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, String(v));
+    if (v !== undefined && v !== null && v !== '')
+      url.searchParams.set(k, String(v));
   });
   return url.toString();
 }
@@ -32,24 +33,33 @@ function buildUrl(p, params = {}) {
 function getJson(url) {
   return new Promise((resolve, reject) => {
     https
-      .get(url, { headers: { 'Accept': 'application/json', 'User-Agent': 'sync-catalog/1.0' } }, (res) => {
-        if (res.statusCode && res.statusCode >= 400) {
-          reject(new Error(`HTTP ${res.statusCode} for ${url}`));
-          res.resume();
-          return;
-        }
-        let raw = '';
-        res.setEncoding('utf8');
-        res.on('data', (chunk) => (raw += chunk));
-        res.on('end', () => {
-          try {
-            const json = JSON.parse(raw);
-            resolve(json);
-          } catch (e) {
-            reject(new Error(`JSON parse error for ${url}: ${e.message}`));
+      .get(
+        url,
+        {
+          headers: {
+            Accept: 'application/json',
+            'User-Agent': 'sync-catalog/1.0'
           }
-        });
-      })
+        },
+        (res) => {
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(`HTTP ${res.statusCode} for ${url}`));
+            res.resume();
+            return;
+          }
+          let raw = '';
+          res.setEncoding('utf8');
+          res.on('data', (chunk) => (raw += chunk));
+          res.on('end', () => {
+            try {
+              const json = JSON.parse(raw);
+              resolve(json);
+            } catch (e) {
+              reject(new Error(`JSON parse error for ${url}: ${e.message}`));
+            }
+          });
+        }
+      )
       .on('error', reject);
   });
 }
@@ -65,10 +75,14 @@ function extractItems(payload) {
 }
 
 async function fetchAllByType(type) {
-  const firstUrl = buildUrl(`/v1/api/danh-sach/${type}`, { page: 1, limit: 64 });
+  const firstUrl = buildUrl(`/v1/api/danh-sach/${type}`, {
+    page: 1,
+    limit: 64
+  });
   const first = await getJson(firstUrl);
   const items = extractItems(first);
-  const totalPages = first?.paginate?.totalPages || first?.totalPages || (items.length ? 1 : 0);
+  const totalPages =
+    first?.paginate?.totalPages || first?.totalPages || (items.length ? 1 : 0);
   const all = [...items];
   for (let p = 2; p <= totalPages; p++) {
     const url = buildUrl(`/v1/api/danh-sach/${type}`, { page: p, limit: 64 });
@@ -76,7 +90,9 @@ async function fetchAllByType(type) {
     const pageItems = extractItems(data);
     if (!pageItems.length) break;
     all.push(...pageItems);
-    process.stdout.write(`\r  ${type}: page ${p}/${totalPages} (total: ${all.length})   `);
+    process.stdout.write(
+      `\r  ${type}: page ${p}/${totalPages} (total: ${all.length})   `
+    );
   }
   process.stdout.write('\n');
   return all;
@@ -104,7 +120,13 @@ function parseArgs() {
 
 (async function main() {
   const { types, out } = parseArgs();
-  const typeList = types === 'all' ? DEFAULT_TYPES : types.split(',').map((s) => s.trim()).filter(Boolean);
+  const typeList =
+    types === 'all'
+      ? DEFAULT_TYPES
+      : types
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
   console.log('Sync catalog from KKPhim API');
   console.log('Types:', typeList.join(', '));
 
@@ -123,15 +145,23 @@ function parseArgs() {
   const unique = uniqBySlug(results);
   const outPath = path.resolve(process.cwd(), out);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(outPath, JSON.stringify({
-    generatedAt: new Date().toISOString(),
-    source: 'phimapi.com',
-    total: unique.length,
-    items: unique,
-  }, null, 2), 'utf8');
+  fs.writeFileSync(
+    outPath,
+    JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        source: 'phimapi.com',
+        total: unique.length,
+        items: unique
+      },
+      null,
+      2
+    ),
+    'utf8'
+  );
 
   console.log(`Saved ${unique.length} unique items to ${outPath}`);
 })().catch((e) => {
   console.error('Sync failed:', e);
   process.exit(1);
-}); 
+});

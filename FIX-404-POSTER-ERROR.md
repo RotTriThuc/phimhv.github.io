@@ -14,6 +14,7 @@ Returned 404 in 0 ms
 ```
 
 **Ảnh hưởng:**
+
 - Giao diện bị lỗi khi phim không có poster
 - Console log đầy lỗi 404
 - Trải nghiệm người dùng kém
@@ -21,27 +22,32 @@ Returned 404 in 0 ms
 ## ✅ **Giải pháp đã thực hiện:**
 
 ### 1. **Tạo file placeholder SVG**
+
 - **File:** `/assets/images/no-poster.svg`
 - **Kích thước:** 300x450px (tỷ lệ poster chuẩn)
 - **Thiết kế:** Gradient background + icon camera + text tiếng Việt
 
 ### 2. **Cập nhật code references**
+
 - **File:** `firebase-primary-ui.js` (dòng 77-80)
+
   ```javascript
   // TRƯỚC
-  src="${movie.poster_url || '/assets/images/no-poster.jpg'}"
-  onerror="this.src='/assets/images/no-poster.jpg'"
-  
+  src = "${movie.poster_url || '/assets/images/no-poster.jpg'}";
+  onerror = "this.src='/assets/images/no-poster.jpg'";
+
   // SAU
-  src="${movie.poster_url || '/assets/images/no-poster.svg'}"
-  onerror="this.src='/assets/images/no-poster.svg'"
+  src = "${movie.poster_url || '/assets/images/no-poster.svg'}";
+  onerror = "this.src='/assets/images/no-poster.svg'";
   ```
 
 ### 3. **Cập nhật documentation**
+
 - **File:** `README.md` (dòng 224-228)
 - Sửa example code để sử dụng đúng đường dẫn
 
 ### 4. **Cập nhật Service Worker**
+
 - **File:** `service-worker.js` (dòng 78-100)
 - Thêm `/assets/images/no-poster.svg` vào STATIC_ASSETS để cache
 
@@ -61,6 +67,7 @@ Returned 404 in 0 ms
 ## 🧪 **Testing**
 
 ### **Trước fix:**
+
 ```
 ❌ GET /assets/images/no-poster.jpg → 404 Not Found
 ❌ Console errors: Failed to load image
@@ -68,6 +75,7 @@ Returned 404 in 0 ms
 ```
 
 ### **Sau fix:**
+
 ```
 ✅ GET /assets/images/no-poster.svg → 200 OK
 ✅ Console: Clean, no errors

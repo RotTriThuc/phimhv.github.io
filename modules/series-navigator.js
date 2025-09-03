@@ -1,7 +1,7 @@
 /**
  * Series Navigator Module
  * Tính năng liên kết giữa các phần của cùng một bộ phim
- * 
+ *
  * Chức năng:
  * - Nhận diện và nhóm các phần phim cùng series
  * - Tạo UI navigator để chuyển đổi giữa các phần
@@ -108,7 +108,11 @@ export function getSeriesBaseInfo(movie) {
  * @param {Function} extractItems - Function to extract items from API response
  * @returns {Array} Danh sách các phần liên quan, đã sắp xếp theo season
  */
-export async function findRelatedSeasons(currentMovie, api = null, extractItems = null) {
+export async function findRelatedSeasons(
+  currentMovie,
+  api = null,
+  extractItems = null
+) {
   const seriesInfo = getSeriesBaseInfo(currentMovie);
   if (!seriesInfo) {
     console.debug('Movie is not part of a series:', currentMovie.name);
@@ -142,14 +146,22 @@ export async function findRelatedSeasons(currentMovie, api = null, extractItems 
     }
 
     // Lọc và phân tích các kết quả
-    console.log('🔍 Starting to analyze', items.length, 'movies for series:', searchKeyword);
+    console.log(
+      '🔍 Starting to analyze',
+      items.length,
+      'movies for series:',
+      searchKeyword
+    );
 
     // MANUAL APPROACH: Process each movie individually with no shared references
     const relatedSeasons = [];
 
     for (let i = 0; i < items.length; i++) {
       const movie = items[i];
-      console.log(`🔧 MANUAL: Processing movie ${i + 1}/${items.length}:`, movie.name);
+      console.log(
+        `🔧 MANUAL: Processing movie ${i + 1}/${items.length}:`,
+        movie.name
+      );
 
       // Get series info using manual approach
       const seriesInfo = getSeriesBaseInfo(movie);
@@ -168,7 +180,7 @@ export async function findRelatedSeasons(currentMovie, api = null, extractItems 
           // Create completely new seriesInfo object with manual assignment
           seriesInfo: {
             seriesId: String(seriesInfo.seriesId), // Force string conversion
-            season: Number(seriesInfo.season),     // Force number conversion
+            season: Number(seriesInfo.season), // Force number conversion
             method: String(seriesInfo.method),
             baseName: String(seriesInfo.baseName),
             _uniqueId: `${movie.slug}_${seriesInfo.season}_${Date.now()}_${Math.random()}` // Unique ID
@@ -206,10 +218,14 @@ export async function findRelatedSeasons(currentMovie, api = null, extractItems 
       const currentBaseName = currentSeriesInfo.baseName.toLowerCase().trim();
       const movieBaseName = movie.seriesInfo.baseName.toLowerCase().trim();
 
-      console.log(`🔍 MANUAL: Comparing "${currentBaseName}" vs "${movieBaseName}"`);
+      console.log(
+        `🔍 MANUAL: Comparing "${currentBaseName}" vs "${movieBaseName}"`
+      );
 
       if (currentBaseName === movieBaseName) {
-        console.log(`✅ MANUAL: Match found for ${movie.name} (Season ${movie.seriesInfo.season})`);
+        console.log(
+          `✅ MANUAL: Match found for ${movie.name} (Season ${movie.seriesInfo.season})`
+        );
         filteredSeasons.push(movie);
       } else {
         console.log(`❌ MANUAL: No match for ${movie.name}`);
@@ -220,17 +236,20 @@ export async function findRelatedSeasons(currentMovie, api = null, extractItems 
     filteredSeasons.sort((a, b) => {
       const seasonA = Number(a.seriesInfo.season);
       const seasonB = Number(b.seriesInfo.season);
-      console.log(`🔢 MANUAL: Sorting ${a.name} (${seasonA}) vs ${b.name} (${seasonB})`);
+      console.log(
+        `🔢 MANUAL: Sorting ${a.name} (${seasonA}) vs ${b.name} (${seasonB})`
+      );
       return seasonA - seasonB;
     });
 
     console.log(`🎬 MANUAL: Final filtered seasons: ${filteredSeasons.length}`);
     filteredSeasons.forEach((season, index) => {
-      console.log(`📋 MANUAL: Season ${index + 1}: ${season.name} (Phần ${season.seriesInfo.season})`);
+      console.log(
+        `📋 MANUAL: Season ${index + 1}: ${season.name} (Phần ${season.seriesInfo.season})`
+      );
     });
 
     return filteredSeasons;
-
   } catch (error) {
     console.error('Error finding related seasons:', error);
     return [];
@@ -244,7 +263,11 @@ export async function findRelatedSeasons(currentMovie, api = null, extractItems 
  * @param {Function} createEl - Function to create DOM elements
  * @returns {HTMLElement|null} Navigator element hoặc null nếu chỉ có 1 phần
  */
-export function createSeriesNavigator(currentMovie, relatedSeasons, createEl = null) {
+export function createSeriesNavigator(
+  currentMovie,
+  relatedSeasons,
+  createEl = null
+) {
   // Chỉ hiển thị khi có từ 2 phần trở lên
   if (!relatedSeasons || relatedSeasons.length <= 1) {
     console.debug('Not enough seasons to show navigator');
@@ -264,11 +287,19 @@ export function createSeriesNavigator(currentMovie, relatedSeasons, createEl = n
   const header = createElement('div', 'series-navigator__header');
 
   // Title
-  const title = createElement('h3', 'series-navigator__title', '🎬 Các phần trong series');
+  const title = createElement(
+    'h3',
+    'series-navigator__title',
+    '🎬 Các phần trong series'
+  );
   header.appendChild(title);
 
   // Refresh button
-  const refreshBtn = createElement('button', 'series-navigator__refresh-btn', '🔄');
+  const refreshBtn = createElement(
+    'button',
+    'series-navigator__refresh-btn',
+    '🔄'
+  );
   refreshBtn.title = 'Kiểm tra phần mới';
   refreshBtn.addEventListener('click', async () => {
     refreshBtn.disabled = true;
@@ -278,10 +309,19 @@ export function createSeriesNavigator(currentMovie, relatedSeasons, createEl = n
       // Force refresh related seasons
       const api = window.Api;
       const extractItems = window.extractItems;
-      const newSeasons = await getCachedRelatedSeasons(currentMovie, api, extractItems, true);
+      const newSeasons = await getCachedRelatedSeasons(
+        currentMovie,
+        api,
+        extractItems,
+        true
+      );
 
       // Re-render navigator
-      const newNavigator = createSeriesNavigator(currentMovie, newSeasons, createElement);
+      const newNavigator = createSeriesNavigator(
+        currentMovie,
+        newSeasons,
+        createElement
+      );
       if (newNavigator && navigator.parentNode) {
         navigator.parentNode.replaceChild(newNavigator, navigator);
       }
@@ -313,13 +353,17 @@ export function createSeriesNavigator(currentMovie, relatedSeasons, createEl = n
   // Series name
   const currentSeriesInfo = getSeriesBaseInfo(currentMovie);
   if (currentSeriesInfo?.baseName) {
-    const seriesName = createElement('div', 'series-navigator__series-name', currentSeriesInfo.baseName);
+    const seriesName = createElement(
+      'div',
+      'series-navigator__series-name',
+      currentSeriesInfo.baseName
+    );
     navigator.appendChild(seriesName);
   }
 
   // List container
   const list = createElement('div', 'series-navigator__list');
-  
+
   console.log('🎬 Creating navigator with', relatedSeasons.length, 'seasons');
 
   // MANUAL UI RENDERING: Process each season individually
@@ -376,18 +420,25 @@ export function createSeriesNavigator(currentMovie, relatedSeasons, createEl = n
 
     // Current indicator
     if (isCurrent) {
-      const currentIndicator = createElement('div', 'series-navigator__current-indicator');
+      const currentIndicator = createElement(
+        'div',
+        'series-navigator__current-indicator'
+      );
       currentIndicator.textContent = '● Đang xem';
       link.appendChild(currentIndicator);
     }
-    
+
     item.appendChild(link);
     list.appendChild(item);
   }
 
   navigator.appendChild(list);
 
-  console.debug('Created series navigator with', relatedSeasons.length, 'seasons');
+  console.debug(
+    'Created series navigator with',
+    relatedSeasons.length,
+    'seasons'
+  );
   return navigator;
 }
 
@@ -398,7 +449,11 @@ export function createSeriesNavigator(currentMovie, relatedSeasons, createEl = n
  * @param {Function} createEl - Function to create DOM elements
  * @returns {HTMLElement|null} Navigator element hoặc null
  */
-export function createWatchSeriesNavigator(currentMovie, relatedSeasons, createEl = null) {
+export function createWatchSeriesNavigator(
+  currentMovie,
+  relatedSeasons,
+  createEl = null
+) {
   if (!relatedSeasons || relatedSeasons.length <= 1) return null;
 
   // Use passed createEl or fallback to window global
@@ -410,12 +465,16 @@ export function createWatchSeriesNavigator(currentMovie, relatedSeasons, createE
 
   const navigator = createElement('div', 'watch-series-navigator');
 
-  const title = createElement('div', 'watch-series-navigator__title', 'Các phần khác:');
+  const title = createElement(
+    'div',
+    'watch-series-navigator__title',
+    'Các phần khác:'
+  );
   navigator.appendChild(title);
 
   const list = createElement('div', 'watch-series-navigator__list');
-  
-  relatedSeasons.forEach(season => {
+
+  relatedSeasons.forEach((season) => {
     const isCurrent = season.slug === currentMovie.slug;
     if (isCurrent) return; // Không hiển thị phần hiện tại trong watch page
 
@@ -429,12 +488,12 @@ export function createWatchSeriesNavigator(currentMovie, relatedSeasons, createE
 
     list.appendChild(item);
   });
-  
+
   if (list.children.length > 0) {
     navigator.appendChild(list);
     return navigator;
   }
-  
+
   return null;
 }
 
@@ -477,8 +536,17 @@ function getSmartCache(cacheKey, forceRefresh = false) {
  * @param {boolean} forceRefresh - Force refresh từ API
  * @returns {Array} Cached hoặc fresh data
  */
-export async function getCachedRelatedSeasons(currentMovie, api = null, extractItems = null, forceRefresh = false) {
-  console.log('🚀 getCachedRelatedSeasons called for:', currentMovie.name, forceRefresh ? '(force refresh)' : '');
+export async function getCachedRelatedSeasons(
+  currentMovie,
+  api = null,
+  extractItems = null,
+  forceRefresh = false
+) {
+  console.log(
+    '🚀 getCachedRelatedSeasons called for:',
+    currentMovie.name,
+    forceRefresh ? '(force refresh)' : ''
+  );
 
   const cacheKey = currentMovie.slug;
   const cached = getSmartCache(cacheKey, forceRefresh);
@@ -488,7 +556,11 @@ export async function getCachedRelatedSeasons(currentMovie, api = null, extractI
     return cached.data;
   }
 
-  const relatedSeasons = await findRelatedSeasons(currentMovie, api, extractItems);
+  const relatedSeasons = await findRelatedSeasons(
+    currentMovie,
+    api,
+    extractItems
+  );
   relatedSeasonsCache.set(cacheKey, {
     data: relatedSeasons,
     timestamp: Date.now()
@@ -498,17 +570,24 @@ export async function getCachedRelatedSeasons(currentMovie, api = null, extractI
   try {
     const seriesInfo = getSeriesBaseInfo(currentMovie);
     if (seriesInfo && window.seriesUpdateManager) {
-      window.seriesUpdateManager.trackSeries(seriesInfo, currentMovie, async (newSeasons) => {
-        // Callback khi có update - invalidate cache
-        console.log('🔄 Series updated, invalidating cache for:', currentMovie.name);
-        relatedSeasonsCache.delete(cacheKey);
+      window.seriesUpdateManager.trackSeries(
+        seriesInfo,
+        currentMovie,
+        async (newSeasons) => {
+          // Callback khi có update - invalidate cache
+          console.log(
+            '🔄 Series updated, invalidating cache for:',
+            currentMovie.name
+          );
+          relatedSeasonsCache.delete(cacheKey);
 
-        // Trigger UI update event
-        const event = new CustomEvent('seriesNavigatorUpdate', {
-          detail: { currentMovie, newSeasons }
-        });
-        window.dispatchEvent(event);
-      });
+          // Trigger UI update event
+          const event = new CustomEvent('seriesNavigatorUpdate', {
+            detail: { currentMovie, newSeasons }
+          });
+          window.dispatchEvent(event);
+        }
+      );
     }
   } catch (error) {
     console.warn('Could not setup auto-tracking:', error);

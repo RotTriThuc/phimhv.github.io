@@ -183,29 +183,29 @@
     padding: 16px;
     margin: 16px 0;
   }
-  
+
   .series-navigator__list {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 10px;
   }
-  
+
   .series-navigator__link {
     padding: 12px 8px;
     min-height: 70px;
   }
-  
+
   .series-navigator__title {
     font-size: 1.1em;
   }
-  
+
   .watch-series-navigator {
     padding: 10px 12px;
   }
-  
+
   .watch-series-navigator__list {
     gap: 6px;
   }
-  
+
   .watch-series-navigator__item {
     padding: 5px 10px;
     font-size: 0.8em;
@@ -217,24 +217,24 @@
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 8px;
   }
-  
+
   .series-navigator__link {
     padding: 10px 6px;
     min-height: 60px;
   }
-  
+
   .series-navigator__season {
     font-size: 0.9em;
   }
-  
+
   .series-navigator__episode {
     font-size: 0.75em;
   }
-  
+
   .watch-series-navigator__list {
     flex-direction: column;
   }
-  
+
   .watch-series-navigator__item {
     text-align: center;
   }
@@ -247,7 +247,7 @@
 }
 
 .series-navigator--loading::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 50%;
@@ -274,7 +274,7 @@
 }
 
 .series-navigator--error .series-navigator__title::before {
-  content: '⚠️ ';
+  content: "⚠️ ";
 }
 
 /* Dark Theme Adjustments */
@@ -283,15 +283,15 @@
     background: #1a1a1a;
     border-color: rgba(255, 255, 255, 0.05);
   }
-  
+
   .series-navigator__link {
     background: #2d2d2d;
   }
-  
+
   .watch-series-navigator {
     background: rgba(26, 26, 26, 0.95);
   }
-  
+
   .watch-series-navigator__item {
     background: #2d2d2d;
   }
@@ -304,27 +304,27 @@
     border-color: rgba(0, 0, 0, 0.1);
     color: #2d3436;
   }
-  
+
   .series-navigator__title,
   .series-navigator__link {
     color: #2d3436;
   }
-  
+
   .series-navigator__link {
     background: white;
     border-color: rgba(0, 0, 0, 0.1);
   }
-  
+
   .series-navigator__link:hover {
     background: var(--primary, #6c5ce7);
     color: white;
   }
-  
+
   .watch-series-navigator {
     background: rgba(248, 249, 250, 0.95);
     color: #2d3436;
   }
-  
+
   .watch-series-navigator__item {
     background: white;
     color: #2d3436;

@@ -9,8 +9,9 @@
 ## 🗑️ Code Dư thừa Đã Loại bỏ
 
 ### 1. Functions Render Trùng lặp (LOẠI BỎ)
+
 - ❌ `renderCategory()` - 70 dòng code
-- ❌ `renderCountry()` - 68 dòng code  
+- ❌ `renderCountry()` - 68 dòng code
 - ❌ `renderYear()` - 68 dòng code
 
 **Lý do loại bỏ:** Logic hoàn toàn trùng lặp với `renderCombinedFilter()`
@@ -18,6 +19,7 @@
 ### 2. Routing Logic Đơn giản hóa
 
 **TRƯỚC (phức tạp):**
+
 ```javascript
 if (hasAdditionalFilters) {
   await renderCombinedFilter(root, newParams);
@@ -27,10 +29,11 @@ if (hasAdditionalFilters) {
 ```
 
 **SAU (đơn giản):**
+
 ```javascript
 // Always use combined filter - simplified routing
 const newParams = new URLSearchParams(params);
-newParams.set('category', slug);
+newParams.set("category", slug);
 await renderCombinedFilter(root, newParams);
 ```
 
@@ -59,17 +62,21 @@ await renderCombinedFilter(root, newParams);
 ## 🔍 Technical Details
 
 **Functions đã xóa:**
+
 - `renderCategory()` (dòng 2411-2481)
-- `renderCountry()` (dòng 2484-2552) 
+- `renderCountry()` (dòng 2484-2552)
 - `renderYear()` (dòng 2554-2622)
 
 **Routing đã đơn giản hóa:**
+
 - `/the-loai/*` routing (dòng 3215-3222)
 - `/quoc-gia/*` routing (dòng 3224-3231)
 - `/nam/*` routing (dòng 3233-3240)
 
 **Function được giữ lại:**
+
 - `renderCombinedFilter()` - xử lý tất cả filter scenarios
 
 ---
-*Refactor hoàn thành thành công. Codebase giờ đây sạch hơn và dễ maintain hơn.*
+
+_Refactor hoàn thành thành công. Codebase giờ đây sạch hơn và dễ maintain hơn._

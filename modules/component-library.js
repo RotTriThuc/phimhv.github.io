@@ -32,7 +32,7 @@ export class Component {
   update(newProps) {
     const oldProps = this.props;
     this.props = { ...this.props, ...newProps };
-    
+
     if (this.shouldUpdate(oldProps, this.props)) {
       this.rerender();
     }
@@ -108,7 +108,7 @@ export class Component {
   // Destroy component
   destroy() {
     this.unmount();
-    this.children.forEach(child => child.destroy());
+    this.children.forEach((child) => child.destroy());
     this.children = [];
     this.element = null;
   }
@@ -131,7 +131,7 @@ export class Button extends Component {
 
   createElement() {
     const button = createEl('button', this.getClassName());
-    
+
     if (this.props.disabled || this.props.loading) {
       button.disabled = true;
     }
@@ -156,11 +156,15 @@ export class Button extends Component {
   }
 
   getClassName() {
-    const classes = ['btn', `btn--${this.props.variant}`, `btn--${this.props.size}`];
-    
+    const classes = [
+      'btn',
+      `btn--${this.props.variant}`,
+      `btn--${this.props.size}`
+    ];
+
     if (this.props.loading) classes.push('btn--loading');
     if (this.props.disabled) classes.push('btn--disabled');
-    
+
     return classes.join(' ');
   }
 
@@ -198,7 +202,7 @@ export class Card extends Component {
       const image = createEl('img', 'card__image');
       image.dataset.src = this.props.image.src;
       image.alt = this.props.image.alt || '';
-      
+
       imageContainer.appendChild(image);
       card.appendChild(imageContainer);
 
@@ -230,8 +234,8 @@ export class Card extends Component {
     // Actions section
     if (this.props.actions.length > 0) {
       const actions = createEl('div', 'card__actions');
-      
-      this.props.actions.forEach(action => {
+
+      this.props.actions.forEach((action) => {
         const button = new Button({
           text: action.text,
           variant: action.variant || 'secondary',
@@ -250,9 +254,9 @@ export class Card extends Component {
 
   getClassName() {
     const classes = ['card', `card--${this.props.variant}`];
-    
+
     if (this.props.clickable) classes.push('card--clickable');
-    
+
     return classes.join(' ');
   }
 
@@ -280,7 +284,7 @@ export class Modal extends Component {
 
   createElement() {
     const modal = createEl('div', 'modal');
-    
+
     // Backdrop
     if (this.props.backdrop) {
       const backdrop = createEl('div', 'modal__backdrop');
@@ -288,11 +292,14 @@ export class Modal extends Component {
     }
 
     // Container
-    const container = createEl('div', `modal__container modal__container--${this.props.size}`);
+    const container = createEl(
+      'div',
+      `modal__container modal__container--${this.props.size}`
+    );
 
     // Header
     const header = createEl('div', 'modal__header');
-    
+
     if (this.props.title) {
       const title = createEl('h2', 'modal__title', this.props.title);
       header.appendChild(title);
@@ -374,7 +381,7 @@ export class Loading extends Component {
 
   createElement() {
     const loading = createEl('div', `loading loading--${this.props.size}`);
-    
+
     // Spinner element
     const spinner = createEl('div', `loading__${this.props.variant}`);
     loading.appendChild(spinner);
@@ -403,13 +410,20 @@ export class Notification extends Component {
   }
 
   createElement() {
-    const notification = createEl('div', `notification notification--${this.props.type}`);
-    
+    const notification = createEl(
+      'div',
+      `notification notification--${this.props.type}`
+    );
+
     // Content
     const content = createEl('div', 'notification__content');
-    
+
     // Message
-    const message = createEl('span', 'notification__message', this.props.message);
+    const message = createEl(
+      'span',
+      'notification__message',
+      this.props.message
+    );
     content.appendChild(message);
 
     // Close button
@@ -442,7 +456,7 @@ export class Notification extends Component {
     if (this.autoCloseTimer) {
       clearTimeout(this.autoCloseTimer);
     }
-    
+
     this.element.classList.add('notification--closing');
     setTimeout(() => {
       this.props.onClose();
@@ -451,11 +465,12 @@ export class Notification extends Component {
   }
 
   show() {
-    const container = document.querySelector('.notifications-container') || 
-                    this.createNotificationContainer();
-    
+    const container =
+      document.querySelector('.notifications-container') ||
+      this.createNotificationContainer();
+
     container.appendChild(this.render());
-    
+
     // Animate in
     requestAnimationFrame(() => {
       this.element.classList.add('notification--show');
@@ -496,7 +511,7 @@ export class ComponentRegistry {
 
   createStorybook() {
     const storybook = createEl('div', 'storybook');
-    
+
     // Header
     const header = createEl('div', 'storybook__header');
     header.innerHTML = '<h1>Component Library</h1>';
@@ -505,26 +520,26 @@ export class ComponentRegistry {
     // Navigation
     const nav = createEl('nav', 'storybook__nav');
     const componentList = createEl('ul', 'storybook__component-list');
-    
-    this.getAllComponents().forEach(name => {
+
+    this.getAllComponents().forEach((name) => {
       const item = createEl('li', 'storybook__component-item');
       const link = createEl('a', 'storybook__component-link', name);
       link.href = `#${name}`;
       item.appendChild(link);
       componentList.appendChild(item);
     });
-    
+
     nav.appendChild(componentList);
     storybook.appendChild(nav);
 
     // Content
     const content = createEl('div', 'storybook__content');
-    
-    this.getAllComponents().forEach(name => {
+
+    this.getAllComponents().forEach((name) => {
       const section = this.createComponentSection(name);
       content.appendChild(section);
     });
-    
+
     storybook.appendChild(content);
     return storybook;
   }
@@ -532,24 +547,28 @@ export class ComponentRegistry {
   createComponentSection(name) {
     const section = createEl('section', 'storybook__section');
     section.id = name;
-    
+
     // Component title
     const title = createEl('h2', 'storybook__component-title', name);
     section.appendChild(title);
 
     // Stories
     const stories = this.getStories(name);
-    
-    stories.forEach(story => {
+
+    stories.forEach((story) => {
       const storyEl = createEl('div', 'storybook__story');
-      
+
       // Story title
       const storyTitle = createEl('h3', 'storybook__story-title', story.name);
       storyEl.appendChild(storyTitle);
 
       // Story description
       if (story.description) {
-        const desc = createEl('p', 'storybook__story-description', story.description);
+        const desc = createEl(
+          'p',
+          'storybook__story-description',
+          story.description
+        );
         storyEl.appendChild(desc);
       }
 
@@ -610,7 +629,10 @@ componentRegistry.register('Card', Card, [
     props: {
       title: 'Movie Card',
       subtitle: '2023 • Action',
-      image: { src: 'https://via.placeholder.com/300x200', alt: 'Movie poster' },
+      image: {
+        src: 'https://via.placeholder.com/300x200',
+        alt: 'Movie poster'
+      },
       actions: [
         { text: 'Watch', variant: 'primary', onClick: () => {} },
         { text: 'Save', variant: 'secondary', onClick: () => {} }

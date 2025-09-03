@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hard Refresh Performance Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .test-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-panel h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .metric-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .results-table th,
+        .results-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .results-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .fast-mode {
+            background: #d4edda !important;
+            border-color: #c3e6cb !important;
+        }
+        
+        .standard-mode {
+            background: #fff3cd !important;
+            border-color: #ffeaa7 !important;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #0056b3);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .comparison-chart {
+            display: flex;
+            align-items: end;
+            gap: 10px;
+            height: 200px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .chart-bar {
+            flex: 1;
+            background: linear-gradient(to top, #007bff, #0056b3);
+            border-radius: 4px 4px 0 0;
+            min-height: 20px;
+            position: relative;
+            display: flex;
+            align-items: end;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            padding-bottom: 5px;
+        }
+        
+        .chart-label {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <h1>⚡ Hard Refresh Performance Test</h1>
+    
+    <div class="test-panel">
+        <h3>🎮 Performance Test Controls</h3>
+        <div class="test-buttons">
+            <button class="btn-primary" onclick="testFastMode()">Test Fast Mode</button>
+            <button class="btn-warning" onclick="testStandardMode()">Test Standard Mode</button>
+            <button class="btn-info" onclick="runComparison()">Run Comparison</button>
+            <button class="btn-success" onclick="clearResults()">Clear Results</button>
+        </div>
+        
+        <div class="progress-bar">
+            <div id="progressFill" class="progress-fill"></div>
+        </div>
+        <div id="progressText" style="text-align: center; margin-top: 5px; font-size: 14px;">Ready to test</div>
+    </div>
+    
+    <div class="test-panel">
+        <h3>📊 Current Performance Metrics</h3>
+        <div class="performance-grid">
+            <div class="metric-card">
+                <div id="lastDuration" class="metric-value">-</div>
+                <div class="metric-label">Last Duration (ms)</div>
+            </div>
+            <div class="metric-card">
+                <div id="avgDuration" class="metric-value">-</div>
+                <div class="metric-label">Average Duration (ms)</div>
+            </div>
+            <div class="metric-card">
+                <div id="fastestTime" class="metric-value">-</div>
+                <div class="metric-label">Fastest Time (ms)</div>
+            </div>
+            <div class="metric-card">
+                <div id="slowestTime" class="metric-value">-</div>
+                <div class="metric-label">Slowest Time (ms)</div>
+            </div>
+            <div class="metric-card">
+                <div id="totalTests" class="metric-value">0</div>
+                <div class="metric-label">Total Tests</div>
+            </div>
+            <div class="metric-card">
+                <div id="currentMode" class="metric-value">-</div>
+                <div class="metric-label">Current Mode</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-panel">
+        <h3>📈 Performance Comparison</h3>
+        <div class="comparison-chart">
+            <div style="flex: 1;">
+                <div id="fastModeBar" class="chart-bar" style="height: 0%;">0ms</div>
+                <div class="chart-label">Fast Mode</div>
+            </div>
+            <div style="flex: 1;">
+                <div id="standardModeBar" class="chart-bar" style="height: 0%;">0ms</div>
+                <div class="chart-label">Standard Mode</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-panel">
+        <h3>📝 Test Results History</h3>
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Mode</th>
+                    <th>Duration (ms)</th>
+                    <th>Cache Ops</th>
+                    <th>Storage Ops</th>
+                    <th>SW Notification</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody id="resultsTableBody">
+                <tr>
+                    <td colspan="7" style="text-align: center; color: #6c757d;">No test results yet</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let testResults = [];
+        let testCounter = 0;
+        
+        // Performance tracking
+        const performanceMetrics = {
+            fastMode: [],
+            standardMode: []
+        };
+        
+        function updateProgress(percent, text) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+        
+        async function testFastMode() {
+            if (!window.hardRefreshManager) {
+                alert('HardRefreshManager not available');
+                return;
+            }
+            
+            updateProgress(0, 'Preparing fast mode test...');
+            
+            // Configure fast mode
+            window.hardRefreshManager.setFastMode(true);
+            window.hardRefreshManager.setSkipServiceWorker(false);
+            
+            await runPerformanceTest('Fast Mode');
+        }
+        
+        async function testStandardMode() {
+            if (!window.hardRefreshManager) {
+                alert('HardRefreshManager not available');
+                return;
+            }
+            
+            updateProgress(0, 'Preparing standard mode test...');
+            
+            // Configure standard mode
+            window.hardRefreshManager.setFastMode(false);
+            window.hardRefreshManager.setSkipServiceWorker(false);
+            
+            await runPerformanceTest('Standard Mode');
+        }
+        
+        async function runPerformanceTest(mode) {
+            const startTime = performance.now();
+            
+            try {
+                updateProgress(20, `Running ${mode} test...`);
+                
+                // Mock the hard refresh process without actually refreshing
+                const manager = window.hardRefreshManager;
+                
+                updateProgress(40, 'Clearing caches...');
+                const cacheStart = performance.now();
+                await manager.clearAllCaches();
+                const cacheTime = performance.now() - cacheStart;
+                
+                updateProgress(60, 'Clearing storages...');
+                const storageStart = performance.now();
+                await manager.clearStorages();
+                const storageTime = performance.now() - storageStart;
+                
+                updateProgress(80, 'Notifying Service Worker...');
+                const swStart = performance.now();
+                if (!manager.config.skipServiceWorker) {
+                    await manager.notifyServiceWorker();
+                }
+                const swTime = performance.now() - swStart;
+                
+                updateProgress(100, 'Test completed!');
+                
+                const totalTime = performance.now() - startTime;
+                
+                // Record results
+                const result = {
+                    id: ++testCounter,
+                    mode: mode,
+                    duration: Math.round(totalTime),
+                    cacheTime: Math.round(cacheTime),
+                    storageTime: Math.round(storageTime),
+                    swTime: Math.round(swTime),
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                
+                testResults.push(result);
+                
+                // Update metrics
+                if (mode === 'Fast Mode') {
+                    performanceMetrics.fastMode.push(totalTime);
+                } else {
+                    performanceMetrics.standardMode.push(totalTime);
+                }
+                
+                updateUI();
+                addResultToTable(result);
+                
+                setTimeout(() => {
+                    updateProgress(0, 'Ready for next test');
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Test failed:', error);
+                updateProgress(0, 'Test failed: ' + error.message);
+            }
+        }
+        
+        async function runComparison() {
+            updateProgress(0, 'Running comparison test...');
+            
+            // Test both modes
+            await testFastMode();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testStandardMode();
+            
+            updateComparisonChart();
+            updateProgress(0, 'Comparison completed!');
+        }
+        
+        function updateUI() {
+            const allTimes = testResults.map(r => r.duration);
+            
+            if (allTimes.length > 0) {
+                const lastDuration = allTimes[allTimes.length - 1];
+                const avgDuration = Math.round(allTimes.reduce((a, b) => a + b, 0) / allTimes.length);
+                const fastestTime = Math.min(...allTimes);
+                const slowestTime = Math.max(...allTimes);
+                
+                document.getElementById('lastDuration').textContent = lastDuration;
+                document.getElementById('avgDuration').textContent = avgDuration;
+                document.getElementById('fastestTime').textContent = fastestTime;
+                document.getElementById('slowestTime').textContent = slowestTime;
+                document.getElementById('totalTests').textContent = testResults.length;
+                
+                const lastMode = testResults[testResults.length - 1].mode;
+                document.getElementById('currentMode').textContent = lastMode;
+            }
+        }
+        
+        function addResultToTable(result) {
+            const tbody = document.getElementById('resultsTableBody');
+            
+            // Remove "no results" row if it exists
+            if (tbody.children.length === 1 && tbody.children[0].children.length === 1) {
+                tbody.innerHTML = '';
+            }
+            
+            const row = document.createElement('tr');
+            row.className = result.mode === 'Fast Mode' ? 'fast-mode' : 'standard-mode';
+            
+            row.innerHTML = `
+                <td>${result.id}</td>
+                <td>${result.mode}</td>
+                <td><strong>${result.duration}ms</strong></td>
+                <td>${result.cacheTime}ms</td>
+                <td>${result.storageTime}ms</td>
+                <td>${result.swTime}ms</td>
+                <td>${result.timestamp}</td>
+            `;
+            
+            tbody.insertBefore(row, tbody.firstChild);
+            
+            // Keep only last 10 results
+            while (tbody.children.length > 10) {
+                tbody.removeChild(tbody.lastChild);
+            }
+        }
+        
+        function updateComparisonChart() {
+            const fastTimes = performanceMetrics.fastMode;
+            const standardTimes = performanceMetrics.standardMode;
+            
+            if (fastTimes.length > 0 && standardTimes.length > 0) {
+                const fastAvg = fastTimes.reduce((a, b) => a + b, 0) / fastTimes.length;
+                const standardAvg = standardTimes.reduce((a, b) => a + b, 0) / standardTimes.length;
+                
+                const maxTime = Math.max(fastAvg, standardAvg);
+                
+                const fastHeight = (fastAvg / maxTime) * 100;
+                const standardHeight = (standardAvg / maxTime) * 100;
+                
+                document.getElementById('fastModeBar').style.height = fastHeight + '%';
+                document.getElementById('fastModeBar').textContent = Math.round(fastAvg) + 'ms';
+                
+                document.getElementById('standardModeBar').style.height = standardHeight + '%';
+                document.getElementById('standardModeBar').textContent = Math.round(standardAvg) + 'ms';
+            }
+        }
+        
+        function clearResults() {
+            testResults = [];
+            testCounter = 0;
+            performanceMetrics.fastMode = [];
+            performanceMetrics.standardMode = [];
+            
+            document.getElementById('resultsTableBody').innerHTML = 
+                '<tr><td colspan="7" style="text-align: center; color: #6c757d;">No test results yet</td></tr>';
+            
+            // Reset metrics
+            document.getElementById('lastDuration').textContent = '-';
+            document.getElementById('avgDuration').textContent = '-';
+            document.getElementById('fastestTime').textContent = '-';
+            document.getElementById('slowestTime').textContent = '-';
+            document.getElementById('totalTests').textContent = '0';
+            document.getElementById('currentMode').textContent = '-';
+            
+            // Reset chart
+            document.getElementById('fastModeBar').style.height = '0%';
+            document.getElementById('fastModeBar').textContent = '0ms';
+            document.getElementById('standardModeBar').style.height = '0%';
+            document.getElementById('standardModeBar').textContent = '0ms';
+            
+            updateProgress(0, 'Results cleared');
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🔧 Performance Test Tool loaded');
+            
+            if (window.hardRefreshManager) {
+                console.log('✅ HardRefreshManager detected');
+                updateProgress(0, 'Ready to test');
+            } else {
+                console.warn('⚠️ HardRefreshManager not found');
+                updateProgress(0, 'HardRefreshManager not available');
+            }
+        });
+    </script>
+</body>
+</html>

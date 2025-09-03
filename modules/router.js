@@ -36,23 +36,23 @@ function matchRoute(path) {
     const routePattern = route.path.replace(/:[^/]+/g, '([^/]+)');
     const regex = new RegExp(`^${routePattern}$`);
     const match = path.match(regex);
-    
+
     if (match) {
       const params = {};
       const paramNames = route.path.match(/:[^/]+/g) || [];
-      
+
       paramNames.forEach((paramName, index) => {
         const cleanParamName = paramName.slice(1); // Remove ':'
         params[cleanParamName] = decodeURIComponent(match[index + 1]);
       });
-      
+
       return {
         handler: route.handler,
         params
       };
     }
   }
-  
+
   return null;
 }
 
@@ -76,7 +76,7 @@ function cleanupOnNavigation() {
   if (imageLoader && imageLoader.cleanupPreloadLinks) {
     imageLoader.cleanupPreloadLinks();
   }
-  
+
   // Clear any existing timers or intervals
   // This can be extended as needed
 }
@@ -87,14 +87,14 @@ export async function router() {
     Logger.debug('Router already running, skipping...');
     return;
   }
-  
+
   isRouting = true;
-  
+
   try {
     // Handle scroll and cleanup
     handleScrollOnNavigation();
     cleanupOnNavigation();
-    
+
     const root = document.getElementById('app');
     const { path, params } = parseHash();
 
@@ -104,7 +104,12 @@ export async function router() {
       return;
     }
 
-    Logger.debug('Routing to:', path, 'with params:', Object.fromEntries(params));
+    Logger.debug(
+      'Routing to:',
+      path,
+      'with params:',
+      Object.fromEntries(params)
+    );
 
     // Handle root path
     if (path === '/' || path === '') {
@@ -245,7 +250,6 @@ export async function router() {
         <a href="#/" class="btn btn--primary">Về trang chủ</a>
       </div>
     `;
-    
   } catch (error) {
     Logger.error('Router error:', error);
     const root = document.getElementById('app');
@@ -280,16 +284,16 @@ export function goForward() {
 export function initRouter() {
   // Handle hash changes
   window.addEventListener('hashchange', router);
-  
+
   // Handle initial load
   window.addEventListener('load', router);
-  
+
   // Handle browser back/forward
   window.addEventListener('popstate', router);
-  
+
   // Initial route
   router();
-  
+
   Logger.info('Router initialized');
 }
 

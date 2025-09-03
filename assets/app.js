@@ -956,6 +956,100 @@ log.info('📊 Components Status:', {
   networkIndicator: !!networkIndicator
 });
 
+// 🔄 Hard Refresh Manager - Tích hợp tính năng hard refresh cho F5
+let hardRefreshManager = null;
+
+// Import và initialize Hard Refresh Manager
+async function initializeHardRefreshManager() {
+  try {
+    // Dynamic import để tránh blocking
+    const { HardRefreshManager } = await import('../modules/hard-refresh.js');
+
+    // Initialize với custom config
+    hardRefreshManager = new HardRefreshManager();
+
+    // Configure cho ứng dụng anime với performance optimization
+    hardRefreshManager.setConfirmationEnabled(false); // Không cần confirmation cho UX tốt hơn
+    hardRefreshManager.setMobileSupport(true); // Enable mobile support
+    hardRefreshManager.setFastMode(true); // Enable fast mode cho performance tốt hơn
+    hardRefreshManager.setSkipServiceWorker(false); // Keep SW notification nhưng với timeout ngắn
+
+    // Make globally accessible
+    window.hardRefreshManager = hardRefreshManager;
+
+    Logger.info('✅ Hard Refresh Manager initialized successfully');
+    Logger.info('🔧 Hard Refresh Features:', hardRefreshManager.getStatus());
+
+    // Thêm keyboard shortcut info vào console cho developers
+    if (isDev) {
+      console.log(`
+🔄 Hard Refresh Controls:
+- F5: Hard refresh (desktop)
+- Ctrl+Shift+R: Hard refresh (alternative)
+- Ctrl+F5: Hard refresh (Windows style)
+- Pull down from top: Hard refresh (mobile)
+- 3-finger long press: Hard refresh (mobile)
+
+🔧 Debug Commands:
+- hardRefreshManager.manualRefresh(): Manual trigger
+- hardRefreshManager.forceRefresh(): Force refresh (bypass checks)
+- hardRefreshManager.resetState(): Reset stuck state
+- hardRefreshManager.getStatus(): Check current status
+
+⚡ Performance Commands:
+- hardRefreshManager.setFastMode(true/false): Toggle fast mode
+- hardRefreshManager.setSkipServiceWorker(true/false): Skip SW for speed
+- hardRefreshManager.config.maxCacheTimeout = 1000: Set cache timeout (ms)
+      `);
+    }
+
+  } catch (error) {
+    Logger.error('❌ Failed to initialize Hard Refresh Manager:', error);
+
+    // Fallback: Basic F5 override
+    document.addEventListener('keydown', (event) => {
+      if (event.keyCode === 116 || event.key === 'F5') {
+        event.preventDefault();
+        Logger.info('🔄 Fallback hard refresh triggered');
+
+        // Simple hard refresh fallback
+        try {
+          // Clear basic caches
+          if ('caches' in window) {
+            caches.keys().then(names => {
+              names.forEach(name => caches.delete(name));
+            });
+          }
+
+          // Clear storages (preserve critical data)
+          const theme = localStorage.getItem('theme');
+          localStorage.clear();
+          if (theme) localStorage.setItem('theme', theme);
+
+          // Reload with cache busting
+          const url = new URL(window.location.href);
+          url.searchParams.set('_hardRefresh', Date.now());
+          window.location.href = url.toString();
+
+        } catch (fallbackError) {
+          Logger.error('❌ Fallback hard refresh failed:', fallbackError);
+          window.location.reload();
+        }
+      }
+    }, { capture: true, passive: false });
+
+    Logger.warn('⚠️ Using fallback F5 hard refresh implementation');
+  }
+}
+
+// Initialize Hard Refresh Manager sau khi DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeHardRefreshManager);
+} else {
+  // DOM đã ready
+  initializeHardRefreshManager();
+}
+
 // 🔥 Firebase Storage Management for Saved Movies and Watch Progress
 // Thay thế localStorage bằng Firebase để sync across devices
 const Storage = {

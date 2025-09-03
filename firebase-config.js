@@ -3,29 +3,40 @@
 
 // FIREBASE CONFIG - Real configuration from Firebase Console
 const firebaseConfig = {
-  apiKey: "AIzaSyC9GgPO41b0hmVVn5D-5LdGGSLnBsQWlPc",
-  authDomain: "phim-comments.firebaseapp.com",
-  projectId: "phim-comments",
-  storageBucket: "phim-comments.firebasestorage.app",
-  messagingSenderId: "338411994257",
-  appId: "1:338411994257:web:870b6a7cd166a50bc75330"
+  apiKey: 'AIzaSyC9GgPO41b0hmVVn5D-5LdGGSLnBsQWlPc',
+  authDomain: 'phim-comments.firebaseapp.com',
+  projectId: 'phim-comments',
+  storageBucket: 'phim-comments.firebasestorage.app',
+  messagingSenderId: '338411994257',
+  appId: '1:338411994257:web:870b6a7cd166a50bc75330'
 };
 
 // 💡 HƯỚNG DẪN LẤY CONFIG:
 // 1. https://console.firebase.google.com → [+ Add project]
 // 2. Tên project: "phim-comments" → Disable Analytics → Create
-// 3. "Firestore Database" → Create → Test mode → asia-southeast1  
+// 3. "Firestore Database" → Create → Test mode → asia-southeast1
 // 4. Project Overview → "</>" Web icon → App name → Copy config
 
 // Enhanced Production logging wrapper - Global scope - Hide debug info but keep errors
-const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1');
+const isDev =
+  window.location.hostname === 'localhost' ||
+  window.location.hostname.includes('127.0.0.1');
 const hideDebugInfo = true; // Hide sensitive debug info in production
 
 // Professional logging system for Firebase operations
 const FirebaseLogger = {
-  debug: (isDev && !hideDebugInfo) ? (...args) => console.log('🔥 [DEBUG]', ...args) : () => {},
-  info: (isDev && !hideDebugInfo) ? (...args) => console.log('🔥 [INFO]', ...args) : () => {},
-  success: (isDev && !hideDebugInfo) ? (...args) => console.log('🔥 [SUCCESS]', ...args) : () => {},
+  debug:
+    isDev && !hideDebugInfo
+      ? (...args) => console.log('🔥 [DEBUG]', ...args)
+      : () => {},
+  info:
+    isDev && !hideDebugInfo
+      ? (...args) => console.log('🔥 [INFO]', ...args)
+      : () => {},
+  success:
+    isDev && !hideDebugInfo
+      ? (...args) => console.log('🔥 [SUCCESS]', ...args)
+      : () => {},
 
   // Always show warnings and errors for debugging issues
   warn: (...args) => console.warn('🔥 [WARN]', ...args),
@@ -66,7 +77,9 @@ class MovieCommentSystem {
       }
 
       if (typeof window.firebase.firestore !== 'function') {
-        throw new Error('Firebase Firestore not available. Make sure firebase-firestore.js is loaded.');
+        throw new Error(
+          'Firebase Firestore not available. Make sure firebase-firestore.js is loaded.'
+        );
       }
 
       // Initialize Firebase app
@@ -104,9 +117,9 @@ class MovieCommentSystem {
   // Validate Firebase config
   validateConfig() {
     const required = ['apiKey', 'authDomain', 'projectId'];
-    return required.every(field => 
-      firebaseConfig[field] && 
-      !firebaseConfig[field].includes('your-')
+    return required.every(
+      (field) =>
+        firebaseConfig[field] && !firebaseConfig[field].includes('your-')
     );
   }
 
@@ -146,9 +159,11 @@ class MovieCommentSystem {
   // Wait for Firebase to be fully initialized with retry
   async waitForFirebase(maxRetries = 10, delay = 100) {
     for (let i = 0; i < maxRetries; i++) {
-      if (window.firebase &&
-          typeof window.firebase.initializeApp === 'function' &&
-          typeof window.firebase.firestore === 'function') {
+      if (
+        window.firebase &&
+        typeof window.firebase.initializeApp === 'function' &&
+        typeof window.firebase.firestore === 'function'
+      ) {
         log.info('✅ Firebase SDK fully loaded and ready');
         return;
       }
@@ -157,10 +172,12 @@ class MovieCommentSystem {
       this.debugFirebaseState();
 
       log.info(`⏳ Waiting for Firebase SDK... (${i + 1}/${maxRetries})`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
 
-    throw new Error('Firebase SDK failed to load completely after maximum retries');
+    throw new Error(
+      'Firebase SDK failed to load completely after maximum retries'
+    );
   }
 
   // Debug Firebase state để troubleshoot
@@ -168,9 +185,15 @@ class MovieCommentSystem {
     log.debug('🔍 Firebase Debug State:');
     log.debug('- window.firebase exists:', !!window.firebase);
     if (window.firebase) {
-      log.debug('- firebase.initializeApp type:', typeof window.firebase.initializeApp);
+      log.debug(
+        '- firebase.initializeApp type:',
+        typeof window.firebase.initializeApp
+      );
       log.debug('- firebase.firestore type:', typeof window.firebase.firestore);
-      log.debug('- firebase.apps length:', window.firebase.apps ? window.firebase.apps.length : 'undefined');
+      log.debug(
+        '- firebase.apps length:',
+        window.firebase.apps ? window.firebase.apps.length : 'undefined'
+      );
     }
   }
 
@@ -242,7 +265,7 @@ class MovieCommentSystem {
     let hash = 0;
     for (let i = 0; i < fingerprint.length; i++) {
       const char = fingerprint.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
 
@@ -326,12 +349,15 @@ class MovieCommentSystem {
 
   async _saveSyncCode(syncCode, userId, userName) {
     try {
-      await this.db.collection('syncCodes').doc(syncCode).set({
-        userId: userId,
-        userName: userName,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-      });
+      await this.db
+        .collection('syncCodes')
+        .doc(syncCode)
+        .set({
+          userId: userId,
+          userName: userName,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+        });
       log.info('🔑 Sync code saved:', syncCode);
     } catch (error) {
       log.error('❌ Failed to save sync code:', error);
@@ -345,7 +371,10 @@ class MovieCommentSystem {
     // Log current user before sync
     const currentUserId = this.getUserId();
     const currentUserName = this.getUserName();
-    log.info('📊 Current user before sync:', { currentUserId, currentUserName });
+    log.info('📊 Current user before sync:', {
+      currentUserId,
+      currentUserName
+    });
 
     try {
       const doc = await this.db.collection('syncCodes').doc(syncCode).get();
@@ -392,7 +421,6 @@ class MovieCommentSystem {
         userId: data.userId,
         userName: data.userName
       };
-
     } catch (error) {
       log.error('❌ Sync code failed:', error);
       throw error;
@@ -458,7 +486,7 @@ class MovieCommentSystem {
       const button = document.getElementById('generate-sync-code');
       button.disabled = true;
       button.textContent = '⏳ Đang tạo mã...';
-      
+
       try {
         const syncCode = await this.generateSyncCode();
         document.getElementById('sync-content').innerHTML = `
@@ -513,7 +541,9 @@ class MovieCommentSystem {
       };
 
       document.getElementById('apply-sync-code').onclick = async () => {
-        const syncCode = document.getElementById('sync-code-input').value.trim();
+        const syncCode = document
+          .getElementById('sync-code-input')
+          .value.trim();
         if (syncCode.length !== 6) {
           alert('❌ Vui lòng nhập mã 6 số');
           return;
@@ -570,10 +600,18 @@ class MovieCommentSystem {
                 log.info(`📚 Found ${newMovies.length} movies for synced user`);
 
                 // If no movies found, try Firebase directly
-                if (newMovies.length === 0 && window.movieComments?.initialized) {
-                  log.info('🔄 No movies in cache, trying Firebase directly...');
-                  const firebaseMovies = await window.movieComments.getSavedMovies();
-                  log.info(`📚 Firebase returned ${firebaseMovies.length} movies`);
+                if (
+                  newMovies.length === 0 &&
+                  window.movieComments?.initialized
+                ) {
+                  log.info(
+                    '🔄 No movies in cache, trying Firebase directly...'
+                  );
+                  const firebaseMovies =
+                    await window.movieComments.getSavedMovies();
+                  log.info(
+                    `📚 Firebase returned ${firebaseMovies.length} movies`
+                  );
                 }
               }
 
@@ -590,7 +628,6 @@ class MovieCommentSystem {
             // Reload page to apply all changes
             location.reload();
           }, 2000); // Reduced from 3000 to 2000
-
         } catch (error) {
           alert(`❌ Lỗi: ${error.message}`);
           button.disabled = false;
@@ -616,22 +653,22 @@ class MovieCommentSystem {
 
     const userId = await this.getUserId();
     const userName = this.getUserName();
-    
+
     if (!movieSlug || !content || content.trim().length < 3) {
       throw new Error('Vui lòng nhập nội dung bình luận (tối thiểu 3 ký tự)');
     }
 
     const comment = {
-       movieSlug: movieSlug,
-       content: content.trim().substring(0, 500),
-       authorId: userId,
-       authorName: userName,
-       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-       likes: 0,
-       likedBy: [],
-       status: 'approved', // AUTO-APPROVE for testing (change back to 'pending' for production)
-       reports: 0
-     };
+      movieSlug: movieSlug,
+      content: content.trim().substring(0, 500),
+      authorId: userId,
+      authorName: userName,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      likes: 0,
+      likedBy: [],
+      status: 'approved', // AUTO-APPROVE for testing (change back to 'pending' for production)
+      reports: 0
+    };
 
     try {
       const docRef = await this.db.collection('movieComments').add(comment);
@@ -647,15 +684,17 @@ class MovieCommentSystem {
   // Lấy comments cho phim
   async getComments(movieSlug, limit = 30) {
     if (!this.initialized) await this.init();
-    
+
     // Check cache
     const cached = this.cache.get(movieSlug);
-    if (cached && Date.now() - cached.time < 300000) { // 5 min cache
+    if (cached && Date.now() - cached.time < 300000) {
+      // 5 min cache
       return cached.data;
     }
 
     try {
-      const snapshot = await this.db.collection('movieComments')
+      const snapshot = await this.db
+        .collection('movieComments')
         .where('movieSlug', '==', movieSlug)
         .where('status', '==', 'approved')
         .orderBy('timestamp', 'desc')
@@ -663,7 +702,7 @@ class MovieCommentSystem {
         .get();
 
       const comments = [];
-      snapshot.forEach(doc => {
+      snapshot.forEach((doc) => {
         comments.push({
           id: doc.id,
           ...doc.data(),
@@ -702,7 +741,7 @@ class MovieCommentSystem {
         if (hasLiked) {
           transaction.update(commentRef, {
             likes: Math.max(0, (data.likes || 0) - 1),
-            likedBy: likedBy.filter(id => id !== userId)
+            likedBy: likedBy.filter((id) => id !== userId)
           });
         } else {
           transaction.update(commentRef, {
@@ -733,7 +772,7 @@ class MovieCommentSystem {
 
         const data = doc.data();
         const reportedBy = data.reportedBy || [];
-        
+
         if (!reportedBy.includes(userId)) {
           transaction.update(commentRef, {
             reports: (data.reports || 0) + 1,
@@ -784,10 +823,10 @@ class MovieCommentSystem {
     `;
 
     container.appendChild(section);
-    
+
     // Bind events
     this.bindEvents(movieSlug);
-    
+
     // Load comments
     this.loadAndDisplayComments(movieSlug);
   }
@@ -853,14 +892,14 @@ class MovieCommentSystem {
 
     try {
       await this.addComment(movieSlug, content);
-      
+
       // Reset form
       contentTextarea.value = '';
       document.querySelector('.char-count').textContent = '0/500';
-      
+
       this.showNotification('✅ Bình luận đã được gửi! Đang chờ admin duyệt.');
-      
-      // Reload comments immediately for better UX  
+
+      // Reload comments immediately for better UX
       this.loadAndDisplayComments(movieSlug);
     } catch (error) {
       this.showNotification('❌ ' + error.message);
@@ -874,14 +913,14 @@ class MovieCommentSystem {
   async loadAndDisplayComments(movieSlug) {
     const commentsList = document.querySelector('.comments-list');
     const commentsCount = document.querySelector('.comments-count');
-    
+
     if (!commentsList) return;
 
     try {
       const comments = await this.getComments(movieSlug);
-      
+
       commentsCount.textContent = `${comments.length} bình luận`;
-      
+
       if (comments.length === 0) {
         commentsList.innerHTML = `
           <div class="no-comments">
@@ -891,9 +930,11 @@ class MovieCommentSystem {
         return;
       }
 
-      const commentsHtml = comments.map(comment => this.renderComment(comment)).join('');
+      const commentsHtml = comments
+        .map((comment) => this.renderComment(comment))
+        .join('');
       commentsList.innerHTML = commentsHtml;
-      
+
       this.bindCommentActions();
     } catch (error) {
       commentsList.innerHTML = `
@@ -909,7 +950,7 @@ class MovieCommentSystem {
     const timeAgo = this.getTimeAgo(comment.timestamp);
     const userId = await this.getUserId();
     const isLiked = comment.likedBy?.includes(userId);
-    
+
     return `
       <div class="comment" data-comment-id="${comment.id}">
         <div class="comment-avatar">${comment.authorName.charAt(0).toUpperCase()}</div>
@@ -934,12 +975,12 @@ class MovieCommentSystem {
 
   // Bind comment actions
   bindCommentActions() {
-    document.querySelectorAll('.action-btn').forEach(btn => {
+    document.querySelectorAll('.action-btn').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         e.preventDefault();
         const action = btn.dataset.action;
         const commentId = btn.closest('.comment').dataset.commentId;
-        
+
         if (action === 'like') {
           await this.handleLike(commentId, btn);
         } else if (action === 'report') {
@@ -952,13 +993,13 @@ class MovieCommentSystem {
   // Handle like action
   async handleLike(commentId, btn) {
     btn.disabled = true;
-    
+
     const success = await this.toggleLike(commentId);
     if (success) {
       const likeCountSpan = btn.querySelector('span');
       const currentCount = parseInt(likeCountSpan.textContent) || 0;
       const isLiked = btn.classList.contains('liked');
-      
+
       if (isLiked) {
         likeCountSpan.textContent = Math.max(0, currentCount - 1);
         btn.classList.remove('liked');
@@ -967,14 +1008,14 @@ class MovieCommentSystem {
         btn.classList.add('liked');
       }
     }
-    
+
     btn.disabled = false;
   }
 
   // Handle report action
   async handleReport(commentId) {
     const reason = prompt('Lý do báo cáo (tùy chọn):') || 'inappropriate';
-    
+
     const success = await this.reportComment(commentId, reason);
     if (success) {
       this.showNotification('✅ Đã gửi báo cáo. Cảm ơn bạn!');
@@ -990,18 +1031,18 @@ class MovieCommentSystem {
 
   getTimeAgo(date) {
     if (!date) return 'Vừa xong';
-    
+
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-    
+
     if (diffMins < 1) return 'Vừa xong';
     if (diffMins < 60) return `${diffMins} phút trước`;
     if (diffHours < 24) return `${diffHours} giờ trước`;
     if (diffDays < 7) return `${diffDays} ngày trước`;
-    
+
     return date.toLocaleDateString('vi-VN');
   }
 
@@ -1009,10 +1050,12 @@ class MovieCommentSystem {
   // Save movie to localStorage as backup
   saveToLocalStorage(movie) {
     try {
-      const savedMovies = JSON.parse(localStorage.getItem('savedMovies') || '[]');
+      const savedMovies = JSON.parse(
+        localStorage.getItem('savedMovies') || '[]'
+      );
 
       // Check if already exists
-      if (savedMovies.some(m => m.slug === movie.slug)) {
+      if (savedMovies.some((m) => m.slug === movie.slug)) {
         return false; // Already saved
       }
 
@@ -1040,8 +1083,10 @@ class MovieCommentSystem {
   // Remove movie from localStorage
   removeFromLocalStorage(slug) {
     try {
-      const savedMovies = JSON.parse(localStorage.getItem('savedMovies') || '[]');
-      const filteredMovies = savedMovies.filter(m => m.slug !== slug);
+      const savedMovies = JSON.parse(
+        localStorage.getItem('savedMovies') || '[]'
+      );
+      const filteredMovies = savedMovies.filter((m) => m.slug !== slug);
 
       if (filteredMovies.length === savedMovies.length) {
         return false; // Not found
@@ -1139,7 +1184,8 @@ class MovieCommentSystem {
 
     try {
       // Check if already saved
-      const existingDoc = await this.db.collection('savedMovies')
+      const existingDoc = await this.db
+        .collection('savedMovies')
         .where('userId', '==', userId)
         .where('slug', '==', movie.slug)
         .get();
@@ -1156,13 +1202,20 @@ class MovieCommentSystem {
       this.saveToLocalStorage(movie);
 
       // Show success notification
-      this.showNotification(`✅ Đã lưu "${movie.name}" vào danh sách yêu thích`);
+      this.showNotification(
+        `✅ Đã lưu "${movie.name}" vào danh sách yêu thích`
+      );
 
       return true;
     } catch (error) {
       // Fallback to localStorage if Firebase fails
-      if (error.code === 'permission-denied' || error.message.includes('permissions')) {
-        FirebaseLogger.warn('Firebase permissions denied, saving to localStorage');
+      if (
+        error.code === 'permission-denied' ||
+        error.message.includes('permissions')
+      ) {
+        FirebaseLogger.warn(
+          'Firebase permissions denied, saving to localStorage'
+        );
         const success = this.saveToLocalStorage(movie);
         if (success) {
           this.showNotification(`✅ Đã lưu "${movie.name}" (offline mode)`);
@@ -1182,7 +1235,8 @@ class MovieCommentSystem {
     const userId = await this.getUserId();
 
     try {
-      const snapshot = await this.db.collection('savedMovies')
+      const snapshot = await this.db
+        .collection('savedMovies')
         .where('userId', '==', userId)
         .where('slug', '==', slug)
         .get();
@@ -1195,7 +1249,7 @@ class MovieCommentSystem {
       const batch = this.db.batch();
       let movieName = '';
 
-      snapshot.docs.forEach(doc => {
+      snapshot.docs.forEach((doc) => {
         movieName = doc.data().name || slug;
         batch.delete(doc.ref);
       });
@@ -1207,16 +1261,23 @@ class MovieCommentSystem {
       this.removeFromLocalStorage(slug);
 
       // Show success notification
-      this.showNotification(`✅ Đã xóa "${movieName}" khỏi danh sách yêu thích`);
+      this.showNotification(
+        `✅ Đã xóa "${movieName}" khỏi danh sách yêu thích`
+      );
 
       return true;
     } catch (error) {
       // Fallback to localStorage if Firebase fails
-      if (error.code === 'permission-denied' || error.message.includes('permissions')) {
-        FirebaseLogger.warn('Firebase permissions denied, removing from localStorage');
+      if (
+        error.code === 'permission-denied' ||
+        error.message.includes('permissions')
+      ) {
+        FirebaseLogger.warn(
+          'Firebase permissions denied, removing from localStorage'
+        );
         const success = this.removeFromLocalStorage(slug);
         if (success) {
-          this.showNotification(`✅ Đã xóa phim khỏi danh sách (offline mode)`);
+          this.showNotification('✅ Đã xóa phim khỏi danh sách (offline mode)');
           return true;
         }
       }
@@ -1236,20 +1297,24 @@ class MovieCommentSystem {
       // Try with orderBy first (requires composite index)
       let snapshot;
       try {
-        snapshot = await this.db.collection('savedMovies')
+        snapshot = await this.db
+          .collection('savedMovies')
           .where('userId', '==', userId)
           .orderBy('savedAt', 'desc')
           .get();
       } catch (indexError) {
         // Fallback: Query without orderBy if index doesn't exist
-        FirebaseLogger.warn('Composite index not found, querying without orderBy');
-        snapshot = await this.db.collection('savedMovies')
+        FirebaseLogger.warn(
+          'Composite index not found, querying without orderBy'
+        );
+        snapshot = await this.db
+          .collection('savedMovies')
           .where('userId', '==', userId)
           .get();
       }
 
       const movies = [];
-      snapshot.forEach(doc => {
+      snapshot.forEach((doc) => {
         const data = doc.data();
         movies.push({
           id: doc.id,
@@ -1261,7 +1326,9 @@ class MovieCommentSystem {
       // Sort manually if we couldn't use orderBy
       movies.sort((a, b) => b.savedAt - a.savedAt);
 
-      FirebaseLogger.debug(`Loaded ${movies.length} saved movies from Firebase`);
+      FirebaseLogger.debug(
+        `Loaded ${movies.length} saved movies from Firebase`
+      );
       return movies;
     } catch (error) {
       // No localStorage fallback - Firebase only
@@ -1277,7 +1344,8 @@ class MovieCommentSystem {
     const userId = await this.getUserId();
 
     try {
-      const snapshot = await this.db.collection('savedMovies')
+      const snapshot = await this.db
+        .collection('savedMovies')
         .where('userId', '==', userId)
         .where('slug', '==', slug)
         .limit(1)
@@ -1298,7 +1366,8 @@ class MovieCommentSystem {
     const userId = await this.getUserId();
 
     try {
-      const snapshot = await this.db.collection('savedMovies')
+      const snapshot = await this.db
+        .collection('savedMovies')
         .where('userId', '==', userId)
         .get();
 
@@ -1307,12 +1376,14 @@ class MovieCommentSystem {
       }
 
       const batch = this.db.batch();
-      snapshot.docs.forEach(doc => {
+      snapshot.docs.forEach((doc) => {
         batch.delete(doc.ref);
       });
 
       await batch.commit();
-      FirebaseLogger.success(`Cleared ${snapshot.size} saved movies from Firebase`);
+      FirebaseLogger.success(
+        `Cleared ${snapshot.size} saved movies from Firebase`
+      );
       return snapshot.size;
     } catch (error) {
       FirebaseLogger.error('Clear saved movies failed:', error);
@@ -1338,8 +1409,15 @@ class MovieCommentSystem {
     try {
       // Use movieSlug + userId as document ID for easy updates
       const docId = `${userId}_${movieSlug}`;
-      await this.db.collection('watchProgress').doc(docId).set(progressData, { merge: true });
-      FirebaseLogger.debug('Watch progress saved:', movieSlug, episodeInfo.episodeName);
+      await this.db
+        .collection('watchProgress')
+        .doc(docId)
+        .set(progressData, { merge: true });
+      FirebaseLogger.debug(
+        'Watch progress saved:',
+        movieSlug,
+        episodeInfo.episodeName
+      );
     } catch (error) {
       FirebaseLogger.error('Save watch progress failed:', error);
     }
@@ -1366,9 +1444,16 @@ class MovieCommentSystem {
       return null;
     } catch (error) {
       // Fallback to localStorage if Firebase fails
-      if (error.code === 'permission-denied' || error.message.includes('permissions')) {
-        FirebaseLogger.warn('Firebase permissions denied for watch progress, using localStorage');
-        const watchProgress = JSON.parse(localStorage.getItem('watchProgress') || '{}');
+      if (
+        error.code === 'permission-denied' ||
+        error.message.includes('permissions')
+      ) {
+        FirebaseLogger.warn(
+          'Firebase permissions denied for watch progress, using localStorage'
+        );
+        const watchProgress = JSON.parse(
+          localStorage.getItem('watchProgress') || '{}'
+        );
         return watchProgress[movieSlug] || null;
       }
 
@@ -1384,13 +1469,14 @@ class MovieCommentSystem {
     const userId = this.getUserId();
 
     try {
-      const snapshot = await this.db.collection('watchProgress')
+      const snapshot = await this.db
+        .collection('watchProgress')
         .where('userId', '==', userId)
         .orderBy('updatedAt', 'desc')
         .get();
 
       const progress = {};
-      snapshot.forEach(doc => {
+      snapshot.forEach((doc) => {
         const data = doc.data();
         progress[data.movieSlug] = {
           ...data,
@@ -1446,8 +1532,12 @@ class MovieCommentSystem {
         type,
         status: scheduledAt ? 'scheduled' : 'active',
         createdAt: now,
-        scheduledAt: scheduledAt ? firebase.firestore.Timestamp.fromDate(new Date(scheduledAt)) : null,
-        expiresAt: expiresAt ? firebase.firestore.Timestamp.fromDate(new Date(expiresAt)) : null,
+        scheduledAt: scheduledAt
+          ? firebase.firestore.Timestamp.fromDate(new Date(scheduledAt))
+          : null,
+        expiresAt: expiresAt
+          ? firebase.firestore.Timestamp.fromDate(new Date(expiresAt))
+          : null,
         readBy: [],
         metadata: {
           ...metadata,
@@ -1460,7 +1550,9 @@ class MovieCommentSystem {
         }
       };
 
-      const docRef = await this.db.collection('notifications').add(notification);
+      const docRef = await this.db
+        .collection('notifications')
+        .add(notification);
 
       FirebaseLogger.info(`✅ Created notification: ${docRef.id}`);
       return { id: docRef.id, ...notification };
@@ -1500,7 +1592,7 @@ class MovieCommentSystem {
 
       const now = new Date();
 
-      snapshot.forEach(doc => {
+      snapshot.forEach((doc) => {
         const data = doc.data();
         const notification = {
           id: doc.id,
@@ -1519,14 +1611,20 @@ class MovieCommentSystem {
           return; // Skip if status doesn't match
         }
 
-        if (!includeExpired && notification.expiresAt && notification.expiresAt < now) {
+        if (
+          !includeExpired &&
+          notification.expiresAt &&
+          notification.expiresAt < now
+        ) {
           return; // Skip expired notifications
         }
 
         notifications.push(notification);
       });
 
-      FirebaseLogger.debug(`📋 Retrieved ${notifications.length} notifications`);
+      FirebaseLogger.debug(
+        `📋 Retrieved ${notifications.length} notifications`
+      );
       return notifications;
     } catch (error) {
       FirebaseLogger.error('❌ Get notifications failed:', error);
@@ -1546,7 +1644,9 @@ class MovieCommentSystem {
     try {
       const currentUserId = userId || this.getUserId();
 
-      const notificationRef = this.db.collection('notifications').doc(notificationId);
+      const notificationRef = this.db
+        .collection('notifications')
+        .doc(notificationId);
 
       await this.db.runTransaction(async (transaction) => {
         const doc = await transaction.get(notificationRef);
@@ -1606,13 +1706,14 @@ class MovieCommentSystem {
     try {
       const currentUserId = userId || this.getUserId();
 
-      const snapshot = await this.db.collection('notifications')
+      const snapshot = await this.db
+        .collection('notifications')
         .where('status', '==', 'active')
         .get();
 
       let unreadCount = 0;
 
-      snapshot.forEach(doc => {
+      snapshot.forEach((doc) => {
         const data = doc.data();
         const readBy = data.readBy || [];
 
@@ -1639,13 +1740,15 @@ class MovieCommentSystem {
       const movieCount = movies.length;
       const firstMovie = movies[0];
 
-      const title = movieCount === 1
-        ? `🎬 Phim mới: ${firstMovie.name}`
-        : `🎬 ${movieCount} phim mới được cập nhật`;
+      const title =
+        movieCount === 1
+          ? `🎬 Phim mới: ${firstMovie.name}`
+          : `🎬 ${movieCount} phim mới được cập nhật`;
 
-      const content = movieCount === 1
-        ? `Phim "${firstMovie.name}" vừa được thêm vào hệ thống. Xem ngay!`
-        : `${movieCount} phim mới vừa được cập nhật. Khám phá ngay những bộ phim hot nhất!`;
+      const content =
+        movieCount === 1
+          ? `Phim "${firstMovie.name}" vừa được thêm vào hệ thống. Xem ngay!`
+          : `${movieCount} phim mới vừa được cập nhật. Khám phá ngay những bộ phim hot nhất!`;
 
       await this.createNotification({
         title,
@@ -1653,12 +1756,16 @@ class MovieCommentSystem {
         type: 'new_movie',
         metadata: {
           movieCount,
-          movies: movies.slice(0, 5).map(m => ({ slug: m.slug, name: m.name })),
+          movies: movies
+            .slice(0, 5)
+            .map((m) => ({ slug: m.slug, name: m.name })),
           priority: 'high'
         }
       });
 
-      FirebaseLogger.info(`🎬 Created movie notification for ${movieCount} movies`);
+      FirebaseLogger.info(
+        `🎬 Created movie notification for ${movieCount} movies`
+      );
     } catch (error) {
       FirebaseLogger.error('❌ Create movie notification failed:', error);
     }
@@ -1669,38 +1776,44 @@ class MovieCommentSystem {
    */
   listenToNotifications(callback, userId = null) {
     if (!this.initialized) {
-      FirebaseLogger.warn('Firebase not initialized, cannot listen to notifications');
+      FirebaseLogger.warn(
+        'Firebase not initialized, cannot listen to notifications'
+      );
       return null;
     }
 
     try {
       const currentUserId = userId || this.getUserId();
 
-      const unsubscribe = this.db.collection('notifications')
+      const unsubscribe = this.db
+        .collection('notifications')
         .where('status', '==', 'active')
         .orderBy('createdAt', 'desc')
         .limit(50)
-        .onSnapshot((snapshot) => {
-          const notifications = [];
+        .onSnapshot(
+          (snapshot) => {
+            const notifications = [];
 
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            const readBy = data.readBy || [];
+            snapshot.forEach((doc) => {
+              const data = doc.data();
+              const readBy = data.readBy || [];
 
-            notifications.push({
-              id: doc.id,
-              ...data,
-              createdAt: data.createdAt?.toDate(),
-              scheduledAt: data.scheduledAt?.toDate(),
-              expiresAt: data.expiresAt?.toDate(),
-              isRead: readBy.includes(currentUserId)
+              notifications.push({
+                id: doc.id,
+                ...data,
+                createdAt: data.createdAt?.toDate(),
+                scheduledAt: data.scheduledAt?.toDate(),
+                expiresAt: data.expiresAt?.toDate(),
+                isRead: readBy.includes(currentUserId)
+              });
             });
-          });
 
-          callback(notifications);
-        }, (error) => {
-          FirebaseLogger.error('Notification listener error:', error);
-        });
+            callback(notifications);
+          },
+          (error) => {
+            FirebaseLogger.error('Notification listener error:', error);
+          }
+        );
 
       return unsubscribe;
     } catch (error) {
@@ -1718,7 +1831,9 @@ async function initMovieComments() {
   try {
     const success = await window.movieComments.init();
     if (!success) {
-      FirebaseLogger.warn('⚠️ Firebase initialization failed, running in fallback mode');
+      FirebaseLogger.warn(
+        '⚠️ Firebase initialization failed, running in fallback mode'
+      );
       // App vẫn có thể hoạt động với localStorage fallback
     }
   } catch (error) {
@@ -1733,4 +1848,6 @@ if (document.readyState === 'loading') {
   initMovieComments();
 }
 
-FirebaseLogger.info('Movie Comment System with Notifications loaded! Use movieComments.renderCommentSection(container, movieSlug)');
+FirebaseLogger.info(
+  'Movie Comment System with Notifications loaded! Use movieComments.renderCommentSection(container, movieSlug)'
+);

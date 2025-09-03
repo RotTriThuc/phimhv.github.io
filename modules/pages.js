@@ -2,16 +2,16 @@
 
 import { Logger } from './logger.js';
 import { Api } from './api.js';
-import { 
-  createEl, 
-  safeRemove, 
-  extractItems, 
+import {
+  createEl,
+  safeRemove,
+  extractItems,
   showNotification,
   debounce,
   getFromStorage,
-  setToStorage 
+  setToStorage
 } from './utils.js';
-import { 
+import {
   renderLoadingCards,
   createMovieCard,
   listGrid,
@@ -34,65 +34,67 @@ const PageState = {
 export async function renderHome(root) {
   try {
     root.innerHTML = '';
-    
+
     // Create home page structure
     const homeContainer = createEl('div', 'home-page');
-    
+
     // Hero Banner Section
     const bannerSection = await renderBannerSection();
     homeContainer.appendChild(bannerSection);
-    
+
     // Latest Movies Section
     const latestSection = await renderLatestMoviesSection();
     homeContainer.appendChild(latestSection);
-    
+
     // Categories Section
     const categoriesSection = await renderCategoriesSection();
     homeContainer.appendChild(categoriesSection);
-    
+
     root.appendChild(homeContainer);
-    
+
     // Initialize banner slider if exists
     if (window.BannerSlider) {
       new window.BannerSlider('.banner-slider');
     }
-    
+
     Logger.debug('Home page rendered successfully');
-    
   } catch (error) {
     Logger.error('Home page render failed:', error);
-    root.appendChild(renderError('Không thể tải trang chủ', () => renderHome(root)));
+    root.appendChild(
+      renderError('Không thể tải trang chủ', () => renderHome(root))
+    );
   }
 }
 
 // Banner Section
 async function renderBannerSection() {
   const section = createEl('section', 'banner-section');
-  
+
   try {
     // Get featured movies for banner
     const response = await Api.getLatest(1);
     const movies = extractItems(response).slice(0, 5); // Top 5 for banner
-    
+
     if (movies.length > 0) {
       const bannerSlider = createEl('div', 'banner-slider');
-      
+
       movies.forEach((movie, index) => {
         const slide = createBannerSlide(movie, index === 0);
         bannerSlider.appendChild(slide);
       });
-      
+
       // Add navigation
       const nav = createBannerNavigation(movies.length);
       bannerSlider.appendChild(nav);
-      
+
       section.appendChild(bannerSlider);
-      
+
       // Preload banner images
-      const bannerImages = movies.map(m => m.poster_url || m.thumb_url).filter(Boolean);
+      const bannerImages = movies
+        .map((m) => m.poster_url || m.thumb_url)
+        .filter(Boolean);
       imageLoader.preloadCritical(bannerImages);
     }
-    
   } catch (error) {
     Logger.warn('Banner section failed:', error);
     // Fallback banner
@@ -103,17 +105,20 @@ async function renderBannerSection() {
       </div>
     `;
   }
-  
+
   return section;
 }
 
 function createBannerSlide(movie, isActive = false) {
-  const slide = createEl('div', `banner-slide ${isActive ? 'banner-slide--active' : ''}`);
-  
+  const slide = createEl(
+    'div',
+    `banner-slide ${isActive ? 'banner-slide--active' : ''}`
+  );
+
   const posterUrl = movie.poster_url || movie.thumb_url || '';
   const movieName = movie.name || 'Không có tên';
   const description = movie.content || movie.origin_name || 'Không có mô tả';
-  
+
   slide.innerHTML = `
     <div class="banner-slide__bg">
       <img data-src="${posterUrl}" alt="${movieName}" class="banner-slide__image">
@@ -137,55 +142,62 @@ function createBannerSlide(movie, isActive = false) {
       </div>
     </div>
   `;
-  
+
   return slide;
 }
 
 function createBannerNavigation(slideCount) {
   const nav = createEl('div', 'banner-nav');
-  
+
   for (let i = 0; i < slideCount; i++) {
-    const dot = createEl('button', `banner-nav__dot ${i === 0 ? 'banner-nav__dot--active' : ''}`);
+    const dot = createEl(
+      'button',
+      `banner-nav__dot ${i === 0 ? 'banner-nav__dot--active' : ''}`
+    );
     dot.setAttribute('data-slide', i);
     nav.appendChild(dot);
   }
-  
+
   return nav;
 }
 
 // Latest Movies Section
 async function renderLatestMoviesSection() {
   const section = createEl('section', 'latest-section');
-  const header = sectionHeader('Phim mới cập nhật', 
-    createEl('a', 'section__more', 'Xem tất cả').setAttribute('href', '#/loc') && 
-    document.querySelector('.section__more')
+  const header = sectionHeader(
+    'Phim mới cập nhật',
+    createEl('a', 'section__more', 'Xem tất cả').setAttribute(
+      'href',
+      '#/loc'
+    ) && document.querySelector('.section__more')
   );
   section.appendChild(header);
-  
+
   try {
     // Show loading skeleton
     const loadingGrid = renderLoadingCards(12);
     section.appendChild(loadingGrid);
-    
+
     // Fetch latest movies
     const response = await Api.getLatest(1);
     const movies = extractItems(response).slice(0, 12);
-    
+
     // Remove loading and show movies
     safeRemove(loadingGrid);
-    
+
     if (movies.length > 0) {
       const grid = listGrid(movies, 'grid grid--latest');
       section.appendChild(grid);
     } else {
       section.appendChild(createEl('p', 'empty-message', 'Không có phim mới'));
     }
-    
   } catch (error) {
     Logger.error('Latest movies section failed:', error);
-    section.appendChild(renderError('Không thể tải phim mới', () => renderLatestMoviesSection()));
+    section.appendChild(
+      renderError('Không thể tải phim mới', () => renderLatestMoviesSection())
+    );
   }
-  
+
   return section;
 }
 
@@ -194,15 +206,15 @@ async function renderCategoriesSection() {
   const section = createEl('section', 'categories-section');
   const header = sectionHeader('Thể loại phim');
   section.appendChild(header);
-  
+
   try {
     const response = await Api.getCategories();
     const categories = extractItems(response).slice(0, 12);
-    
+
     if (categories.length > 0) {
       const grid = createEl('div', 'categories-grid');
-      
-      categories.forEach(category => {
+
+      categories.forEach((category) => {
         const categoryCard = createEl('a', 'category-card');
         categoryCard.href = `#/the-loai/${category.slug}`;
         categoryCard.innerHTML = `
@@ -211,15 +223,16 @@ async function renderCategoriesSection() {
         `;
         grid.appendChild(categoryCard);
       });
-      
+
       section.appendChild(grid);
     }
-    
   } catch (error) {
     Logger.warn('Categories section failed:', error);
-    section.appendChild(createEl('p', 'error-message', 'Không thể tải danh sách thể loại'));
+    section.appendChild(
+      createEl('p', 'error-message', 'Không thể tải danh sách thể loại')
+    );
   }
-  
+
   return section;
 }
 
@@ -231,7 +244,7 @@ function getCategoryIcon(slug) {
     'kinh-di': '👻',
     'phieu-luu': '🗺️',
     'khoa-hoc-vien-tuong': '🚀',
-    'anime': '🎌',
+    anime: '🎌',
     'chien-tranh': '⚔️'
   };
   return icons[slug] || '🎭';
@@ -242,9 +255,9 @@ export async function renderSearch(root, params) {
   try {
     root.innerHTML = '';
     PageState.currentPage = parseInt(params.get('page')) || 1;
-    
+
     const searchContainer = createEl('div', 'search-page');
-    
+
     // Search form
     const searchForm = createSearchForm({
       keyword: params.get('keyword') || '',
@@ -253,18 +266,18 @@ export async function renderSearch(root, params) {
       year: params.get('year') || '',
       sort_field: params.get('sort_field') || 'modified.time'
     });
-    
+
     searchContainer.appendChild(searchForm);
-    
+
     // Results container
     const resultsContainer = createEl('div', 'search-results');
     searchContainer.appendChild(resultsContainer);
-    
+
     root.appendChild(searchContainer);
-    
+
     // Bind search form
     bindSearchForm(searchForm);
-    
+
     // Load search results if there's a keyword
     const keyword = params.get('keyword');
     if (keyword) {
@@ -277,12 +290,15 @@ export async function renderSearch(root, params) {
         </div>
       `;
     }
-    
+
     Logger.debug('Search page rendered');
-    
   } catch (error) {
     Logger.error('Search page render failed:', error);
-    root.appendChild(renderError('Không thể tải trang tìm kiếm', () => renderSearch(root, params)));
+    root.appendChild(
+      renderError('Không thể tải trang tìm kiếm', () =>
+        renderSearch(root, params)
+      )
+    );
   }
 }
 
@@ -292,7 +308,7 @@ async function loadSearchResults(container, params) {
     container.innerHTML = '';
     const loadingGrid = renderLoadingCards(12);
     container.appendChild(loadingGrid);
-    
+
     // Search parameters
     const searchParams = {
       keyword: params.get('keyword'),
@@ -303,15 +319,15 @@ async function loadSearchResults(container, params) {
       sort_field: params.get('sort_field') || 'modified.time',
       limit: 24
     };
-    
+
     // Perform search
     const response = await Api.search(searchParams);
     const movies = extractItems(response);
     const pagination = response?.data?.params || {};
-    
+
     // Remove loading
     safeRemove(loadingGrid);
-    
+
     if (movies.length > 0) {
       // Results header
       const resultsHeader = createEl('div', 'search-results__header');
@@ -320,11 +336,11 @@ async function loadSearchResults(container, params) {
         <p>Tìm thấy ${pagination.total_items || movies.length} kết quả</p>
       `;
       container.appendChild(resultsHeader);
-      
+
       // Movies grid
       const grid = listGrid(movies, 'grid grid--search');
       container.appendChild(grid);
-      
+
       // Pagination
       if (pagination.total_pages > 1) {
         const paginationEl = createPagination(
@@ -334,7 +350,6 @@ async function loadSearchResults(container, params) {
         );
         container.appendChild(paginationEl);
       }
-      
     } else {
       container.innerHTML = `
         <div class="search-empty">
@@ -344,29 +359,32 @@ async function loadSearchResults(container, params) {
         </div>
       `;
     }
-    
   } catch (error) {
     Logger.error('Search results failed:', error);
-    container.appendChild(renderError('Không thể tải kết quả tìm kiếm', () => loadSearchResults(container, params)));
+    container.appendChild(
+      renderError('Không thể tải kết quả tìm kiếm', () =>
+        loadSearchResults(container, params)
+      )
+    );
   }
 }
 
 function bindSearchForm(form) {
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    
+
     const formData = new FormData(form);
     const params = new URLSearchParams();
-    
+
     for (const [key, value] of formData.entries()) {
       if (value.trim()) {
         params.set(key, value.trim());
       }
     }
-    
+
     window.location.hash = `#/tim-kiem?${params.toString()}`;
   });
-  
+
   // Auto-search on input (debounced)
   const keywordInput = form.querySelector('input[name="keyword"]');
   if (keywordInput) {
@@ -377,7 +395,7 @@ function bindSearchForm(form) {
         window.location.hash = `#/tim-kiem?${params.toString()}`;
       }
     }, 500);
-    
+
     keywordInput.addEventListener('input', (e) => {
       debouncedSearch(e.target.value);
     });
@@ -389,52 +407,55 @@ export async function renderCombinedFilter(root, params) {
   try {
     root.innerHTML = '';
     PageState.currentPage = parseInt(params.get('page')) || 1;
-    
+
     const filterContainer = createEl('div', 'filter-page');
-    
+
     // Filter header
     const filterHeader = createFilterHeader(params);
     filterContainer.appendChild(filterHeader);
-    
+
     // Filter controls
     const filterControls = createFilterControls(params);
     filterContainer.appendChild(filterControls);
-    
+
     // Results container
     const resultsContainer = createEl('div', 'filter-results');
     filterContainer.appendChild(resultsContainer);
-    
+
     root.appendChild(filterContainer);
-    
+
     // Load filtered results
     await loadFilteredResults(resultsContainer, params);
-    
+
     // Bind filter controls
     bindFilterControls(filterControls);
-    
+
     Logger.debug('Filter page rendered');
-    
   } catch (error) {
     Logger.error('Filter page render failed:', error);
-    root.appendChild(renderError('Không thể tải trang lọc', () => renderCombinedFilter(root, params)));
+    root.appendChild(
+      renderError('Không thể tải trang lọc', () =>
+        renderCombinedFilter(root, params)
+      )
+    );
   }
 }
 
 function createFilterHeader(params) {
   const header = createEl('div', 'filter-header');
-  
+
   let title = 'Lọc phim';
   if (params.get('category')) title = `Thể loại: ${params.get('category')}`;
   if (params.get('country')) title = `Quốc gia: ${params.get('country')}`;
   if (params.get('year')) title = `Năm: ${params.get('year')}`;
-  
+
   header.innerHTML = `<h1>${title}</h1>`;
   return header;
 }
 
 function createFilterControls(params) {
   const controls = createEl('div', 'filter-controls');
-  
+
   controls.innerHTML = `
     <div class="filter-controls__row">
       <select name="category" class="filter-select">
@@ -453,18 +474,19 @@ function createFilterControls(params) {
       </select>
     </div>
   `;
-  
+
   // Set current values
   const categorySelect = controls.querySelector('select[name="category"]');
   const countrySelect = controls.querySelector('select[name="country"]');
   const yearSelect = controls.querySelector('select[name="year"]');
   const sortSelect = controls.querySelector('select[name="sort_field"]');
-  
+
   if (categorySelect) categorySelect.value = params.get('category') || '';
   if (countrySelect) countrySelect.value = params.get('country') || '';
   if (yearSelect) yearSelect.value = params.get('year') || '';
-  if (sortSelect) sortSelect.value = params.get('sort_field') || 'modified.time';
-  
+  if (sortSelect)
+    sortSelect.value = params.get('sort_field') || 'modified.time';
+
   return controls;
 }
 
@@ -474,7 +496,7 @@ async function loadFilteredResults(container, params) {
     container.innerHTML = '';
     const loadingGrid = renderLoadingCards(24);
     container.appendChild(loadingGrid);
-    
+
     // Filter parameters
     const filterParams = {
       type_list: 'phim-moi-cap-nhat',
@@ -485,26 +507,26 @@ async function loadFilteredResults(container, params) {
       sort_field: params.get('sort_field') || 'modified.time',
       limit: 24
     };
-    
+
     // Fetch filtered movies
     const response = await Api.listByType(filterParams);
     const movies = extractItems(response);
     const pagination = response?.data?.params || {};
-    
+
     // Remove loading
     safeRemove(loadingGrid);
-    
+
     if (movies.length > 0) {
       // Movies grid
       const grid = listGrid(movies, 'grid grid--filter');
       container.appendChild(grid);
-      
+
       // Pagination
       if (pagination.total_pages > 1) {
         const currentParams = new URLSearchParams(params);
         currentParams.delete('page'); // Remove page to build base URL
         const baseUrl = `#/loc?${currentParams.toString()}`;
-        
+
         const paginationEl = createPagination(
           filterParams.page,
           pagination.total_pages,
@@ -512,7 +534,6 @@ async function loadFilteredResults(container, params) {
         );
         container.appendChild(paginationEl);
       }
-      
     } else {
       container.innerHTML = `
         <div class="filter-empty">
@@ -522,21 +543,24 @@ async function loadFilteredResults(container, params) {
         </div>
       `;
     }
-    
   } catch (error) {
     Logger.error('Filtered results failed:', error);
-    container.appendChild(renderError('Không thể tải danh sách phim', () => loadFilteredResults(container, params)));
+    container.appendChild(
+      renderError('Không thể tải danh sách phim', () =>
+        loadFilteredResults(container, params)
+      )
+    );
   }
 }
 
 function bindFilterControls(controls) {
   const selects = controls.querySelectorAll('select');
 
-  selects.forEach(select => {
+  selects.forEach((select) => {
     select.addEventListener('change', () => {
       const params = new URLSearchParams();
 
-      selects.forEach(s => {
+      selects.forEach((s) => {
         if (s.value) {
           params.set(s.name, s.value);
         }
@@ -579,8 +603,11 @@ export async function renderAllCategories(root) {
     if (categories.length > 0) {
       const grid = createEl('div', 'categories-grid categories-grid--full');
 
-      categories.forEach(category => {
-        const categoryCard = createEl('a', 'category-card category-card--large');
+      categories.forEach((category) => {
+        const categoryCard = createEl(
+          'a',
+          'category-card category-card--large'
+        );
         categoryCard.href = `#/the-loai/${category.slug}`;
         categoryCard.innerHTML = `
           <div class="category-card__icon">${getCategoryIcon(category.slug)}</div>
@@ -592,14 +619,19 @@ export async function renderAllCategories(root) {
 
       categoriesContainer.appendChild(grid);
     } else {
-      categoriesContainer.appendChild(createEl('p', 'empty-message', 'Không có thể loại nào'));
+      categoriesContainer.appendChild(
+        createEl('p', 'empty-message', 'Không có thể loại nào')
+      );
     }
 
     Logger.debug('Categories page rendered');
-
   } catch (error) {
     Logger.error('Categories page render failed:', error);
-    root.appendChild(renderError('Không thể tải danh sách thể loại', () => renderAllCategories(root)));
+    root.appendChild(
+      renderError('Không thể tải danh sách thể loại', () =>
+        renderAllCategories(root)
+      )
+    );
   }
 }
 
@@ -645,10 +677,13 @@ export async function renderSavedMovies(root) {
     await loadSavedMovies(savedContainer, loadingState);
 
     Logger.debug('Saved movies page rendered');
-
   } catch (error) {
     Logger.error('Saved movies page render failed:', error);
-    root.appendChild(renderError('Không thể tải danh sách phim đã lưu', () => renderSavedMovies(root)));
+    root.appendChild(
+      renderError('Không thể tải danh sách phim đã lưu', () =>
+        renderSavedMovies(root)
+      )
+    );
   }
 }
 
@@ -657,7 +692,9 @@ async function loadSavedMovies(container, loadingState) {
     // Check if Storage is available
     if (!window.Storage) {
       safeRemove(loadingState);
-      container.appendChild(createEl('p', 'error-message', 'Hệ thống lưu trữ không khả dụng'));
+      container.appendChild(
+        createEl('p', 'error-message', 'Hệ thống lưu trữ không khả dụng')
+      );
       return;
     }
 
@@ -681,7 +718,6 @@ async function loadSavedMovies(container, loadingState) {
       // Movies grid
       const grid = listGrid(savedMovies, 'grid grid--saved');
       container.appendChild(grid);
-
     } else {
       // Empty state
       const emptyState = createEl('div', 'saved-empty');
@@ -693,11 +729,14 @@ async function loadSavedMovies(container, loadingState) {
       `;
       container.appendChild(emptyState);
     }
-
   } catch (error) {
     Logger.error('Load saved movies failed:', error);
     safeRemove(loadingState);
-    container.appendChild(renderError('Không thể tải danh sách phim đã lưu', () => loadSavedMovies(container, loadingState)));
+    container.appendChild(
+      renderError('Không thể tải danh sách phim đã lưu', () =>
+        loadSavedMovies(container, loadingState)
+      )
+    );
   }
 }
 

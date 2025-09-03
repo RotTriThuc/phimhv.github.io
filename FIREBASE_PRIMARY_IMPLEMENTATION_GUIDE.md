@@ -3,6 +3,7 @@
 ## 📋 Tổng Quan
 
 **Firebase Primary Storage System** là kiến trúc mới được thiết kế để:
+
 - ✅ **Firebase làm single source of truth** cho movie data
 - ✅ **Loại bỏ hoàn toàn localStorage** cho movie storage
 - ✅ **Chỉ lưu User ID** trong localStorage để identify user
@@ -14,6 +15,7 @@
 ## 🏗️ Kiến Trúc Hệ Thống
 
 ### Before (Problematic)
+
 ```
 User Action → localStorage → Firebase (backup)
                 ↓
@@ -21,6 +23,7 @@ User Action → localStorage → Firebase (backup)
 ```
 
 ### After (Firebase Primary)
+
 ```
 User Action → Firebase (primary) → Memory Cache (temporary)
                 ↓
@@ -47,7 +50,7 @@ User Action → Firebase (primary) → Memory Cache (temporary)
 <script src="firebase-primary-storage.js"></script>
 <script src="moviecomments-primary-integration.js"></script>
 <script src="firebase-primary-ui.js"></script>
-<link rel="stylesheet" href="firebase-primary-styles.css">
+<link rel="stylesheet" href="firebase-primary-styles.css" />
 ```
 
 ### Step 2: Update HTML Structure
@@ -62,13 +65,14 @@ User Action → Firebase (primary) → Memory Cache (temporary)
 ### Step 3: Remove Old Storage Code
 
 **Remove these patterns from your code:**
+
 ```javascript
 // ❌ Remove localStorage movie operations
-localStorage.setItem('savedMovies', JSON.stringify(movies));
-const movies = JSON.parse(localStorage.getItem('savedMovies') || '[]');
+localStorage.setItem("savedMovies", JSON.stringify(movies));
+const movies = JSON.parse(localStorage.getItem("savedMovies") || "[]");
 
 // ❌ Remove sessionStorage movie operations
-sessionStorage.setItem('movieData', data);
+sessionStorage.setItem("movieData", data);
 
 // ❌ Remove manual movie array management
 let savedMovies = [];
@@ -78,6 +82,7 @@ savedMovies.push(movie);
 ### Step 4: Use New API
 
 **New API Usage:**
+
 ```javascript
 // ✅ Save movie (Firebase only)
 await window.movieComments.saveMovie(movieData);
@@ -141,13 +146,14 @@ await window.FirebasePrimaryStorage.forceRefresh();
 ```javascript
 // Save watch progress
 await window.FirebasePrimaryStorage.saveWatchProgress(movieSlug, {
-    currentEpisode: 5,
-    currentTime: 1200,
-    totalTime: 3600
+  currentEpisode: 5,
+  currentTime: 1200,
+  totalTime: 3600,
 });
 
 // Get watch progress
-const progress = await window.FirebasePrimaryStorage.getWatchProgress(movieSlug);
+const progress =
+  await window.FirebasePrimaryStorage.getWatchProgress(movieSlug);
 ```
 
 ### Enhanced movieComments API
@@ -183,19 +189,19 @@ const info = await window.Storage.getStorageInfo();
 
 ```javascript
 // Auto-render when container exists
-<div id="saved-movies-container"></div>
+<div id="saved-movies-container"></div>;
 
 // Manual render
-window.FirebasePrimaryUI.renderSavedMoviesList('container-id');
+window.FirebasePrimaryUI.renderSavedMoviesList("container-id");
 ```
 
 ### Event Listeners
 
 ```javascript
 // Listen for movie list updates
-window.addEventListener('movieListUpdated', (event) => {
-    console.log('Movies updated:', event.detail);
-    // Update UI accordingly
+window.addEventListener("movieListUpdated", (event) => {
+  console.log("Movies updated:", event.detail);
+  // Update UI accordingly
 });
 ```
 
@@ -231,8 +237,8 @@ The system includes automatic migration for existing users:
 ```javascript
 // Force migration if needed
 if (window.migrationTool) {
-    const result = await window.migrationTool.startMigration();
-    console.log('Migration result:', result);
+  const result = await window.migrationTool.startMigration();
+  console.log("Migration result:", result);
 }
 ```
 
@@ -296,41 +302,45 @@ await testDataPersistence();
 ### Common Issues
 
 #### 1. **System Not Initializing**
+
 ```javascript
 // Check Firebase connection
-console.log('Firebase:', !!window.firebase);
-console.log('MovieComments:', !!window.movieComments?.initialized);
+console.log("Firebase:", !!window.firebase);
+console.log("MovieComments:", !!window.movieComments?.initialized);
 
 // Force initialize
 await window.FirebasePrimaryStorage.init();
 ```
 
 #### 2. **User ID Issues**
+
 ```javascript
 // Check User ID
 const userId = await window.movieComments.getUserId();
-console.log('User ID:', userId);
+console.log("User ID:", userId);
 
 // Regenerate if needed
-localStorage.removeItem('movie_user_id_v2');
+localStorage.removeItem("movie_user_id_v2");
 await window.FirebasePrimaryStorage.init();
 ```
 
 #### 3. **Movies Not Loading**
+
 ```javascript
 // Check Firebase connection
 const movies = await window.FirebasePrimaryStorage.getSavedMovies();
-console.log('Movies from Firebase:', movies.length);
+console.log("Movies from Firebase:", movies.length);
 
 // Force refresh
 await window.Storage.forceRefresh();
 ```
 
 #### 4. **Sync Issues**
+
 ```javascript
 // Test sync code generation
 const syncCode = await window.movieComments.generateSyncCode();
-console.log('Sync code:', syncCode);
+console.log("Sync code:", syncCode);
 
 // Check Firebase rules
 // Ensure user has read/write permissions
@@ -341,15 +351,15 @@ console.log('Sync code:', syncCode);
 ```javascript
 // System status
 const status = await window.FirebasePrimaryStorage.getStorageInfo();
-console.log('Storage info:', status);
+console.log("Storage info:", status);
 
 // Integration status
 const integration = window.MovieCommentsPrimaryIntegration.getIntegrationInfo();
-console.log('Integration:', integration);
+console.log("Integration:", integration);
 
 // UI status
 const ui = window.FirebasePrimaryUI.getUIInfo();
-console.log('UI info:', ui);
+console.log("UI info:", ui);
 ```
 
 ---
@@ -402,7 +412,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /savedMovies/{document} {
-      allow read, write: if request.auth != null 
+      allow read, write: if request.auth != null
         && resource.data.userId == request.auth.uid;
     }
   }

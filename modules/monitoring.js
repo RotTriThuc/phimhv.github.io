@@ -13,7 +13,7 @@ const MONITORING_CONFIG = {
     errorRate: 0.05, // 5%
     cacheHitRate: 0.8 // 80%
   },
-  
+
   // Monitoring intervals
   intervals: {
     performance: 30000, // 30 seconds
@@ -21,7 +21,7 @@ const MONITORING_CONFIG = {
     metrics: 300000, // 5 minutes
     alerts: 10000 // 10 seconds
   },
-  
+
   // Alert channels
   alerts: {
     email: process.env.ALERT_EMAIL || 'admin@xemphim.com',
@@ -40,12 +40,12 @@ export class ProductionMonitor {
       api: new Map(),
       system: new Map()
     };
-    
+
     this.alerts = [];
     this.isMonitoring = false;
     this.intervals = new Map();
     this.thresholds = MONITORING_CONFIG.performance;
-    
+
     this.init();
   }
 
@@ -56,7 +56,7 @@ export class ProductionMonitor {
     this.initUserAnalytics();
     this.initSystemHealth();
     this.initAlertSystem();
-    
+
     Logger.info('🔍 Production monitoring initialized');
   }
 
@@ -65,7 +65,7 @@ export class ProductionMonitor {
     const interval = setInterval(() => {
       this.collectPerformanceMetrics();
     }, MONITORING_CONFIG.intervals.performance);
-    
+
     this.intervals.set('performance', interval);
   }
 
@@ -82,7 +82,7 @@ export class ProductionMonitor {
 
     this.metrics.performance.set(Date.now(), metrics);
     this.checkPerformanceThresholds(metrics);
-    
+
     // Keep only last 100 measurements
     if (this.metrics.performance.size > 100) {
       const oldestKey = Math.min(...this.metrics.performance.keys());
@@ -129,9 +129,10 @@ export class ProductionMonitor {
   }
 
   getErrorRate() {
-    const recentErrors = Array.from(this.metrics.errors.values())
-      .filter(error => Date.now() - error.timestamp < 300000); // Last 5 minutes
-    
+    const recentErrors = Array.from(this.metrics.errors.values()).filter(
+      (error) => Date.now() - error.timestamp < 300000
+    ); // Last 5 minutes
+
     const totalRequests = this.getTotalRequests();
     return totalRequests > 0 ? recentErrors.length / totalRequests : 0;
   }
@@ -139,7 +140,7 @@ export class ProductionMonitor {
   getTotalRequests() {
     // Estimate from performance entries
     const resources = performance.getEntriesByType('resource');
-    return resources.filter(r => r.name.includes('api')).length || 1;
+    return resources.filter((r) => r.name.includes('api')).length || 1;
   }
 
   // Error tracking
@@ -175,7 +176,7 @@ export class ProductionMonitor {
   trackError(error) {
     const errorId = `${error.type}_${Date.now()}`;
     this.metrics.errors.set(errorId, error);
-    
+
     // Check error rate threshold
     const errorRate = this.getErrorRate();
     if (errorRate > this.thresholds.errorRate) {
@@ -185,13 +186,13 @@ export class ProductionMonitor {
         recentError: error
       });
     }
-    
+
     // Keep only last 50 errors
     if (this.metrics.errors.size > 50) {
       const oldestKey = Math.min(...Array.from(this.metrics.errors.keys()));
       this.metrics.errors.delete(oldestKey);
     }
-    
+
     Logger.error('Production error tracked:', error);
   }
 
@@ -199,10 +200,10 @@ export class ProductionMonitor {
   initUserAnalytics() {
     // Track user sessions
     this.trackUserSession();
-    
+
     // Track page views
     this.trackPageView();
-    
+
     // Track user interactions
     this.trackUserInteractions();
   }
@@ -217,7 +218,7 @@ export class ProductionMonitor {
       screen: `${screen.width}x${screen.height}`,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     };
-    
+
     this.metrics.users.set(sessionId, userInfo);
   }
 
@@ -228,26 +229,30 @@ export class ProductionMonitor {
       timestamp: Date.now(),
       referrer: document.referrer
     };
-    
+
     // Send to analytics
     this.sendAnalytics('pageview', pageView);
   }
 
   trackUserInteractions() {
     let interactionCount = 0;
-    
-    ['click', 'scroll', 'keypress'].forEach(eventType => {
-      document.addEventListener(eventType, () => {
-        interactionCount++;
-        
-        // Update user activity
-        const sessionId = this.getCurrentSessionId();
-        if (this.metrics.users.has(sessionId)) {
-          const user = this.metrics.users.get(sessionId);
-          user.lastActivity = Date.now();
-          user.interactions = interactionCount;
-        }
-      }, { passive: true });
+
+    ['click', 'scroll', 'keypress'].forEach((eventType) => {
+      document.addEventListener(
+        eventType,
+        () => {
+          interactionCount++;
+
+          // Update user activity
+          const sessionId = this.getCurrentSessionId();
+          if (this.metrics.users.has(sessionId)) {
+            const user = this.metrics.users.get(sessionId);
+            user.lastActivity = Date.now();
+            user.interactions = interactionCount;
+          }
+        },
+        { passive: true }
+      );
     });
   }
 
@@ -256,7 +261,7 @@ export class ProductionMonitor {
     const interval = setInterval(() => {
       this.checkSystemHealth();
     }, MONITORING_CONFIG.intervals.health);
-    
+
     this.intervals.set('health', interval);
   }
 
@@ -268,9 +273,9 @@ export class ProductionMonitor {
       cdn: await this.checkCDNHealth(),
       serviceWorker: this.checkServiceWorkerHealth()
     };
-    
+
     this.metrics.system.set(Date.now(), health);
-    
+
     // Check for system issues
     Object.entries(health).forEach(([service, status]) => {
       if (service !== 'timestamp' && !status.healthy) {
@@ -286,9 +291,11 @@ export class ProductionMonitor {
   async checkApiHealth() {
     try {
       const start = performance.now();
-      const response = await fetch('https://phimapi.com/danh-sach/phim-moi-cap-nhat?page=1&limit=1');
+      const response = await fetch(
+        'https://phimapi.com/danh-sach/phim-moi-cap-nhat?page=1&limit=1'
+      );
       const responseTime = performance.now() - start;
-      
+
       return {
         healthy: response.ok,
         responseTime,
@@ -312,14 +319,14 @@ export class ProductionMonitor {
         const start = performance.now();
         await window.Storage.getSavedMovies();
         const responseTime = performance.now() - start;
-        
+
         return {
           healthy: true,
           responseTime,
           message: 'Firebase OK'
         };
       }
-      
+
       return {
         healthy: false,
         responseTime: 0,
@@ -339,7 +346,7 @@ export class ProductionMonitor {
       const start = performance.now();
       const response = await fetch('/assets/styles.css', { method: 'HEAD' });
       const responseTime = performance.now() - start;
-      
+
       return {
         healthy: response.ok,
         responseTime,
@@ -360,10 +367,12 @@ export class ProductionMonitor {
       const registration = navigator.serviceWorker.controller;
       return {
         healthy: !!registration,
-        message: registration ? 'Service Worker Active' : 'Service Worker Inactive'
+        message: registration
+          ? 'Service Worker Active'
+          : 'Service Worker Inactive'
       };
     }
-    
+
     return {
       healthy: false,
       message: 'Service Worker not supported'
@@ -375,7 +384,7 @@ export class ProductionMonitor {
     const interval = setInterval(() => {
       this.processAlerts();
     }, MONITORING_CONFIG.intervals.alerts);
-    
+
     this.intervals.set('alerts', interval);
   }
 
@@ -388,7 +397,7 @@ export class ProductionMonitor {
       severity: this.getAlertSeverity(type),
       sent: false
     };
-    
+
     this.alerts.push(alert);
     Logger.warn('Alert triggered:', alert);
   }
@@ -401,13 +410,13 @@ export class ProductionMonitor {
       slow_performance: 'warning',
       low_cache_hit_rate: 'info'
     };
-    
+
     return severityMap[type] || 'info';
   }
 
   async processAlerts() {
-    const unsentAlerts = this.alerts.filter(alert => !alert.sent);
-    
+    const unsentAlerts = this.alerts.filter((alert) => !alert.sent);
+
     for (const alert of unsentAlerts) {
       try {
         await this.sendAlert(alert);
@@ -416,31 +425,31 @@ export class ProductionMonitor {
         Logger.error('Failed to send alert:', error);
       }
     }
-    
+
     // Clean up old alerts
-    this.alerts = this.alerts.filter(alert => 
-      Date.now() - alert.timestamp < 24 * 60 * 60 * 1000 // Keep for 24 hours
+    this.alerts = this.alerts.filter(
+      (alert) => Date.now() - alert.timestamp < 24 * 60 * 60 * 1000 // Keep for 24 hours
     );
   }
 
   async sendAlert(alert) {
     const message = this.formatAlertMessage(alert);
-    
+
     // Send to multiple channels
     const promises = [];
-    
+
     if (MONITORING_CONFIG.alerts.slack) {
       promises.push(this.sendSlackAlert(message));
     }
-    
+
     if (MONITORING_CONFIG.alerts.discord) {
       promises.push(this.sendDiscordAlert(message));
     }
-    
+
     if (MONITORING_CONFIG.alerts.email) {
       promises.push(this.sendEmailAlert(message));
     }
-    
+
     await Promise.allSettled(promises);
   }
 
@@ -450,7 +459,7 @@ export class ProductionMonitor {
       warning: '⚠️',
       info: 'ℹ️'
     };
-    
+
     return {
       title: `${emoji[alert.severity]} XemPhim Alert - ${alert.type.replace('_', ' ').toUpperCase()}`,
       message: JSON.stringify(alert.data, null, 2),
@@ -461,23 +470,28 @@ export class ProductionMonitor {
 
   async sendSlackAlert(message) {
     if (!MONITORING_CONFIG.alerts.slack) return;
-    
+
     const payload = {
       text: message.title,
-      attachments: [{
-        color: message.severity === 'critical' ? 'danger' : 'warning',
-        fields: [{
-          title: 'Details',
-          value: message.message,
-          short: false
-        }, {
-          title: 'Timestamp',
-          value: message.timestamp,
-          short: true
-        }]
-      }]
+      attachments: [
+        {
+          color: message.severity === 'critical' ? 'danger' : 'warning',
+          fields: [
+            {
+              title: 'Details',
+              value: message.message,
+              short: false
+            },
+            {
+              title: 'Timestamp',
+              value: message.timestamp,
+              short: true
+            }
+          ]
+        }
+      ]
     };
-    
+
     await fetch(MONITORING_CONFIG.alerts.slack, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -487,16 +501,18 @@ export class ProductionMonitor {
 
   async sendDiscordAlert(message) {
     if (!MONITORING_CONFIG.alerts.discord) return;
-    
+
     const payload = {
-      embeds: [{
-        title: message.title,
-        description: message.message,
-        color: message.severity === 'critical' ? 0xff0000 : 0xffaa00,
-        timestamp: message.timestamp
-      }]
+      embeds: [
+        {
+          title: message.title,
+          description: message.message,
+          color: message.severity === 'critical' ? 0xff0000 : 0xffaa00,
+          timestamp: message.timestamp
+        }
+      ]
     };
-    
+
     await fetch(MONITORING_CONFIG.alerts.discord, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -511,7 +527,9 @@ export class ProductionMonitor {
 
   // Utility methods
   generateSessionId() {
-    return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    return (
+      'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    );
   }
 
   getCurrentSessionId() {
@@ -520,7 +538,9 @@ export class ProductionMonitor {
   }
 
   generateAlertId() {
-    return 'alert_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    return (
+      'alert_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    );
   }
 
   sendAnalytics(event, data) {
@@ -539,7 +559,7 @@ export class ProductionMonitor {
         threshold: this.thresholds.pageLoadTime
       });
     }
-    
+
     if (metrics.apiResponse > this.thresholds.apiResponseTime) {
       this.triggerAlert('slow_performance', {
         metric: 'apiResponse',
@@ -547,14 +567,15 @@ export class ProductionMonitor {
         threshold: this.thresholds.apiResponseTime
       });
     }
-    
+
     if (metrics.memoryUsage > this.thresholds.memoryUsage) {
       this.triggerAlert('high_memory_usage', {
         value: (metrics.memoryUsage / 1024 / 1024).toFixed(2) + 'MB',
-        threshold: (this.thresholds.memoryUsage / 1024 / 1024).toFixed(2) + 'MB'
+        threshold:
+          (this.thresholds.memoryUsage / 1024 / 1024).toFixed(2) + 'MB'
       });
     }
-    
+
     if (metrics.cacheHitRate < this.thresholds.cacheHitRate) {
       this.triggerAlert('low_cache_hit_rate', {
         value: (metrics.cacheHitRate * 100).toFixed(2) + '%',
@@ -577,12 +598,12 @@ export class ProductionMonitor {
     const latest = Array.from(this.metrics.performance.values()).pop();
     const errorCount = this.metrics.errors.size;
     const userCount = this.metrics.users.size;
-    
+
     return {
       performance: latest || {},
       errorCount,
       userCount,
-      alerts: this.alerts.filter(a => !a.sent).length,
+      alerts: this.alerts.filter((a) => !a.sent).length,
       uptime: Date.now() - (this.startTime || Date.now())
     };
   }
@@ -595,7 +616,7 @@ export class ProductionMonitor {
 
   stopMonitoring() {
     this.isMonitoring = false;
-    this.intervals.forEach(interval => clearInterval(interval));
+    this.intervals.forEach((interval) => clearInterval(interval));
     this.intervals.clear();
     Logger.info('🔍 Production monitoring stopped');
   }

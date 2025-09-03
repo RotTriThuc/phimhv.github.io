@@ -18,7 +18,7 @@ export function safeRemove(element) {
 
 export function extractItems(data) {
   if (!data) return [];
-  
+
   // Handle different API response structures
   if (data.data && Array.isArray(data.data.items)) {
     return data.data.items;
@@ -32,7 +32,7 @@ export function extractItems(data) {
   if (Array.isArray(data)) {
     return data;
   }
-  
+
   return [];
 }
 
@@ -51,14 +51,16 @@ export function navigateTo(hash) {
 export function updateUrl(params) {
   const { path } = parseHash();
   const newParams = new URLSearchParams();
-  
+
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
       newParams.set(key, value);
     }
   });
-  
-  const newHash = newParams.toString() ? `${path}?${newParams.toString()}` : path;
+
+  const newHash = newParams.toString()
+    ? `${path}?${newParams.toString()}`
+    : path;
   window.location.hash = newHash;
 }
 
@@ -66,7 +68,7 @@ export function updateUrl(params) {
 export function initTheme() {
   const savedTheme = localStorage.getItem('theme') || 'dark';
   document.documentElement.setAttribute('data-theme', savedTheme);
-  
+
   // Update theme toggle button if exists
   const themeToggle = document.querySelector('.theme-toggle');
   if (themeToggle) {
@@ -77,26 +79,26 @@ export function initTheme() {
 export function toggleTheme() {
   const currentTheme = document.documentElement.getAttribute('data-theme');
   const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  
+
   document.documentElement.setAttribute('data-theme', newTheme);
   localStorage.setItem('theme', newTheme);
-  
+
   // Update theme toggle button
   const themeToggle = document.querySelector('.theme-toggle');
   if (themeToggle) {
     themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
   }
-  
+
   Logger.debug('Theme changed to:', newTheme);
 }
 
 // Notification System
 export function showNotification(options) {
   const { message, type = 'info', duration = 4000 } = options;
-  
+
   // Remove existing notifications
-  document.querySelectorAll('.notification').forEach(n => n.remove());
-  
+  document.querySelectorAll('.notification').forEach((n) => n.remove());
+
   const notification = createEl('div', `notification notification--${type}`);
   notification.innerHTML = `
     <div class="notification__content">
@@ -104,24 +106,24 @@ export function showNotification(options) {
       <button class="notification__close" aria-label="Đóng">×</button>
     </div>
   `;
-  
+
   // Add to DOM
   document.body.appendChild(notification);
-  
+
   // Auto remove
   const autoRemove = setTimeout(() => {
     if (notification.parentNode) {
       notification.remove();
     }
   }, duration);
-  
+
   // Manual close
   const closeBtn = notification.querySelector('.notification__close');
   closeBtn.addEventListener('click', () => {
     clearTimeout(autoRemove);
     notification.remove();
   });
-  
+
   // Animate in
   requestAnimationFrame(() => {
     notification.classList.add('notification--show');
@@ -131,11 +133,11 @@ export function showNotification(options) {
 // Format utilities
 export function formatTime(seconds) {
   if (!seconds || seconds < 0) return '0:00';
-  
+
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
-  
+
   if (hours > 0) {
     return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
@@ -144,7 +146,7 @@ export function formatTime(seconds) {
 
 export function formatDate(dateString) {
   if (!dateString) return '';
-  
+
   try {
     const date = new Date(dateString);
     return date.toLocaleDateString('vi-VN', {
@@ -160,7 +162,7 @@ export function formatDate(dateString) {
 
 export function formatNumber(num) {
   if (!num || isNaN(num)) return '0';
-  
+
   if (num >= 1000000) {
     return (num / 1000000).toFixed(1) + 'M';
   }
@@ -190,7 +192,7 @@ export function throttle(func, limit) {
     if (!inThrottle) {
       func.apply(this, args);
       inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
+      setTimeout(() => (inThrottle = false), limit);
     }
   };
 }
@@ -235,12 +237,12 @@ export function createErrorElement(message, retryCallback) {
       ${retryCallback ? '<button class="error-message__retry">Thử lại</button>' : ''}
     </div>
   `;
-  
+
   if (retryCallback) {
     const retryBtn = errorEl.querySelector('.error-message__retry');
     retryBtn.addEventListener('click', retryCallback);
   }
-  
+
   return errorEl;
 }
 

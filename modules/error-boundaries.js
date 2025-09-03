@@ -15,37 +15,41 @@ export class ErrorBoundary {
       retryDelay: options.retryDelay || 1000,
       ...options
     };
-    
+
     this.errorCount = 0;
     this.lastError = null;
     this.retryCount = 0;
-    
+
     this.setupErrorHandling();
   }
 
   setupErrorHandling() {
     // Wrap container to catch errors
     this.originalContent = this.container.innerHTML;
-    
+
     // Add error event listener to container
     this.container.addEventListener('error', this.handleError.bind(this), true);
-    
+
     // Add unhandled promise rejection listener
-    this.container.addEventListener('unhandledrejection', this.handlePromiseRejection.bind(this), true);
+    this.container.addEventListener(
+      'unhandledrejection',
+      this.handlePromiseRejection.bind(this),
+      true
+    );
   }
 
   handleError(event) {
     this.errorCount++;
     this.lastError = event.error || event;
-    
+
     Logger.error('Error boundary caught error:', this.lastError);
-    
+
     // Call custom error handler
     this.options.onError(this.lastError, this.errorCount);
-    
+
     // Show fallback UI
     this.showFallback();
-    
+
     // Prevent error from bubbling up
     event.preventDefault();
     event.stopPropagation();
@@ -54,15 +58,15 @@ export class ErrorBoundary {
   handlePromiseRejection(event) {
     this.errorCount++;
     this.lastError = event.reason;
-    
+
     Logger.error('Error boundary caught promise rejection:', this.lastError);
-    
+
     // Call custom error handler
     this.options.onError(this.lastError, this.errorCount);
-    
+
     // Show fallback UI
     this.showFallback();
-    
+
     // Prevent unhandled rejection
     event.preventDefault();
   }
@@ -70,15 +74,18 @@ export class ErrorBoundary {
   showFallback() {
     // Clear container
     this.container.innerHTML = '';
-    
+
     // Show fallback component
-    const fallbackElement = this.options.fallbackComponent(this.lastError, this.retryCount);
+    const fallbackElement = this.options.fallbackComponent(
+      this.lastError,
+      this.retryCount
+    );
     this.container.appendChild(fallbackElement);
   }
 
   defaultFallback(error, retryCount) {
     const fallback = createEl('div', 'error-boundary');
-    
+
     fallback.innerHTML = `
       <div class="error-boundary__content">
         <div class="error-boundary__icon">⚠️</div>
@@ -102,19 +109,19 @@ export class ErrorBoundary {
         </div>
       </div>
     `;
-    
+
     // Bind retry button
     const retryBtn = fallback.querySelector('.error-boundary__retry');
     if (retryBtn) {
       retryBtn.addEventListener('click', () => this.retry());
     }
-    
+
     // Bind reload button
     const reloadBtn = fallback.querySelector('.error-boundary__reload');
     if (reloadBtn) {
       reloadBtn.addEventListener('click', () => window.location.reload());
     }
-    
+
     return fallback;
   }
 
@@ -126,7 +133,7 @@ export class ErrorBoundary {
       errorCount,
       timestamp: new Date().toISOString()
     });
-    
+
     // Show notification for first few errors
     if (errorCount <= 2) {
       showNotification({
@@ -135,7 +142,7 @@ export class ErrorBoundary {
         duration: 5000
       });
     }
-    
+
     // Report to error tracking service (if available)
     if (window.errorTracker) {
       window.errorTracker.report(error, {
@@ -155,9 +162,9 @@ export class ErrorBoundary {
       });
       return;
     }
-    
+
     this.retryCount++;
-    
+
     // Show loading state
     this.container.innerHTML = `
       <div class="error-boundary-retry">
@@ -165,10 +172,12 @@ export class ErrorBoundary {
         <div class="loading-text">Đang thử lại...</div>
       </div>
     `;
-    
+
     // Wait before retry
-    await new Promise(resolve => setTimeout(resolve, this.options.retryDelay));
-    
+    await new Promise((resolve) =>
+      setTimeout(resolve, this.options.retryDelay)
+    );
+
     try {
       // Call retry callback if provided
       if (this.options.retryCallback) {
@@ -177,13 +186,12 @@ export class ErrorBoundary {
         // Default retry: restore original content
         this.container.innerHTML = this.originalContent;
       }
-      
+
       // Reset error state on successful retry
       this.errorCount = 0;
       this.lastError = null;
-      
+
       Logger.info('Error boundary retry successful');
-      
     } catch (retryError) {
       Logger.error('Error boundary retry failed:', retryError);
       this.handleError({ error: retryError });
@@ -199,7 +207,10 @@ export class ErrorBoundary {
 
   destroy() {
     this.container.removeEventListener('error', this.handleError);
-    this.container.removeEventListener('unhandledrejection', this.handlePromiseRejection);
+    this.container.removeEventListener(
+      'unhandledrejection',
+      this.handlePromiseRejection
+    );
   }
 }
 
@@ -216,7 +227,7 @@ export class GlobalErrorBoundary {
     window.addEventListener('error', (event) => {
       this.globalErrorCount++;
       Logger.critical('Global error:', event.error);
-      
+
       // Show critical error notification
       if (this.globalErrorCount <= 3) {
         showNotification({
@@ -225,7 +236,7 @@ export class GlobalErrorBoundary {
           duration: 10000
         });
       }
-      
+
       // Auto-reload after too many errors
       if (this.globalErrorCount >= 5) {
         Logger.critical('Too many global errors, auto-reloading...');
@@ -239,7 +250,7 @@ export class GlobalErrorBoundary {
     window.addEventListener('unhandledrejection', (event) => {
       this.globalErrorCount++;
       Logger.critical('Global promise rejection:', event.reason);
-      
+
       // Prevent default browser behavior
       event.preventDefault();
     });
@@ -277,16 +288,18 @@ export class GlobalErrorBoundary {
   }
 
   resetAllBoundaries() {
-    this.boundaries.forEach(boundary => boundary.reset());
+    this.boundaries.forEach((boundary) => boundary.reset());
     this.globalErrorCount = 0;
   }
 
   getErrorStats() {
-    const boundaryStats = Array.from(this.boundaries.values()).map(boundary => ({
-      errorCount: boundary.errorCount,
-      retryCount: boundary.retryCount,
-      lastError: boundary.lastError?.message
-    }));
+    const boundaryStats = Array.from(this.boundaries.values()).map(
+      (boundary) => ({
+        errorCount: boundary.errorCount,
+        retryCount: boundary.retryCount,
+        lastError: boundary.lastError?.message
+      })
+    );
 
     return {
       globalErrorCount: this.globalErrorCount,
@@ -306,26 +319,26 @@ export class ErrorBoundaryMonitor {
       recoveryRate: 0,
       averageRecoveryTime: 0
     };
-    
+
     this.recoveryTimes = [];
   }
 
   recordError(error, component, recovered = false, recoveryTime = 0) {
     this.errorMetrics.totalErrors++;
-    
+
     // Track by error type
     const errorType = error.constructor.name;
     this.errorMetrics.errorsByType.set(
       errorType,
       (this.errorMetrics.errorsByType.get(errorType) || 0) + 1
     );
-    
+
     // Track by component
     this.errorMetrics.errorsByComponent.set(
       component,
       (this.errorMetrics.errorsByComponent.get(component) || 0) + 1
     );
-    
+
     // Track recovery
     if (recovered && recoveryTime > 0) {
       this.recoveryTimes.push(recoveryTime);
@@ -335,11 +348,13 @@ export class ErrorBoundaryMonitor {
 
   updateRecoveryMetrics() {
     const totalRecoveries = this.recoveryTimes.length;
-    this.errorMetrics.recoveryRate = (totalRecoveries / this.errorMetrics.totalErrors) * 100;
-    
+    this.errorMetrics.recoveryRate =
+      (totalRecoveries / this.errorMetrics.totalErrors) * 100;
+
     if (totalRecoveries > 0) {
-      this.errorMetrics.averageRecoveryTime = 
-        this.recoveryTimes.reduce((sum, time) => sum + time, 0) / totalRecoveries;
+      this.errorMetrics.averageRecoveryTime =
+        this.recoveryTimes.reduce((sum, time) => sum + time, 0) /
+        totalRecoveries;
     }
   }
 
@@ -347,23 +362,27 @@ export class ErrorBoundaryMonitor {
     return {
       ...this.errorMetrics,
       errorsByType: Object.fromEntries(this.errorMetrics.errorsByType),
-      errorsByComponent: Object.fromEntries(this.errorMetrics.errorsByComponent)
+      errorsByComponent: Object.fromEntries(
+        this.errorMetrics.errorsByComponent
+      )
     };
   }
 
   printReport() {
     const report = this.getReport();
-    
+
     Logger.info('\n🛡️ Error Boundary Report:');
     Logger.info(`Total Errors: ${report.totalErrors}`);
     Logger.info(`Recovery Rate: ${report.recoveryRate.toFixed(1)}%`);
-    Logger.info(`Average Recovery Time: ${report.averageRecoveryTime.toFixed(0)}ms`);
-    
+    Logger.info(
+      `Average Recovery Time: ${report.averageRecoveryTime.toFixed(0)}ms`
+    );
+
     Logger.info('\nErrors by Type:');
     Object.entries(report.errorsByType).forEach(([type, count]) => {
       Logger.info(`  ${type}: ${count}`);
     });
-    
+
     Logger.info('\nErrors by Component:');
     Object.entries(report.errorsByComponent).forEach(([component, count]) => {
       Logger.info(`  ${component}: ${count}`);
@@ -389,21 +408,22 @@ export function withErrorBoundary(renderFunction, options = {}) {
           false,
           0
         );
-        
+
         if (options.onError) {
           options.onError(error, errorCount);
         }
       }
     });
-    
+
     try {
       const startTime = performance.now();
       await renderFunction(container, ...args);
-      
+
       // Record successful render
       const renderTime = performance.now() - startTime;
-      Logger.debug(`Component ${renderFunction.name} rendered in ${renderTime.toFixed(2)}ms`);
-      
+      Logger.debug(
+        `Component ${renderFunction.name} rendered in ${renderTime.toFixed(2)}ms`
+      );
     } catch (error) {
       // Error will be caught by boundary
       throw error;

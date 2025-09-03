@@ -1,13 +1,21 @@
 /* Service Worker - Advanced offline support and caching strategies */
 
 // Enhanced Production logging system for Service Worker - Hide debug info but keep errors
-const isDev = self.location.hostname === 'localhost' || self.location.hostname.includes('127.0.0.1');
+const isDev =
+  self.location.hostname === 'localhost' ||
+  self.location.hostname.includes('127.0.0.1');
 const hideDebugInfo = true; // Hide sensitive debug info in production
 
 const SWLogger = {
   // Hide debug/info logs that might contain sensitive data
-  debug: (isDev && !hideDebugInfo) ? (...args) => console.log('🔧 [SW-DEBUG]', ...args) : () => {},
-  info: (isDev && !hideDebugInfo) ? (...args) => console.log('ℹ️ [SW-INFO]', ...args) : () => {},
+  debug:
+    isDev && !hideDebugInfo
+      ? (...args) => console.log('🔧 [SW-DEBUG]', ...args)
+      : () => {},
+  info:
+    isDev && !hideDebugInfo
+      ? (...args) => console.log('ℹ️ [SW-INFO]', ...args)
+      : () => {},
 
   // Always show warnings and errors for debugging issues
   warn: (...args) => console.warn('⚠️ [SW-WARN]', ...args),
@@ -32,7 +40,7 @@ const CACHE_STRATEGIES = {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     maxEntries: 100
   },
-  
+
   // API calls - Network first with fallback
   api: {
     pattern: /^https:\/\/phimapi\.com\//,
@@ -40,7 +48,7 @@ const CACHE_STRATEGIES = {
     maxAge: 5 * 60 * 1000, // 5 minutes
     maxEntries: 50
   },
-  
+
   // Images - Stale while revalidate
   images: {
     pattern: /\.(jpg|jpeg|png|gif|webp)$/,
@@ -48,7 +56,7 @@ const CACHE_STRATEGIES = {
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     maxEntries: 200
   },
-  
+
   // Pages - Network first with offline fallback
   pages: {
     pattern: /^https?:\/\/[^\/]+\/(#\/.*)?$/,
@@ -123,13 +131,15 @@ self.addEventListener('install', (event) => {
         SWLogger.debug('Precaching offline pages');
         return cache.addAll(Object.values(OFFLINE_PAGES));
       })
-    ]).then(() => {
-      SWLogger.info('Service Worker installed successfully');
-      // Skip waiting to activate immediately
-      return self.skipWaiting();
-    }).catch((error) => {
-      SWLogger.error('Service Worker installation failed:', error);
-    })
+    ])
+      .then(() => {
+        SWLogger.info('Service Worker installed successfully');
+        // Skip waiting to activate immediately
+        return self.skipWaiting();
+      })
+      .catch((error) => {
+        SWLogger.error('Service Worker installation failed:', error);
+      })
   );
 });
 
@@ -141,7 +151,14 @@ self.addEventListener('activate', (event) => {
     Promise.all([
       // Clean up old caches
       caches.keys().then((cacheNames) => {
-        const validCaches = [STATIC_CACHE, DYNAMIC_CACHE, API_CACHE, IMAGE_CACHE, VIDEO_CACHE, VIDEO_SEGMENT_CACHE];
+        const validCaches = [
+          STATIC_CACHE,
+          DYNAMIC_CACHE,
+          API_CACHE,
+          IMAGE_CACHE,
+          VIDEO_CACHE,
+          VIDEO_SEGMENT_CACHE
+        ];
 
         return Promise.all(
           cacheNames.map((cacheName) => {
@@ -155,11 +172,13 @@ self.addEventListener('activate', (event) => {
 
       // Claim all clients
       self.clients.claim()
-    ]).then(() => {
-      SWLogger.info('Service Worker activated successfully');
-    }).catch((error) => {
-      SWLogger.error('Service Worker activation failed:', error);
-    })
+    ])
+      .then(() => {
+        SWLogger.info('Service Worker activated successfully');
+      })
+      .catch((error) => {
+        SWLogger.error('Service Worker activation failed:', error);
+      })
   );
 });
 
@@ -167,17 +186,17 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
-  
+
   // Skip non-GET requests
   if (request.method !== 'GET') {
     return;
   }
-  
+
   // Skip chrome-extension and other non-http requests
   if (!url.protocol.startsWith('http')) {
     return;
   }
-  
+
   event.respondWith(handleRequest(request));
 });
 
@@ -185,19 +204,19 @@ self.addEventListener('fetch', (event) => {
 async function handleRequest(request) {
   const url = new URL(request.url);
   const strategy = getCacheStrategy(request);
-  
+
   try {
     switch (strategy.strategy) {
-      case 'cache-first':
-        return await cacheFirst(request, strategy);
-      case 'network-first':
-        return await networkFirst(request, strategy);
-      case 'stale-while-revalidate':
-        return await staleWhileRevalidate(request, strategy);
-      case 'video-cache-first':
-        return await videoCacheFirst(request, strategy);
-      default:
-        return await networkFirst(request, strategy);
+    case 'cache-first':
+      return await cacheFirst(request, strategy);
+    case 'network-first':
+      return await networkFirst(request, strategy);
+    case 'stale-while-revalidate':
+      return await staleWhileRevalidate(request, strategy);
+    case 'video-cache-first':
+      return await videoCacheFirst(request, strategy);
+    default:
+      return await networkFirst(request, strategy);
     }
   } catch (error) {
     SWLogger.error('Request handling failed:', error);
@@ -247,21 +266,21 @@ function getCacheStrategy(request) {
 async function cacheFirst(request, strategy) {
   const cache = await caches.open(strategy.cacheName);
   const cachedResponse = await cache.match(request);
-  
+
   if (cachedResponse && !isExpired(cachedResponse, strategy.maxAge)) {
     return cachedResponse;
   }
-  
+
   try {
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse.ok) {
       // Clone response before caching
       const responseClone = networkResponse.clone();
       await cache.put(request, responseClone);
       await cleanupCache(cache, strategy.maxEntries);
     }
-    
+
     return networkResponse;
   } catch (error) {
     // Return stale cache if network fails
@@ -276,17 +295,17 @@ async function cacheFirst(request, strategy) {
 // Network first strategy - Good for API calls and pages
 async function networkFirst(request, strategy) {
   const cache = await caches.open(strategy.cacheName);
-  
+
   try {
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse.ok) {
       // Clone response before caching
       const responseClone = networkResponse.clone();
       await cache.put(request, responseClone);
       await cleanupCache(cache, strategy.maxEntries);
     }
-    
+
     return networkResponse;
   } catch (error) {
     // Fallback to cache
@@ -305,26 +324,28 @@ async function networkFirst(request, strategy) {
 async function staleWhileRevalidate(request, strategy) {
   const cache = await caches.open(strategy.cacheName);
   const cachedResponse = await cache.match(request);
-  
+
   // Always try to fetch from network in background
-  const networkPromise = fetch(request).then(async (networkResponse) => {
-    if (networkResponse.ok) {
-      const responseClone = networkResponse.clone();
-      await cache.put(request, responseClone);
-      await cleanupCache(cache, strategy.maxEntries);
-    }
-    return networkResponse;
-  }).catch((error) => {
-    SWLogger.debug('Background fetch failed:', error.message);
-  });
-  
+  const networkPromise = fetch(request)
+    .then(async (networkResponse) => {
+      if (networkResponse.ok) {
+        const responseClone = networkResponse.clone();
+        await cache.put(request, responseClone);
+        await cleanupCache(cache, strategy.maxEntries);
+      }
+      return networkResponse;
+    })
+    .catch((error) => {
+      SWLogger.debug('Background fetch failed:', error.message);
+    });
+
   // Return cached response immediately if available
   if (cachedResponse && !isExpired(cachedResponse, strategy.maxAge)) {
     // Don't await the network promise - let it update cache in background
     networkPromise;
     return cachedResponse;
   }
-  
+
   // Wait for network if no cache or cache is expired
   try {
     return await networkPromise;
@@ -341,14 +362,14 @@ async function staleWhileRevalidate(request, strategy) {
 // Check if cached response is expired
 function isExpired(response, maxAge) {
   if (!maxAge) return false;
-  
+
   const dateHeader = response.headers.get('date');
   if (!dateHeader) return false;
-  
+
   const responseTime = new Date(dateHeader).getTime();
   const now = Date.now();
-  
-  return (now - responseTime) > maxAge;
+
+  return now - responseTime > maxAge;
 }
 
 // Video cache first strategy with range request support
@@ -405,7 +426,11 @@ async function handleRangeRequest(request, cache, strategy) {
   if (cachedResponse && !isExpired(cachedResponse, strategy.maxAge)) {
     // Extract range from cached response
     const responseBuffer = await cachedResponse.arrayBuffer();
-    return createRangeResponse(responseBuffer, rangeHeader, cachedResponse.headers);
+    return createRangeResponse(
+      responseBuffer,
+      rangeHeader,
+      cachedResponse.headers
+    );
   }
 
   // Fetch from network with range request
@@ -423,16 +448,21 @@ async function handleRangeRequest(request, cache, strategy) {
         fullRequest.headers.delete('range');
 
         // Fetch full resource in background for caching
-        fetch(fullRequest).then(async (fullResponse) => {
-          if (fullResponse.ok && fullResponse.status === 200) {
-            const responseClone = fullResponse.clone();
-            await cache.put(fullRequest, responseClone);
-            await cleanupCache(cache, strategy.maxEntries);
-            SWLogger.debug('Full video cached for future range requests:', url.pathname);
-          }
-        }).catch(() => {
-          // Silent fail for background caching
-        });
+        fetch(fullRequest)
+          .then(async (fullResponse) => {
+            if (fullResponse.ok && fullResponse.status === 200) {
+              const responseClone = fullResponse.clone();
+              await cache.put(fullRequest, responseClone);
+              await cleanupCache(cache, strategy.maxEntries);
+              SWLogger.debug(
+                'Full video cached for future range requests:',
+                url.pathname
+              );
+            }
+          })
+          .catch(() => {
+            // Silent fail for background caching
+          });
       }
     }
 
@@ -441,7 +471,11 @@ async function handleRangeRequest(request, cache, strategy) {
     // Fallback to cached response if available
     if (cachedResponse) {
       const responseBuffer = await cachedResponse.arrayBuffer();
-      return createRangeResponse(responseBuffer, rangeHeader, cachedResponse.headers);
+      return createRangeResponse(
+        responseBuffer,
+        rangeHeader,
+        cachedResponse.headers
+      );
     }
     throw error;
   }
@@ -480,9 +514,7 @@ async function cleanupCache(cache, maxEntries) {
     // Remove oldest entries (simple FIFO)
     const entriesToDelete = keys.slice(0, keys.length - maxEntries);
 
-    await Promise.all(
-      entriesToDelete.map(key => cache.delete(key))
-    );
+    await Promise.all(entriesToDelete.map((key) => cache.delete(key)));
 
     SWLogger.debug(`Cleaned up ${entriesToDelete.length} cache entries`);
   }
@@ -491,19 +523,20 @@ async function cleanupCache(cache, maxEntries) {
 // Handle offline fallbacks
 async function handleOfflineFallback(request) {
   const url = new URL(request.url);
-  
+
   // For navigation requests, serve offline page
   if (request.mode === 'navigate') {
     const offlinePage = OFFLINE_PAGES[url.pathname] || OFFLINE_PAGES['/'];
     const cache = await caches.open(DYNAMIC_CACHE);
     const offlineResponse = await cache.match(offlinePage);
-    
+
     if (offlineResponse) {
       return offlineResponse;
     }
-    
+
     // Fallback offline HTML
-    return new Response(`
+    return new Response(
+      `
       <!DOCTYPE html>
       <html>
         <head>
@@ -528,11 +561,13 @@ async function handleOfflineFallback(request) {
           <button class="retry-btn" onclick="location.reload()">Thử lại</button>
         </body>
       </html>
-    `, {
-      headers: { 'Content-Type': 'text/html' }
-    });
+    `,
+      {
+        headers: { 'Content-Type': 'text/html' }
+      }
+    );
   }
-  
+
   // For other requests, return network error
   return new Response('Network error', {
     status: 408,
@@ -664,10 +699,144 @@ self.addEventListener('notificationclick', (event) => {
 
   if (event.action === 'explore') {
     // Open app to explore new movies
-    event.waitUntil(
-      clients.openWindow('/#/phim-moi')
-    );
+    event.waitUntil(clients.openWindow('/#/phim-moi'));
   }
 });
 
-SWLogger.info('XemPhim Service Worker loaded successfully');
+// Hard Refresh Message Handling
+self.addEventListener('message', (event) => {
+  SWLogger.debug('Service Worker received message:', event.data);
+
+  if (event.data && event.data.type === 'HARD_REFRESH_REQUEST') {
+    event.waitUntil(handleHardRefreshRequest(event));
+  }
+});
+
+// Handle hard refresh request từ main thread
+async function handleHardRefreshRequest(event) {
+  const startTime = Date.now();
+
+  try {
+    SWLogger.info('🔄 Processing hard refresh request...');
+
+    // Clear tất cả cache stores
+    const cacheNames = await caches.keys();
+    const clearPromises = cacheNames.map(async (cacheName) => {
+      try {
+        const deleted = await caches.delete(cacheName);
+        if (deleted) {
+          SWLogger.debug(`✅ Cleared cache: ${cacheName}`);
+        } else {
+          SWLogger.warn(`⚠️ Failed to clear cache: ${cacheName}`);
+        }
+        return deleted;
+      } catch (error) {
+        SWLogger.error(`❌ Error clearing cache ${cacheName}:`, error);
+        return false;
+      }
+    });
+
+    const results = await Promise.all(clearPromises);
+    const successCount = results.filter(Boolean).length;
+    const totalCount = cacheNames.length;
+
+    const duration = Date.now() - startTime;
+
+    // Send response back to main thread
+    const response = {
+      type: 'HARD_REFRESH_RESPONSE',
+      success: true,
+      clearedCaches: successCount,
+      totalCaches: totalCount,
+      duration: duration,
+      timestamp: Date.now()
+    };
+
+    // Send to all clients
+    const clients = await self.clients.matchAll();
+    clients.forEach(client => {
+      client.postMessage(response);
+    });
+
+    SWLogger.info(`✅ Hard refresh completed: ${successCount}/${totalCount} caches cleared in ${duration}ms`);
+
+  } catch (error) {
+    SWLogger.error('❌ Hard refresh failed:', error);
+
+    // Send error response
+    const errorResponse = {
+      type: 'HARD_REFRESH_RESPONSE',
+      success: false,
+      error: error.message,
+      timestamp: Date.now()
+    };
+
+    // Send to all clients
+    const clients = await self.clients.matchAll();
+    clients.forEach(client => {
+      client.postMessage(errorResponse);
+    });
+  }
+}
+
+// Enhanced cache clearing function cho hard refresh
+async function clearAllCachesForHardRefresh() {
+  try {
+    SWLogger.info('🗑️ Starting comprehensive cache clearing...');
+
+    const cacheNames = await caches.keys();
+    const results = {
+      total: cacheNames.length,
+      cleared: 0,
+      failed: 0,
+      details: []
+    };
+
+    // Clear each cache individually với detailed logging
+    for (const cacheName of cacheNames) {
+      try {
+        const cache = await caches.open(cacheName);
+        const keys = await cache.keys();
+        const keyCount = keys.length;
+
+        const deleted = await caches.delete(cacheName);
+
+        if (deleted) {
+          results.cleared++;
+          results.details.push({
+            name: cacheName,
+            status: 'cleared',
+            entries: keyCount
+          });
+          SWLogger.debug(`✅ Cleared cache "${cacheName}" (${keyCount} entries)`);
+        } else {
+          results.failed++;
+          results.details.push({
+            name: cacheName,
+            status: 'failed',
+            entries: keyCount
+          });
+          SWLogger.warn(`⚠️ Failed to clear cache "${cacheName}"`);
+        }
+
+      } catch (error) {
+        results.failed++;
+        results.details.push({
+          name: cacheName,
+          status: 'error',
+          error: error.message
+        });
+        SWLogger.error(`❌ Error clearing cache "${cacheName}":`, error);
+      }
+    }
+
+    SWLogger.info(`🎯 Cache clearing summary: ${results.cleared}/${results.total} cleared, ${results.failed} failed`);
+    return results;
+
+  } catch (error) {
+    SWLogger.error('❌ Failed to clear caches:', error);
+    throw error;
+  }
+}
+
+SWLogger.info('XemPhim Service Worker loaded successfully (with Hard Refresh support)');

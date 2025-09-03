@@ -12,7 +12,7 @@ class EnhancedUserManager {
       deviceSignature: 'movie_device_sig_v2',
       backup: 'movie_user_backup_v2'
     };
-    
+
     this.initialized = false;
     this.recoveryAttempted = false;
   }
@@ -25,29 +25,29 @@ class EnhancedUserManager {
         navigator.hardwareConcurrency || 'unknown',
         navigator.maxTouchPoints || 0,
         navigator.deviceMemory || 'unknown',
-        
+
         // Screen info (stable)
         screen.width,
         screen.height,
         screen.colorDepth,
         screen.pixelDepth,
-        
+
         // Platform info (stable)
         navigator.platform,
         navigator.cookieEnabled,
         navigator.doNotTrack || 'unknown',
-        
+
         // Timezone (relatively stable)
         new Date().getTimezoneOffset(),
         Intl.DateTimeFormat().resolvedOptions().timeZone,
-        
+
         // Language (stable)
         navigator.language,
         navigator.languages?.join(',') || '',
-        
+
         // WebGL fingerprint (more stable than canvas)
         this._getWebGLFingerprint(),
-        
+
         // Audio context fingerprint
         this._getAudioFingerprint()
       ].join('|');
@@ -62,14 +62,19 @@ class EnhancedUserManager {
   _getWebGLFingerprint() {
     try {
       const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-      
+      const gl =
+        canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
       if (!gl) return 'no-webgl';
-      
+
       const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-      const vendor = gl.getParameter(debugInfo?.UNMASKED_VENDOR_WEBGL || gl.VENDOR);
-      const renderer = gl.getParameter(debugInfo?.UNMASKED_RENDERER_WEBGL || gl.RENDERER);
-      
+      const vendor = gl.getParameter(
+        debugInfo?.UNMASKED_VENDOR_WEBGL || gl.VENDOR
+      );
+      const renderer = gl.getParameter(
+        debugInfo?.UNMASKED_RENDERER_WEBGL || gl.RENDERER
+      );
+
       return `${vendor}|${renderer}`;
     } catch (error) {
       return 'webgl-error';
@@ -78,22 +83,23 @@ class EnhancedUserManager {
 
   _getAudioFingerprint() {
     try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const audioContext = new (window.AudioContext ||
+        window.webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const analyser = audioContext.createAnalyser();
       const gainNode = audioContext.createGain();
-      
+
       oscillator.connect(analyser);
       analyser.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
+
       const fingerprint = [
         audioContext.sampleRate,
         audioContext.baseLatency || 'unknown',
         analyser.fftSize,
         analyser.frequencyBinCount
       ].join('|');
-      
+
       audioContext.close();
       return fingerprint;
     } catch (error) {
@@ -115,7 +121,7 @@ class EnhancedUserManager {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(36);
@@ -125,10 +131,10 @@ class EnhancedUserManager {
   _generateDeterministicUserId() {
     const fingerprint = this._getEnhancedFingerprint();
     const deviceSignature = this._getDeviceSignature();
-    
+
     // Create deterministic ID based on stable device characteristics
     const deterministicPart = this._hashString(fingerprint + deviceSignature);
-    
+
     return `user_det_${deterministicPart}`;
   }
 
@@ -141,7 +147,7 @@ class EnhancedUserManager {
         navigator.maxTouchPoints || 0,
         navigator.deviceMemory || 'unknown'
       ].join('|');
-      
+
       return this._hashString(signature);
     } catch (error) {
       return 'unknown-device';
@@ -151,29 +157,30 @@ class EnhancedUserManager {
   // 💾 Multiple Storage Strategy
   async _saveUserIdToAllStorage(userId) {
     const promises = [];
-    
+
     try {
       // 1. localStorage (primary)
       localStorage.setItem(this.storageKeys.userId, userId);
-      
+
       // 2. sessionStorage (backup)
       sessionStorage.setItem(this.storageKeys.userId, userId);
-      
+
       // 3. IndexedDB (persistent across clear)
       promises.push(this._saveToIndexedDB(this.storageKeys.userId, userId));
-      
+
       // 4. Service Worker cache (if available)
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        promises.push(this._saveToServiceWorker(this.storageKeys.userId, userId));
+        promises.push(
+          this._saveToServiceWorker(this.storageKeys.userId, userId)
+        );
       }
-      
+
       // 5. Cookie with long expiry (1 year)
       const expiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
       document.cookie = `${this.storageKeys.userId}=${userId}; expires=${expiry.toUTCString()}; path=/; SameSite=Lax`;
-      
+
       await Promise.allSettled(promises);
       console.log('✅ User ID saved to all storage methods');
-      
     } catch (error) {
       console.warn('⚠️ Some storage methods failed:', error);
     }
@@ -219,24 +226,24 @@ class EnhancedUserManager {
   async _saveToIndexedDB(key, value) {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open('MovieAppStorage', 2);
-      
+
       request.onupgradeneeded = (e) => {
         const db = e.target.result;
         if (!db.objectStoreNames.contains('userSettings')) {
           db.createObjectStore('userSettings');
         }
       };
-      
+
       request.onsuccess = (e) => {
         const db = e.target.result;
         const transaction = db.transaction(['userSettings'], 'readwrite');
         const store = transaction.objectStore('userSettings');
-        
+
         const putRequest = store.put(value, key);
         putRequest.onsuccess = () => resolve(value);
         putRequest.onerror = () => reject(putRequest.error);
       };
-      
+
       request.onerror = () => reject(request.error);
     });
   }
@@ -244,23 +251,23 @@ class EnhancedUserManager {
   async _getFromIndexedDB(key) {
     return new Promise((resolve) => {
       const request = indexedDB.open('MovieAppStorage', 2);
-      
+
       request.onsuccess = (e) => {
         const db = e.target.result;
-        
+
         if (!db.objectStoreNames.contains('userSettings')) {
           resolve(null);
           return;
         }
-        
+
         const transaction = db.transaction(['userSettings'], 'readonly');
         const store = transaction.objectStore('userSettings');
         const getRequest = store.get(key);
-        
+
         getRequest.onsuccess = () => resolve(getRequest.result || null);
         getRequest.onerror = () => resolve(null);
       };
-      
+
       request.onerror = () => resolve(null);
     });
   }
@@ -268,7 +275,7 @@ class EnhancedUserManager {
   // 🔧 Service Worker Operations
   async _saveToServiceWorker(key, value) {
     if (!navigator.serviceWorker.controller) return;
-    
+
     navigator.serviceWorker.controller.postMessage({
       type: 'SAVE_USER_DATA',
       key,
@@ -278,19 +285,22 @@ class EnhancedUserManager {
 
   async _getFromServiceWorker(key) {
     if (!navigator.serviceWorker.controller) return null;
-    
+
     return new Promise((resolve) => {
       const channel = new MessageChannel();
-      
+
       channel.port1.onmessage = (event) => {
         resolve(event.data.value || null);
       };
-      
-      navigator.serviceWorker.controller.postMessage({
-        type: 'GET_USER_DATA',
-        key
-      }, [channel.port2]);
-      
+
+      navigator.serviceWorker.controller.postMessage(
+        {
+          type: 'GET_USER_DATA',
+          key
+        },
+        [channel.port2]
+      );
+
       // Timeout after 2 seconds
       setTimeout(() => resolve(null), 2000);
     });
@@ -300,44 +310,43 @@ class EnhancedUserManager {
   async attemptAutoRecovery() {
     if (this.recoveryAttempted) return null;
     this.recoveryAttempted = true;
-    
+
     console.log('🔄 Attempting auto-recovery...');
-    
+
     try {
       // 1. Try to get user ID from any storage
       let userId = await this._tryGetUserIdFromAllStorage();
-      
+
       if (userId) {
         console.log('✅ User ID recovered from storage:', userId);
         return userId;
       }
-      
+
       // 2. Try deterministic generation
       userId = this._generateDeterministicUserId();
-      
+
       // 3. Check if this deterministic ID has data in Firebase
       if (window.movieComments?.initialized) {
         const hasData = await this._checkUserHasData(userId);
-        
+
         if (hasData) {
           console.log('✅ Auto-recovery successful with deterministic ID');
           await this._saveUserIdToAllStorage(userId);
           return userId;
         }
       }
-      
+
       // 4. Try device signature matching
       const matchedUserId = await this._findUserByDeviceSignature();
-      
+
       if (matchedUserId) {
         console.log('✅ Auto-recovery successful with device matching');
         await this._saveUserIdToAllStorage(matchedUserId);
         return matchedUserId;
       }
-      
+
       console.log('❌ Auto-recovery failed, will need manual intervention');
       return null;
-      
     } catch (error) {
       console.error('❌ Auto-recovery error:', error);
       return null;
@@ -347,13 +356,13 @@ class EnhancedUserManager {
   async _checkUserHasData(userId) {
     try {
       if (!window.movieComments?.db) return false;
-      
+
       const snapshot = await window.movieComments.db
         .collection('savedMovies')
         .where('userId', '==', userId)
         .limit(1)
         .get();
-      
+
       return !snapshot.empty;
     } catch (error) {
       console.warn('Check user data failed:', error);
@@ -364,13 +373,12 @@ class EnhancedUserManager {
   async _findUserByDeviceSignature() {
     try {
       if (!window.movieComments?.db) return null;
-      
+
       const deviceSignature = this._getDeviceSignature();
-      
+
       // This would require adding deviceSignature to user documents
       // For now, return null as this needs Firebase schema update
       return null;
-      
     } catch (error) {
       console.warn('Device signature matching failed:', error);
       return null;
@@ -382,22 +390,22 @@ class EnhancedUserManager {
     if (!this.initialized) {
       await this.init();
     }
-    
+
     // Try to get existing user ID
     let userId = await this._tryGetUserIdFromAllStorage();
-    
+
     if (!userId) {
       // Attempt auto-recovery
       userId = await this.attemptAutoRecovery();
     }
-    
+
     if (!userId) {
       // Generate new deterministic ID
       userId = this._generateDeterministicUserId();
       await this._saveUserIdToAllStorage(userId);
       console.log('🆔 Generated new deterministic User ID:', userId);
     }
-    
+
     return userId;
   }
 
@@ -412,8 +420,10 @@ window.enhancedUserManager = new EnhancedUserManager();
 
 // Enhance existing movieComments system
 if (window.movieComments) {
-  const originalGetUserId = window.movieComments.getUserId.bind(window.movieComments);
-  
+  const originalGetUserId = window.movieComments.getUserId.bind(
+    window.movieComments
+  );
+
   window.movieComments.getUserId = async function() {
     try {
       return await window.enhancedUserManager.getEnhancedUserId();
@@ -422,7 +432,7 @@ if (window.movieComments) {
       return originalGetUserId();
     }
   };
-  
+
   console.log('✅ Enhanced User ID system activated');
 }
 

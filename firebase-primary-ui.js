@@ -14,17 +14,21 @@ class FirebasePrimaryUI {
 
     while (Date.now() - startTime < maxWaitTime) {
       // Check if Firebase Primary Storage is ready
-      if (window.FirebasePrimaryStorage?.initialized &&
-          window.Storage?.getSavedMovies) {
+      if (
+        window.FirebasePrimaryStorage?.initialized &&
+        window.Storage?.getSavedMovies
+      ) {
         console.log('🔥 Firebase Primary Storage is ready for UI');
         return true;
       }
 
       // Wait 100ms before checking again
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    console.warn(`⚠️ Firebase Primary Storage not ready after ${maxWaitTime}ms, proceeding anyway`);
+    console.warn(
+      `⚠️ Firebase Primary Storage not ready after ${maxWaitTime}ms, proceeding anyway`
+    );
     return false;
   }
 
@@ -55,12 +59,11 @@ class FirebasePrimaryUI {
 
       // Render movies
       container.innerHTML = this.generateMoviesHTML(movies);
-      
+
       // Bind event listeners
       this.bindMovieEvents(container);
 
       console.log(`✅ Rendered ${movies.length} movies from Firebase`);
-
     } catch (error) {
       console.error('❌ Failed to render saved movies:', error);
       this.showErrorState(container, error.message);
@@ -71,7 +74,9 @@ class FirebasePrimaryUI {
 
   // 🔄 Generate movies HTML
   generateMoviesHTML(movies) {
-    const moviesHTML = movies.map(movie => `
+    const moviesHTML = movies
+      .map(
+        (movie) => `
       <div class="movie-item" data-slug="${movie.slug}">
         <div class="movie-poster">
           <img src="${movie.poster_url || '/assets/images/no-poster.svg'}"
@@ -102,7 +107,9 @@ class FirebasePrimaryUI {
           </div>
         </div>
       </div>
-    `).join('');
+    `
+      )
+      .join('');
 
     return `
       <div class="saved-movies-header">
@@ -129,7 +136,7 @@ class FirebasePrimaryUI {
   // 🔗 Bind event listeners
   bindMovieEvents(container) {
     // Remove movie buttons
-    container.querySelectorAll('.btn-remove-movie').forEach(btn => {
+    container.querySelectorAll('.btn-remove-movie').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const movieSlug = btn.dataset.slug;
@@ -138,7 +145,7 @@ class FirebasePrimaryUI {
     });
 
     // Watch movie buttons
-    container.querySelectorAll('.btn-watch-movie').forEach(btn => {
+    container.querySelectorAll('.btn-watch-movie').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const movieSlug = btn.dataset.slug;
@@ -147,7 +154,7 @@ class FirebasePrimaryUI {
     });
 
     // Movie item click
-    container.querySelectorAll('.movie-item').forEach(item => {
+    container.querySelectorAll('.movie-item').forEach((item) => {
       item.addEventListener('click', () => {
         const movieSlug = item.dataset.slug;
         this.watchMovie(movieSlug);
@@ -158,7 +165,7 @@ class FirebasePrimaryUI {
   // 🗑️ Remove movie
   async removeMovie(movieSlug) {
     try {
-      const movie = this.currentMovies.find(m => m.slug === movieSlug);
+      const movie = this.currentMovies.find((m) => m.slug === movieSlug);
       const movieName = movie ? movie.name : movieSlug;
 
       if (!confirm(`Bạn có chắc muốn xóa "${movieName}" khỏi danh sách?`)) {
@@ -172,16 +179,20 @@ class FirebasePrimaryUI {
 
       if (success) {
         // Remove from current list
-        this.currentMovies = this.currentMovies.filter(m => m.slug !== movieSlug);
-        
+        this.currentMovies = this.currentMovies.filter(
+          (m) => m.slug !== movieSlug
+        );
+
         // Re-render list
         await this.renderSavedMoviesList();
-        
-        this.showNotification(`Đã xóa "${movieName}" khỏi danh sách`, 'success');
+
+        this.showNotification(
+          `Đã xóa "${movieName}" khỏi danh sách`,
+          'success'
+        );
       } else {
         throw new Error('Failed to remove movie');
       }
-
     } catch (error) {
       console.error('❌ Remove movie failed:', error);
       this.showNotification(`Lỗi xóa phim: ${error.message}`, 'error');
@@ -210,15 +221,14 @@ class FirebasePrimaryUI {
   async refreshMoviesList() {
     try {
       console.log('🔄 Refreshing movies list from Firebase...');
-      
+
       // Force refresh from Firebase
       await window.Storage.forceRefresh();
-      
+
       // Re-render
       await this.renderSavedMoviesList();
-      
+
       this.showNotification('Đã làm mới danh sách phim', 'success');
-      
     } catch (error) {
       console.error('❌ Refresh failed:', error);
       this.showNotification(`Lỗi làm mới: ${error.message}`, 'error');
@@ -273,23 +283,25 @@ class FirebasePrimaryUI {
       document.body.removeChild(modal);
     });
 
-    modal.querySelector('.sync-modal-backdrop').addEventListener('click', () => {
-      document.body.removeChild(modal);
-    });
+    modal
+      .querySelector('.sync-modal-backdrop')
+      .addEventListener('click', () => {
+        document.body.removeChild(modal);
+      });
   }
 
   // 📱 Generate sync code
   async generateSyncCode() {
     try {
       const syncCode = await window.movieComments.generateSyncCode();
-      
+
       if (syncCode) {
         const codeDisplay = document.getElementById('generated-sync-code');
         const codeSpan = codeDisplay.querySelector('.sync-code');
-        
+
         codeSpan.textContent = syncCode;
         codeDisplay.style.display = 'block';
-        
+
         this.showNotification(`Mã sync đã tạo: ${syncCode}`, 'success');
       }
     } catch (error) {
@@ -308,24 +320,27 @@ class FirebasePrimaryUI {
   // 🔄 Use sync code
   async useSyncCode() {
     try {
-      const syncCode = document.getElementById('sync-code-input').value.trim().toUpperCase();
-      
+      const syncCode = document
+        .getElementById('sync-code-input')
+        .value.trim()
+        .toUpperCase();
+
       if (!syncCode || syncCode.length !== 6) {
         this.showNotification('Vui lòng nhập mã sync 6 ký tự', 'error');
         return;
       }
 
       const result = await window.movieComments.useSyncCode(syncCode);
-      
+
       if (result.success) {
         this.showNotification('Đồng bộ thành công!', 'success');
-        
+
         // Close modal
         const modal = document.querySelector('.sync-modal');
         if (modal) {
           document.body.removeChild(modal);
         }
-        
+
         // Refresh page after sync
         setTimeout(() => {
           window.location.reload();
@@ -337,7 +352,7 @@ class FirebasePrimaryUI {
   }
 
   // 🎨 UI State Methods
-  
+
   showLoadingState(container) {
     container.innerHTML = `
       <div class="loading-state">
@@ -398,12 +413,13 @@ class FirebasePrimaryUI {
       }, 5000);
 
       // Close button
-      notification.querySelector('.notification-close').addEventListener('click', () => {
-        if (notification.parentNode) {
-          notification.parentNode.removeChild(notification);
-        }
-      });
-
+      notification
+        .querySelector('.notification-close')
+        .addEventListener('click', () => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        });
     } catch (error) {
       console.log(`[${type.toUpperCase()}] ${message}`);
     }
@@ -412,7 +428,7 @@ class FirebasePrimaryUI {
   // 🕒 Format date
   formatDate(date) {
     if (!date) return 'N/A';
-    
+
     try {
       const d = new Date(date);
       return d.toLocaleDateString('vi-VN', {

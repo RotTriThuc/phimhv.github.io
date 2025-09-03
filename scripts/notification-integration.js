@@ -11,8 +11,14 @@ const fs = require('fs').promises;
 class NotificationIntegration {
   constructor() {
     this.DATA_DIR = path.join(__dirname, '..', 'data');
-    this.NOTIFICATION_FILE = path.join(this.DATA_DIR, 'latest-notification.json');
-    this.FIREBASE_TRIGGER_FILE = path.join(this.DATA_DIR, 'firebase-notification-trigger.json');
+    this.NOTIFICATION_FILE = path.join(
+      this.DATA_DIR,
+      'latest-notification.json'
+    );
+    this.FIREBASE_TRIGGER_FILE = path.join(
+      this.DATA_DIR,
+      'firebase-notification-trigger.json'
+    );
   }
 
   /**
@@ -22,33 +28,38 @@ class NotificationIntegration {
   async createMovieNotifications(changes, totalMovies) {
     try {
       console.log('🔔 Creating notifications for movie updates...');
-      
+
       const notifications = [];
-      
+
       // Notification cho phim mới
       if (changes.newMovies && changes.newMovies.length > 0) {
-        const newMovieNotification = await this.createNewMovieNotification(changes.newMovies);
+        const newMovieNotification = await this.createNewMovieNotification(
+          changes.newMovies
+        );
         notifications.push(newMovieNotification);
       }
-      
+
       // Notification cho tập mới
       if (changes.newEpisodes && changes.newEpisodes.length > 0) {
-        const newEpisodeNotification = await this.createNewEpisodeNotification(changes.newEpisodes);
+        const newEpisodeNotification = await this.createNewEpisodeNotification(
+          changes.newEpisodes
+        );
         notifications.push(newEpisodeNotification);
       }
-      
+
       // Notification cho phim cập nhật
       if (changes.updatedMovies && changes.updatedMovies.length > 0) {
-        const updatedMovieNotification = await this.createUpdatedMovieNotification(changes.updatedMovies);
+        const updatedMovieNotification =
+          await this.createUpdatedMovieNotification(changes.updatedMovies);
         notifications.push(updatedMovieNotification);
       }
-      
+
       // Lưu notifications để frontend có thể đọc
       await this.saveNotificationsForFrontend(notifications);
-      
+
       // Tạo trigger file cho Firebase integration
       await this.createFirebaseTrigger(notifications);
-      
+
       console.log(`✅ Created ${notifications.length} notifications`);
       return notifications;
     } catch (error) {
@@ -63,9 +74,9 @@ class NotificationIntegration {
   async createNewMovieNotification(newMovies) {
     const movieCount = newMovies.length;
     const firstMovie = newMovies[0];
-    
+
     let title, content;
-    
+
     if (movieCount === 1) {
       title = `🎬 Phim mới: ${firstMovie.name}`;
       content = `Phim "${firstMovie.name}" (${firstMovie.year || 'N/A'}) vừa được thêm vào hệ thống. Xem ngay!`;
@@ -73,7 +84,7 @@ class NotificationIntegration {
       title = `🎬 ${movieCount} phim mới được cập nhật`;
       content = `${movieCount} phim mới vừa được thêm vào hệ thống. Khám phá ngay những bộ phim hot nhất!`;
     }
-    
+
     return {
       id: `new_movies_${Date.now()}`,
       title,
@@ -83,7 +94,7 @@ class NotificationIntegration {
       createdAt: new Date().toISOString(),
       metadata: {
         movieCount,
-        movies: newMovies.slice(0, 5).map(movie => ({
+        movies: newMovies.slice(0, 5).map((movie) => ({
           slug: movie.slug,
           name: movie.name,
           year: movie.year,
@@ -104,9 +115,9 @@ class NotificationIntegration {
   async createNewEpisodeNotification(newEpisodes) {
     const episodeCount = newEpisodes.length;
     const firstEpisode = newEpisodes[0];
-    
+
     let title, content;
-    
+
     if (episodeCount === 1) {
       title = `📺 Tập mới: ${firstEpisode.name}`;
       content = `Tập ${firstEpisode.newEpisode} của "${firstEpisode.name}" đã được cập nhật. Xem ngay!`;
@@ -114,17 +125,17 @@ class NotificationIntegration {
       title = `📺 ${episodeCount} tập mới được cập nhật`;
       content = `${episodeCount} tập mới của các bộ phim đã được cập nhật. Theo dõi ngay!`;
     }
-    
+
     return {
       id: `new_episodes_${Date.now()}`,
       title,
       content,
-      type: 'new_episode', // Sửa type cho đúng
+      type: 'new_movie', // Sử dụng chung type với phim mới
       status: 'active',
       createdAt: new Date().toISOString(),
       metadata: {
         episodeCount,
-        episodes: newEpisodes.slice(0, 5).map(ep => ({
+        episodes: newEpisodes.slice(0, 5).map((ep) => ({
           slug: ep.slug,
           name: ep.name,
           episode: ep.newEpisode,
@@ -144,10 +155,10 @@ class NotificationIntegration {
    */
   async createUpdatedMovieNotification(updatedMovies) {
     const updateCount = updatedMovies.length;
-    
+
     const title = `🔄 ${updateCount} phim được cập nhật`;
     const content = `${updateCount} bộ phim đã được cập nhật thông tin mới. Kiểm tra ngay!`;
-    
+
     return {
       id: `updated_movies_${Date.now()}`,
       title,
@@ -157,7 +168,7 @@ class NotificationIntegration {
       createdAt: new Date().toISOString(),
       metadata: {
         updateCount,
-        movies: updatedMovies.slice(0, 5).map(movie => ({
+        movies: updatedMovies.slice(0, 5).map((movie) => ({
           slug: movie.slug,
           name: movie.name,
           changes: movie.changes || []
@@ -181,13 +192,15 @@ class NotificationIntegration {
         notifications: notifications,
         summary: this.createNotificationSummary(notifications)
       };
-      
+
       await fs.writeFile(
-        this.NOTIFICATION_FILE, 
+        this.NOTIFICATION_FILE,
         JSON.stringify(notificationData, null, 2)
       );
-      
-      console.log(`💾 Saved ${notifications.length} notifications to ${this.NOTIFICATION_FILE}`);
+
+      console.log(
+        `💾 Saved ${notifications.length} notifications to ${this.NOTIFICATION_FILE}`
+      );
     } catch (error) {
       console.error('❌ Save notifications failed:', error);
     }
@@ -206,13 +219,15 @@ class NotificationIntegration {
         processed: false, // Frontend sẽ set thành true sau khi xử lý
         source: 'auto-update-system'
       };
-      
+
       await fs.writeFile(
         this.FIREBASE_TRIGGER_FILE,
         JSON.stringify(triggerData, null, 2)
       );
-      
-      console.log(`🔥 Created Firebase trigger file: ${this.FIREBASE_TRIGGER_FILE}`);
+
+      console.log(
+        `🔥 Created Firebase trigger file: ${this.FIREBASE_TRIGGER_FILE}`
+      );
     } catch (error) {
       console.error('❌ Create Firebase trigger failed:', error);
     }
@@ -230,15 +245,16 @@ class NotificationIntegration {
       totalEpisodes: 0,
       totalUpdates: 0
     };
-    
-    notifications.forEach(notification => {
+
+    notifications.forEach((notification) => {
       // Count by type
-      summary.byType[notification.type] = (summary.byType[notification.type] || 0) + 1;
-      
+      summary.byType[notification.type] =
+        (summary.byType[notification.type] || 0) + 1;
+
       // Count by priority
       const priority = notification.metadata?.priority || 'normal';
       summary.byPriority[priority] = (summary.byPriority[priority] || 0) + 1;
-      
+
       // Count totals
       if (notification.metadata?.movieCount) {
         summary.totalMovies += notification.metadata.movieCount;
@@ -250,7 +266,7 @@ class NotificationIntegration {
         summary.totalUpdates += notification.metadata.updateCount;
       }
     });
-    
+
     return summary;
   }
 
@@ -289,12 +305,12 @@ class NotificationIntegration {
       const trigger = JSON.parse(data);
       trigger.processed = true;
       trigger.processedAt = new Date().toISOString();
-      
+
       await fs.writeFile(
         this.FIREBASE_TRIGGER_FILE,
         JSON.stringify(trigger, null, 2)
       );
-      
+
       console.log('✅ Marked Firebase trigger as processed');
     } catch (error) {
       console.error('❌ Mark Firebase trigger processed failed:', error);
@@ -306,19 +322,19 @@ class NotificationIntegration {
    */
   createUpdateSummary(changes) {
     const parts = [];
-    
+
     if (changes.newMovies && changes.newMovies.length > 0) {
       parts.push(`🎬 ${changes.newMovies.length} phim mới`);
     }
-    
+
     if (changes.newEpisodes && changes.newEpisodes.length > 0) {
       parts.push(`📺 ${changes.newEpisodes.length} tập mới`);
     }
-    
+
     if (changes.updatedMovies && changes.updatedMovies.length > 0) {
       parts.push(`🔄 ${changes.updatedMovies.length} phim cập nhật`);
     }
-    
+
     return parts.join(' • ') || '🔄 Cập nhật dữ liệu';
   }
 }

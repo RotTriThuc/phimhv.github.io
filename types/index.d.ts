@@ -131,7 +131,7 @@ export interface WatchProgress {
 // UI Component Types
 export interface NotificationOptions {
   message: string;
-  type?: 'info' | 'success' | 'warning' | 'error';
+  type?: "info" | "success" | "warning" | "error";
   duration?: number;
   timestamp?: string;
 }
@@ -183,7 +183,7 @@ export interface ApiCallEntry {
   url: string;
   duration: number;
   size?: number;
-  type: 'javascript' | 'stylesheet' | 'api' | 'other';
+  type: "javascript" | "stylesheet" | "api" | "other";
   timestamp: number;
 }
 
@@ -202,7 +202,7 @@ export interface MemoryEntry {
 }
 
 export interface UserInteractionEntry {
-  type: 'click' | 'scroll' | 'keypress';
+  type: "click" | "scroll" | "keypress";
   target?: string;
   className?: string;
   scrollY?: number;
@@ -296,7 +296,7 @@ export interface PageRenderers {
 }
 
 // Logger Types
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'critical';
+export type LogLevel = "debug" | "info" | "warn" | "error" | "critical";
 
 export interface LoggerInterface {
   debug: (...args: any[]) => void;
@@ -312,7 +312,7 @@ export interface LoggerInterface {
 export interface AppState {
   initialized: boolean;
   currentUser: string | null;
-  theme: 'light' | 'dark';
+  theme: "light" | "dark";
   notifications: NotificationOptions[];
   cache: Map<string, any>;
 }
@@ -351,7 +351,7 @@ export interface ServiceWorkerConfig {
 export interface CacheStrategy {
   name: string;
   pattern: RegExp;
-  strategy: 'cache-first' | 'network-first' | 'stale-while-revalidate';
+  strategy: "cache-first" | "network-first" | "stale-while-revalidate";
   maxAge?: number;
   maxEntries?: number;
 }
@@ -387,7 +387,7 @@ export interface MovieCardProps extends ComponentProps {
   movie: Movie;
   showProgress?: boolean;
   showSaveButton?: boolean;
-  size?: 'small' | 'medium' | 'large';
+  size?: "small" | "medium" | "large";
 }
 
 export interface GridProps extends ComponentProps {
@@ -411,13 +411,13 @@ declare global {
     testFramework?: any;
     memoryTest?: any;
     performanceTest?: any;
-    
+
     // App functions
     toggleSaveMovie?: (slug: string) => Promise<void>;
     refreshSavedMoviesAfterSync?: () => Promise<void>;
     immediateRefreshSavedMovies?: () => Promise<void>;
     showNotification?: (options: NotificationOptions) => void;
-    
+
     // Storage system
     Storage?: {
       saveMovie: (movie: Movie) => Promise<boolean>;
@@ -425,21 +425,24 @@ declare global {
       getSavedMovies: () => Promise<SavedMovie[]>;
       isMovieSaved: (slug: string) => Promise<boolean>;
       clearSavedMovies: () => Promise<number>;
-      saveWatchProgress: (slug: string, progress: Partial<WatchProgress>) => Promise<void>;
+      saveWatchProgress: (
+        slug: string,
+        progress: Partial<WatchProgress>,
+      ) => Promise<void>;
       getWatchProgress: (slug: string) => Promise<WatchProgress | null>;
       getAllWatchProgress: () => Promise<Record<string, WatchProgress>>;
       clearWatchProgress: (slug: string) => Promise<void>;
     };
-    
+
     // Firebase integration
     movieComments?: {
       init: () => Promise<void>;
       renderCommentSection: (container: HTMLElement, movieSlug: string) => void;
     };
-    
+
     // Service Worker
     serviceWorker?: ServiceWorker;
-    
+
     // Performance API extensions
     memory?: {
       usedJSHeapSize: number;
@@ -447,7 +450,7 @@ declare global {
       jsHeapSizeLimit: number;
     };
   }
-  
+
   interface Performance {
     memory?: {
       usedJSHeapSize: number;
@@ -455,10 +458,10 @@ declare global {
       jsHeapSizeLimit: number;
     };
   }
-  
+
   interface Navigator {
     connection?: {
-      effectiveType: '2g' | '3g' | '4g' | 'slow-2g';
+      effectiveType: "2g" | "3g" | "4g" | "slow-2g";
       downlink: number;
       rtt: number;
     };

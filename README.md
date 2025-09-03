@@ -11,6 +11,7 @@ Website xem anime/phim trực tuyến được xây dựng với HTML, CSS, Java
 ## ✨ Tính năng chính
 
 ### 🎯 **Core Features**
+
 - 🔍 **Tìm kiếm thông minh** - Search movies by name
 - 🎭 **Lọc theo thể loại** - Filter by genre, country, year
 - 📱 **Responsive design** - Mobile & desktop friendly
@@ -18,6 +19,7 @@ Website xem anime/phim trực tuyến được xây dựng với HTML, CSS, Java
 - 🚀 **Single Page App** - Fast navigation
 
 ### 🎬 **Movie Features**
+
 - 📺 **23,969+ phim** từ Serect
 - 🎪 **Multiple categories** - Phim bộ, phim lẻ, hoạt hình, TV shows
 - 🌍 **Multi-country** - Phim Việt, Hàn, Trung, Âu Mỹ, Nhật...
@@ -25,6 +27,7 @@ Website xem anime/phim trực tuyến được xây dựng với HTML, CSS, Java
 - 🎵 **Multi-language** - Vietsub, Thuyết minh, Lồng tiếng
 
 ### 🤖 **Auto-Update System** (Local only)
+
 - ⏰ **Auto-sync** - Updates every 5 minutes
 - 🔔 **Smart notifications** - New movies & episodes alerts
 - 📊 **Change tracking** - Detect new content automatically
@@ -33,9 +36,11 @@ Website xem anime/phim trực tuyến được xây dựng với HTML, CSS, Java
 ## 🚀 Demo
 
 ### 🌐 **Live Demo**
+
 👉 [**https://rottriThuc.github.io/web-xem-anime/**](https://rottriThuc.github.io/web-xem-anime/)
 
 ### 📸 **Screenshots**
+
 ```
 🏠 Homepage          📱 Mobile View       🔍 Search Results
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
@@ -49,11 +54,13 @@ Website xem anime/phim trực tuyến được xây dựng với HTML, CSS, Java
 ## 🛠️ Cài đặt
 
 ### **📋 Requirements**
+
 - Web browser (Chrome, Firefox, Safari, Edge)
 - Internet connection (for API calls)
 - Node.js (optional, for auto-updater)
 
 ### **🔧 Local Setup**
+
 ```bash
 # 1. Clone repository
 git clone https://github.com/RotTriThuc/web-xem-anime.git
@@ -68,6 +75,7 @@ npx serve .
 ```
 
 ### **🤖 Auto-Updater (Optional)**
+
 ```bash
 # Chạy cập nhật một lần
 scripts\auto-update.bat once
@@ -102,11 +110,13 @@ start-auto-updater.bat
 ## 🌐 Deployment
 
 ### **GitHub Pages (Recommended)**
+
 1. Fork this repository
 2. Enable GitHub Pages in Settings
 3. Access at `https://[username].github.io/web-xem-anime/`
 
 ### **Local Server**
+
 ```bash
 # Python
 python -m http.server 8000
@@ -121,14 +131,18 @@ php -S localhost:8000
 ## 🔧 Configuration
 
 ### **GitHub Pages Mode**
+
 Automatically detected when running on `*.github.io`:
+
 - ✅ API-only mode (no local files)
 - ✅ localStorage caching (30 min)
 - ✅ Progressive loading
 - ❌ No auto-updater
 
 ### **Local Mode**
+
 Full features when running locally:
+
 - ✅ Auto-updater daemon
 - ✅ File-based caching
 - ✅ Real-time notifications
@@ -137,6 +151,7 @@ Full features when running locally:
 ## 📊 API Integration
 
 ### **Serect Endpoints**
+
 ```javascript
 // Latest movies
 https://Serect/danh-sach/phim-moi-cap-nhat-v3
@@ -153,6 +168,7 @@ https://Serect/phim/[slug]
 ```
 
 ### **Data Structure**
+
 ```json
 {
   "items": [
@@ -172,6 +188,7 @@ https://Serect/phim/[slug]
 ## 🎨 Customization
 
 ### **Theme Colors**
+
 ```css
 :root {
   --primary: #6c5ce7;
@@ -183,23 +200,26 @@ https://Serect/phim/[slug]
 ```
 
 ### **API Configuration**
+
 ```javascript
 const CONFIG = {
-  API_BASE: 'https://Serect',
+  API_BASE: "https://Serect",
   CACHE_DURATION: 30 * 60 * 1000,
-  ITEMS_PER_PAGE: 24
+  ITEMS_PER_PAGE: 24,
 };
 ```
 
 ## 📈 Performance
 
 ### **Metrics**
+
 - ⚡ **Load time**: <2s (GitHub Pages)
 - 📱 **Mobile score**: 95+ (Lighthouse)
 - 🔍 **SEO score**: 90+ (Lighthouse)
 - ♿ **Accessibility**: 95+ (Lighthouse)
 
 ### **Optimizations**
+
 - 🖼️ **Lazy loading** images
 - 💾 **Smart caching** (localStorage)
 - 🎯 **Code splitting** by features
@@ -210,21 +230,24 @@ const CONFIG = {
 ### **Common Issues**
 
 **CORS Errors:**
+
 ```javascript
 // Sử dụng proxy nếu cần
-const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+const proxyUrl = "https://cors-anywhere.herokuapp.com/";
 ```
 
 **API Rate Limiting:**
+
 ```javascript
 // Tăng cache duration
-CACHE_DURATION: 60 * 60 * 1000 // 1 hour
+CACHE_DURATION: 60 * 60 * 1000; // 1 hour
 ```
 
 **Images not loading:**
+
 ```javascript
 // Fallback to placeholder
-img.onerror = () => img.src = '/assets/images/no-poster.svg';
+img.onerror = () => (img.src = "/assets/images/no-poster.svg");
 ```
 
 ## 🤝 Contributing
@@ -242,6 +265,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👨‍💻 Author
 
 **NGUYEN HOAI VU** ([@RotTriThuc](https://github.com/RotTriThuc))
+
 - 🌐 Website: [GitHub Profile](https://github.com/RotTriThuc)
 - 📧 Contact: Via GitHub Issues
 
@@ -264,4 +288,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ⭐ **Star this repo if you find it useful!** ⭐
 
-Made with ❤️ by [RotTriThuc](https://github.com/RotTriThuc) 
+Made with ❤️ by [RotTriThuc](https://github.com/RotTriThuc)
