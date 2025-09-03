@@ -1,24 +1,42 @@
 {
-  "lastUpdate": "2025-09-02T02:36:19.310Z",
-  "totalMovies": 225,
+  "lastUpdate": "2025-09-03T07:33:54.245Z",
+  "totalMovies": 72,
   "stats": {
-    "newMovies": 0,
-    "newEpisodes": 2,
+    "newMovies": 72,
+    "newEpisodes": 0,
     "updatedMovies": 0
   },
-  "recentMovies": [],
-  "recentEpisodes": [
+  "recentMovies": [
     {
-      "name": "Lữ Trình Thanh Xuân",
-      "slug": "lu-trinh-thanh-xuan",
-      "episode": "Hoàn Tất (10/10)",
-      "updated": "2025-09-01T22:11:46.000Z"
+      "name": "Xanh Thẳm (Phần 2)",
+      "slug": "xanh-tham-phan-2",
+      "year": 2025,
+      "added": "2025-09-03T07:33:54.227Z"
     },
     {
-      "name": "Mười Hai Con Giáp",
-      "slug": "muoi-hai-con-giap",
-      "episode": "Tập 4",
-      "updated": "2025-09-01T22:11:11.000Z"
+      "name": "Về Đội",
+      "slug": "ve-doi-2025",
+      "year": 2025,
+      "added": "2025-09-03T07:33:54.227Z"
+    },
+    {
+      "name": "Thám Tử Ngày Nay Thật Điên Rồ! (Mattaku Saikin no Tantei to Kitara)",
+      "slug": "tham-tu-ngay-nay-that-dien-ro-mattaku-saikin-no-tantei-to-kitara",
+      "year": 2025,
+      "added": "2025-09-03T07:33:54.227Z"
+    },
+    {
+      "name": "Sinh Vạn Vật",
+      "slug": "sinh-van-vat",
+      "year": 2025,
+      "added": "2025-09-03T07:33:54.227Z"
+    },
+    {
+      "name": "Mối Quan Hệ Bí Mật",
+      "slug": "moi-quan-he-bi-mat-2025",
+      "year": 2025,
+      "added": "2025-09-03T07:33:54.227Z"
     }
-  ]
+  ],
+  "recentEpisodes": []
 }
