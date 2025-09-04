@@ -1,42 +1,73 @@
 {
-  "lastUpdate": "2025-09-03T07:33:54.245Z",
-  "totalMovies": 72,
+  "lastUpdate": "2025-09-04T09:31:40.940Z",
+  "totalMovies": 95,
   "stats": {
-    "newMovies": 72,
-    "newEpisodes": 0,
+    "newMovies": 23,
+    "newEpisodes": 8,
     "updatedMovies": 0
   },
   "recentMovies": [
     {
-      "name": "Xanh Thẳm (Phần 2)",
-      "slug": "xanh-tham-phan-2",
+      "name": "Tân Tiếu Ngạo Giang Hồ: Đông Phương Bất Bại",
+      "slug": "tan-tieu-ngao-giang-ho-dong-phuong-bat-bai",
       "year": 2025,
-      "added": "2025-09-03T07:33:54.227Z"
+      "added": "2025-09-04T09:31:40.927Z"
     },
+    {
+      "name": "Tần Số Lạ: Bệnh Viện Sát Nhân Đài Loan",
+      "slug": "tan-so-la-benh-vien-sat-nhan-dai-loan",
+      "year": 2024,
+      "added": "2025-09-04T09:31:40.927Z"
+    },
+    {
+      "name": "Họng Súng Vô Hình",
+      "slug": "hong-sung-vo-hinh-2025",
+      "year": 2025,
+      "added": "2025-09-04T09:31:40.927Z"
+    },
+    {
+      "name": "Vua Ma Thú, Đứa Trẻ Định Mệnh Và Anh Hùng Bất Tử",
+      "slug": "vua-ma-thu-dua-tre-dinh-menh-va-anh-hung-bat-tu",
+      "year": 2025,
+      "added": "2025-09-04T09:31:40.927Z"
+    },
+    {
+      "name": "Tsuyokute New Saga",
+      "slug": "tsuyokute-new-saga",
+      "year": 2025,
+      "added": "2025-09-04T09:31:40.927Z"
+    }
+  ],
+  "recentEpisodes": [
     {
       "name": "Về Đội",
       "slug": "ve-doi-2025",
-      "year": 2025,
-      "added": "2025-09-03T07:33:54.227Z"
+      "episode": "Tập 21",
+      "updated": "2025-09-04T10:15:42.000Z"
     },
     {
-      "name": "Thám Tử Ngày Nay Thật Điên Rồ! (Mattaku Saikin no Tantei to Kitara)",
-      "slug": "tham-tu-ngay-nay-that-dien-ro-mattaku-saikin-no-tantei-to-kitara",
-      "year": 2025,
-      "added": "2025-09-03T07:33:54.227Z"
+      "name": "Dữ Tấn Trường An",
+      "slug": "du-tan-truong-an",
+      "episode": "Tập 26",
+      "updated": "2025-09-03T17:51:26.000Z"
     },
     {
-      "name": "Sinh Vạn Vật",
-      "slug": "sinh-van-vat",
-      "year": 2025,
-      "added": "2025-09-03T07:33:54.227Z"
+      "name": "Tấn Giai Đích Vương Phi",
+      "slug": "tan-giai-dich-vuong-phi",
+      "episode": "Tập 13",
+      "updated": "2025-09-03T15:50:41.000Z"
     },
     {
-      "name": "Mối Quan Hệ Bí Mật",
-      "slug": "moi-quan-he-bi-mat-2025",
-      "year": 2025,
-      "added": "2025-09-03T07:33:54.227Z"
+      "name": "Sống Trong Một Ngày Suốt Trăm Nghìn Năm",
+      "slug": "song-trong-mot-ngay-suot-tram-nghin-nam",
+      "episode": "Tập 16",
+      "updated": "2025-09-03T15:49:57.000Z"
+    },
+    {
+      "name": "Hải Hôn Hành",
+      "slug": "hai-hon-hanh",
+      "episode": "Tập 14",
+      "updated": "2025-09-03T15:48:59.000Z"
     }
-  ],
-  "recentEpisodes": []
+  ]
 }
