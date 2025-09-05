@@ -1,73 +1,73 @@
 {
-  "lastUpdate": "2025-09-04T09:31:40.940Z",
-  "totalMovies": 95,
+  "lastUpdate": "2025-09-05T02:47:45.544Z",
+  "totalMovies": 124,
   "stats": {
-    "newMovies": 23,
-    "newEpisodes": 8,
+    "newMovies": 29,
+    "newEpisodes": 10,
     "updatedMovies": 0
   },
   "recentMovies": [
     {
-      "name": "Tân Tiếu Ngạo Giang Hồ: Đông Phương Bất Bại",
-      "slug": "tan-tieu-ngao-giang-ho-dong-phuong-bat-bai",
+      "name": "Đứa Con Thời Gian",
+      "slug": "dua-con-thoi-gian",
       "year": 2025,
-      "added": "2025-09-04T09:31:40.927Z"
+      "added": "2025-09-05T02:47:45.527Z"
     },
     {
-      "name": "Tần Số Lạ: Bệnh Viện Sát Nhân Đài Loan",
-      "slug": "tan-so-la-benh-vien-sat-nhan-dai-loan",
-      "year": 2024,
-      "added": "2025-09-04T09:31:40.927Z"
+      "name": "Trường Phong Thiếu Niên Từ",
+      "slug": "truong-phong-thieu-nien-tu",
+      "year": 2025,
+      "added": "2025-09-05T02:47:45.527Z"
     },
     {
-      "name": "Họng Súng Vô Hình",
-      "slug": "hong-sung-vo-hinh-2025",
+      "name": "Tiến Sĩ Đá: Hồi Sinh Thế Giới (Phần 4)",
+      "slug": "tien-si-da-hoi-sinh-the-gioi-phan-4",
       "year": 2025,
-      "added": "2025-09-04T09:31:40.927Z"
+      "added": "2025-09-05T02:47:45.527Z"
     },
     {
-      "name": "Vua Ma Thú, Đứa Trẻ Định Mệnh Và Anh Hùng Bất Tử",
-      "slug": "vua-ma-thu-dua-tre-dinh-menh-va-anh-hung-bat-tu",
+      "name": "Người Thừa Kế Số 1",
+      "slug": "nguoi-thua-ke-so-1",
       "year": 2025,
-      "added": "2025-09-04T09:31:40.927Z"
+      "added": "2025-09-05T02:47:45.527Z"
     },
     {
-      "name": "Tsuyokute New Saga",
-      "slug": "tsuyokute-new-saga",
+      "name": "Dan Da Dan (Phần 2)",
+      "slug": "dan-da-dan-phan-2",
       "year": 2025,
-      "added": "2025-09-04T09:31:40.927Z"
+      "added": "2025-09-05T02:47:45.527Z"
     }
   ],
   "recentEpisodes": [
     {
       "name": "Về Đội",
       "slug": "ve-doi-2025",
-      "episode": "Tập 21",
-      "updated": "2025-09-04T10:15:42.000Z"
+      "episode": "Tập 23",
+      "updated": "2025-09-04T20:57:19.000Z"
     },
     {
       "name": "Dữ Tấn Trường An",
       "slug": "du-tan-truong-an",
-      "episode": "Tập 26",
-      "updated": "2025-09-03T17:51:26.000Z"
+      "episode": "Tập 28",
+      "updated": "2025-09-04T20:56:33.000Z"
+    },
+    {
+      "name": "Yêu Lại Từ Đầu",
+      "slug": "yeu-lai-tu-dau-2025",
+      "episode": "Tập 14",
+      "updated": "2025-09-04T18:49:06.000Z"
+    },
+    {
+      "name": "Tổ Trọng Án Đại Đường",
+      "slug": "to-trong-an-dai-duong",
+      "episode": "Tập 8",
+      "updated": "2025-09-04T18:46:34.000Z"
     },
     {
       "name": "Tấn Giai Đích Vương Phi",
       "slug": "tan-giai-dich-vuong-phi",
-      "episode": "Tập 13",
-      "updated": "2025-09-03T15:50:41.000Z"
-    },
-    {
-      "name": "Sống Trong Một Ngày Suốt Trăm Nghìn Năm",
-      "slug": "song-trong-mot-ngay-suot-tram-nghin-nam",
-      "episode": "Tập 16",
-      "updated": "2025-09-03T15:49:57.000Z"
-    },
-    {
-      "name": "Hải Hôn Hành",
-      "slug": "hai-hon-hanh",
       "episode": "Tập 14",
-      "updated": "2025-09-03T15:48:59.000Z"
+      "updated": "2025-09-04T18:45:07.000Z"
     }
   ]
 }
