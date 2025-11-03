@@ -2,10 +2,10 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-export default defineConfig(({ command }) => ({
+export default defineConfig(() => ({
   plugins: [react()],
-  // Use root path for dev, GitHub Pages path for production
-  base: command === 'build' ? '/phimhv.github.io/' : '/',
+  // Use root path for custom domain (phimhv.site)
+  base: '/',
   build: {
     outDir: 'dist',
     sourcemap: false,
