@@ -1,0 +1,73 @@
+{
+  "lastUpdate": "2025-09-08T04:33:28.599Z",
+  "totalMovies": 175,
+  "stats": {
+    "newMovies": 51,
+    "newEpisodes": 17,
+    "updatedMovies": 0
+  },
+  "recentMovies": [
+    {
+      "name": "Thanh Cung Kế",
+      "slug": "thanh-cung-ke",
+      "year": 2025,
+      "added": "2025-09-08T04:33:28.590Z"
+    },
+    {
+      "name": "Kế Hoạch Capsule",
+      "slug": "ke-hoach-capsule",
+      "year": 2022,
+      "added": "2025-09-08T04:33:28.590Z"
+    },
+    {
+      "name": "Bình Minh Rực Lửa (Phần 2)",
+      "slug": "binh-minh-ruc-lua-phan-2",
+      "year": 2025,
+      "added": "2025-09-08T04:33:28.590Z"
+    },
+    {
+      "name": "Ván Cờ Trắng Đen (Hắc Bạch Cục)",
+      "slug": "van-co-trang-den-hac-bach-cuc",
+      "year": 2025,
+      "added": "2025-09-08T04:33:28.590Z"
+    },
+    {
+      "name": "YAIBA: Huyền Thoại Samurai",
+      "slug": "yaiba-huyen-thoai-samurai",
+      "year": 2025,
+      "added": "2025-09-08T04:33:28.590Z"
+    }
+  ],
+  "recentEpisodes": [
+    {
+      "name": "Khách Sạn Inhumans",
+      "slug": "khach-san-inhumans",
+      "episode": "Tập 10",
+      "updated": "2025-09-08T10:12:34.000Z"
+    },
+    {
+      "name": "Ngự Trù Của Bạo Chúa",
+      "slug": "ngu-tru-cua-bao-chua",
+      "episode": "Tập 6",
+      "updated": "2025-09-08T10:11:46.000Z"
+    },
+    {
+      "name": "Về Đội",
+      "slug": "ve-doi-2025",
+      "episode": "Tập 29",
+      "updated": "2025-09-08T05:58:14.000Z"
+    },
+    {
+      "name": "Gia Đình (Không) Hoàn Hảo Của Tôi",
+      "slug": "gia-dinh-khong-hoan-hao-cua-toi",
+      "episode": "Tập 11",
+      "updated": "2025-09-08T05:53:58.000Z"
+    },
+    {
+      "name": "Khải Huyền Dị Giới Mynoghra: Chinh Phục Thế Giới Từ Nền Văn Minh Suy Tàn",
+      "slug": "khai-huyen-di-gioi-mynoghra-chinh-phuc-the-gioi-tu-nen-van-minh-suy-tan",
+      "episode": "Tập 10",
+      "updated": "2025-09-08T05:51:16.000Z"
+    }
+  ]
+}

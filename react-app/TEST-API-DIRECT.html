@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test PhimAPI Direct</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1b21;
+            color: #e0e0e0;
+        }
+        .result {
+            background: #2a2c35;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        button {
+            padding: 10px 20px;
+            background: #6c5ce7;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #5f4dd1;
+        }
+        .success { color: #00b894; }
+        .error { color: #ff3b30; }
+        .warning { color: #fdcb6e; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test PhimAPI Endpoint</h1>
+    
+    <button onclick="testMovieDetail()">Test Movie Detail API</button>
+    <button onclick="testNewMovies()">Test New Movies API</button>
+    
+    <div id="result" class="result"></div>
+
+    <script>
+        async function testMovieDetail() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<span class="warning">⏳ Testing...</span>';
+            
+            try {
+                const slug = 'ngoi-truong-xac-song';
+                const url = `https://phimapi.com/phim/${slug}`;
+                
+                resultDiv.innerHTML = `<span class="warning">📡 Calling: ${url}</span>\n\n`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                resultDiv.innerHTML += `<span class="success">✅ Status: ${response.status}</span>\n\n`;
+                resultDiv.innerHTML += `<span class="success">📦 Response:</span>\n`;
+                resultDiv.innerHTML += JSON.stringify(data, null, 2);
+                
+                // Check episodes
+                if (data.movie && data.movie.episodes) {
+                    resultDiv.innerHTML += `\n\n<span class="success">✅ EPISODES FOUND: ${data.movie.episodes.length}</span>`;
+                    resultDiv.innerHTML += `\n\n<span class="success">📺 First Episode:</span>\n`;
+                    resultDiv.innerHTML += JSON.stringify(data.movie.episodes[0], null, 2);
+                } else {
+                    resultDiv.innerHTML += `\n\n<span class="error">❌ NO EPISODES FOUND!</span>`;
+                    resultDiv.innerHTML += `\n\nResponse keys: ${Object.keys(data.movie || {}).join(', ')}`;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML += `\n\n<span class="error">❌ Error: ${error.message}</span>`;
+            }
+        }
+        
+        async function testNewMovies() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<span class="warning">⏳ Testing...</span>';
+            
+            try {
+                const url = 'https://phimapi.com/danh-sach/phim-moi-cap-nhat?page=1';
+                
+                resultDiv.innerHTML = `<span class="warning">📡 Calling: ${url}</span>\n\n`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                resultDiv.innerHTML += `<span class="success">✅ Status: ${response.status}</span>\n\n`;
+                
+                if (data.data && data.data.items) {
+                    resultDiv.innerHTML += `<span class="success">✅ ITEMS FOUND: ${data.data.items.length}</span>\n\n`;
+                    resultDiv.innerHTML += `<span class="success">📽️ First Movie:</span>\n`;
+                    resultDiv.innerHTML += JSON.stringify(data.data.items[0], null, 2);
+                } else if (data.items) {
+                    resultDiv.innerHTML += `<span class="success">✅ ITEMS FOUND (direct): ${data.items.length}</span>\n\n`;
+                    resultDiv.innerHTML += JSON.stringify(data.items[0], null, 2);
+                } else {
+                    resultDiv.innerHTML += `<span class="error">❌ NO ITEMS FOUND!</span>\n\n`;
+                    resultDiv.innerHTML += `Response keys: ${Object.keys(data).join(', ')}`;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML += `\n\n<span class="error">❌ Error: ${error.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
+
