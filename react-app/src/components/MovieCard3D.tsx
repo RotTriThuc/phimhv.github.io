@@ -26,6 +26,8 @@ interface MovieCardProps {
     episode_current?: string;
     lang?: string;
   };
+  onSave?: () => void | Promise<void>;
+  onWatch?: () => void;
 }
 
 const MovieCard3D: React.FC<MovieCardProps> = ({ movie }) => {
