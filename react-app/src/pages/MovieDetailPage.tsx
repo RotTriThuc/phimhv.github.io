@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import { movieApi } from '../services/movieApi';
 import { useFirebase } from '../contexts/FirebaseContext';
 import Comments from '../components/Comments';
+import SeriesNavigator from '../components/SeriesNavigator';
 import type { MovieDetail } from '../services/movieApi';
 
 const MovieDetailPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { saveMovie, isMovieSaved } = useFirebase();
+  const { saveMovie, isMovieSaved, isInitialized } = useFirebase();
   
   const [movie, setMovie] = useState<MovieDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,9 +54,16 @@ const MovieDetailPage = () => {
           
           setMovie(movieData);
           
-          // Check if movie is saved
-          const saved = await isMovieSaved(slug);
-          setIsSaved(saved);
+          // Check if movie is saved (only after Firebase is initialized)
+          if (isInitialized) {
+            try {
+              const saved = await isMovieSaved(slug);
+              setIsSaved(saved);
+            } catch (err) {
+              console.warn('⚠️ Could not check if movie is saved:', err);
+              setIsSaved(false);
+            }
+          }
         } else {
           console.warn('⚠️ No movie in response:', response);
           setError('Không tìm thấy phim');
@@ -69,7 +77,7 @@ const MovieDetailPage = () => {
     };
 
     fetchMovie();
-  }, [slug, isMovieSaved]);
+  }, [slug, isMovieSaved, isInitialized]);
 
   const handleSave = async () => {
     if (!movie) return;
@@ -311,6 +319,9 @@ const MovieDetailPage = () => {
           ))}
         </motion.div>
       )}
+
+      {/* Series Navigator */}
+      <SeriesNavigator movie={movie} />
 
       {/* Comments Section */}
       <Comments movieSlug={movie.slug} movieName={movie.name} />
