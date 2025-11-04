@@ -102,8 +102,6 @@ const SeriesNavigator = ({ movie, compact = false }: Props) => {
     return null;
   }
 
-  const currentSeason = detectSeries(movie)?.season || 1;
-
   if (compact) {
     // Compact mode cho watch page - chỉ hiển thị các phần khác
     const otherSeasons = relatedSeasons.filter(s => s.slug !== movie.slug);
