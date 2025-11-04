@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test One Punch Man Search</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #0f0;
+            padding: 20px;
+            line-height: 1.8;
+        }
+        h1 { color: #0ff; }
+        h2 { color: #ff0; margin-top: 30px; }
+        .result {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #0f0;
+            font-size: 14px;
+        }
+        .error { border-color: #f00; color: #f00; }
+        .success { border-color: #0f0; }
+        .warning { border-color: #ff0; color: #ff0; }
+        code { background: #000; padding: 2px 6px; color: #0ff; }
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-weight: bold;
+        }
+        button:hover { background: #0ff; }
+        #loading { display: none; color: #ff0; }
+    </style>
+</head>
+<body>
+    <h1>🔬 Test Search: "Đấm Phát Chết Luôn"</h1>
+    <p>Kiểm tra xem API có tìm được các phần 1, 2, 3 không</p>
+
+    <div>
+        <button onclick="testSearch()">🔍 Test Search</button>
+        <button onclick="testDetection()">🧪 Test Detection</button>
+        <button onclick="clearResults()">🗑️ Clear</button>
+    </div>
+
+    <div id="loading">⏳ Đang tìm kiếm...</div>
+
+    <h2>📊 Kết Quả</h2>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'https://phimapi.com/v1/api';
+
+        // Detection logic (copy from series-navigator.js)
+        function getSeriesBaseInfo(movie) {
+          if (!movie || !movie.name) return null;
+
+          const movieName = movie.name.trim();
+          
+          const patterns = [
+            /^(.+?)\s*\(\s*Phần\s*(\d+)\s*\)$/i,
+            /^(.+?)\s*\(\s*Season\s*(\d+)\s*\)$/i,
+            /^(.+?)\s*-\s*Phần\s*(\d+)$/i,
+            /^(.+?)\s*-\s*Season\s*(\d+)$/i
+          ];
+
+          for (let i = 0; i < patterns.length; i++) {
+            const match = movieName.match(patterns[i]);
+            if (match && match.length >= 3) {
+              return {
+                seriesId: match[1].trim() + '_SERIES',
+                season: parseInt(match[2]),
+                baseName: match[1].trim(),
+                method: 'pattern_' + (i + 1)
+              };
+            }
+          }
+
+          // Fallback: origin_name
+          if (movie.origin_name) {
+            const originPatterns = [
+              /^(.+?)\s*\(\s*Season\s*(\d+)\s*\)$/i,
+              /^(.+?)\s*Season\s*(\d+)$/i
+            ];
+
+            for (let i = 0; i < originPatterns.length; i++) {
+              const match = movie.origin_name.match(originPatterns[i]);
+              if (match && match.length >= 3) {
+                return {
+                  seriesId: match[1].trim() + '_ORIGIN_SERIES',
+                  season: parseInt(match[2]),
+                  baseName: match[1].trim(),
+                  method: 'origin_' + (i + 1)
+                };
+              }
+            }
+          }
+
+          return null;
+        }
+
+        async function testSearch() {
+            const results = document.getElementById('results');
+            const loading = document.getElementById('loading');
+            
+            results.innerHTML = '';
+            loading.style.display = 'block';
+
+            try {
+                // Test search với keyword "Đấm Phát Chết Luôn"
+                const searchKeyword = 'Đấm Phát Chết Luôn';
+                const url = `${API_BASE}/tim-kiem?keyword=${encodeURIComponent(searchKeyword)}&limit=50`;
+                
+                results.innerHTML += `<div class="result">
+                    <strong>🔍 Searching:</strong> <code>${searchKeyword}</code><br>
+                    <strong>URL:</strong> <code>${url}</code>
+                </div>`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                results.innerHTML += `<div class="result success">
+                    <strong>✅ API Response:</strong><br>
+                    Status: ${data.status ? '✅ Success' : '❌ Failed'}<br>
+                    Total found: ${data.data?.items?.length || 0} phim
+                </div>`;
+
+                if (data.data?.items && data.data.items.length > 0) {
+                    // Analyze each result
+                    const items = data.data.items;
+                    let foundParts = [];
+
+                    results.innerHTML += `<div class="result"><strong>📋 Danh sách tìm được:</strong></div>`;
+
+                    items.forEach((movie, index) => {
+                        const seriesInfo = getSeriesBaseInfo(movie);
+                        const isMatch = movie.name.toLowerCase().includes('đấm phát chết luôn') || 
+                                      movie.name.toLowerCase().includes('one punch man');
+
+                        if (isMatch) {
+                            foundParts.push({
+                                name: movie.name,
+                                origin_name: movie.origin_name,
+                                slug: movie.slug,
+                                year: movie.year,
+                                seriesInfo: seriesInfo
+                            });
+
+                            const seasonNum = seriesInfo ? seriesInfo.season : '?';
+                            const detected = seriesInfo ? '✅ Detected' : '❌ Not detected';
+
+                            results.innerHTML += `<div class="result ${seriesInfo ? 'success' : 'warning'}">
+                                <strong>${index + 1}. ${movie.name}</strong> (${movie.year})<br>
+                                Origin: <code>${movie.origin_name || 'N/A'}</code><br>
+                                Slug: <code>${movie.slug}</code><br>
+                                Detection: ${detected} ${seriesInfo ? `→ Phần ${seasonNum}` : ''}
+                            </div>`;
+                        }
+                    });
+
+                    // Summary
+                    if (foundParts.length > 0) {
+                        const seasons = foundParts.filter(p => p.seriesInfo).map(p => p.seriesInfo.season).sort((a, b) => a - b);
+                        results.innerHTML += `<div class="result success">
+                            <strong>🎯 Tổng Kết:</strong><br>
+                            Tìm được: ${foundParts.length} phần<br>
+                            Detected seasons: ${seasons.length > 0 ? seasons.join(', ') : 'None'}<br>
+                            ${seasons.length >= 2 ? '✅ Navigator SẼ hiển thị!' : '❌ Navigator KHÔNG hiển thị (cần ≥2 phần)'}
+                        </div>`;
+
+                        // Test if they would be grouped together
+                        const baseNames = foundParts
+                            .filter(p => p.seriesInfo)
+                            .map(p => p.seriesInfo.baseName.toLowerCase())
+                            .filter((v, i, a) => a.indexOf(v) === i);
+
+                        results.innerHTML += `<div class="result ${baseNames.length === 1 ? 'success' : 'error'}">
+                            <strong>🔗 Link Test:</strong><br>
+                            Unique base names: ${baseNames.length}<br>
+                            ${baseNames.map(name => `• <code>${name}</code>`).join('<br>')}<br>
+                            ${baseNames.length === 1 ? '✅ Các phần sẽ link với nhau' : '❌ Tên base khác nhau → KHÔNG link được!'}
+                        </div>`;
+                    } else {
+                        results.innerHTML += `<div class="result error">
+                            <strong>❌ Không tìm thấy phim nào match!</strong><br>
+                            Keyword có thể không đúng hoặc phim không có trong API
+                        </div>`;
+                    }
+                } else {
+                    results.innerHTML += `<div class="result error">
+                        <strong>❌ Không có kết quả!</strong><br>
+                        API không trả về phim nào
+                    </div>`;
+                }
+
+            } catch (error) {
+                results.innerHTML += `<div class="result error">
+                    <strong>💥 Error:</strong><br>
+                    ${error.message}<br>
+                    <small>${error.stack}</small>
+                </div>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function testDetection() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="result"><strong>🧪 Testing Detection Logic</strong></div>';
+
+            const testCases = [
+                { name: "Đấm Phát Chết Luôn (Phần 1)", origin_name: "One Punch Man (Season 1)" },
+                { name: "Đấm Phát Chết Luôn (Phần 2)", origin_name: "One Punch Man (Season 2)" },
+                { name: "Đấm Phát Chết Luôn (Phần 3)", origin_name: "One Punch Man (Season 3)" },
+                { name: "Đấm Phát Chết Luôn", origin_name: "One Punch Man" }
+            ];
+
+            testCases.forEach((movie, index) => {
+                const result = getSeriesBaseInfo(movie);
+                results.innerHTML += `<div class="result ${result ? 'success' : 'warning'}">
+                    <strong>Test ${index + 1}:</strong> <code>${movie.name}</code><br>
+                    Result: ${result ? `✅ Season ${result.season}, Base: "${result.baseName}"` : '❌ Not detected'}
+                </div>`;
+            });
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Auto-run on load
+        console.log('🔬 Test page loaded. Click "Test Search" to start.');
+    </script>
+</body>
+</html>

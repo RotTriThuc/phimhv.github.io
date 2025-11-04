@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Series Navigator - Huyền Thoại La Tiêu Hoắc</title>
+    
+    <!-- Import CSS -->
+    <link rel="stylesheet" href="/assets/series-navigator.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #6c5ce7;
+            --primary-hover: #5f4ed4;
+            --secondary: #a29bfe;
+            --background: #636e72;
+            --surface: #2d3436;
+            --text: #ddd;
+            --muted: #74b9ff;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1a1a1a;
+            color: var(--text);
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: var(--primary);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .demo-section {
+            background: var(--surface);
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .demo-section h2 {
+            color: var(--muted);
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .info-box {
+            background: rgba(108, 92, 231, 0.1);
+            border-left: 4px solid var(--primary);
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .info-box p {
+            margin: 5px 0;
+        }
+        
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Test Series Navigator</h1>
+        
+        <div class="demo-section">
+            <h2>📖 Thông Tin Demo</h2>
+            <div class="info-box">
+                <p><strong>Phim demo:</strong> Huyền Thoại La Tiêu Hoắc (The Legend Of Hei)</p>
+                <p><strong>Số phần:</strong> 2 phần (có thể có thêm phần 3 trong tương lai)</p>
+                <p><strong>Mô tả:</strong> Đây là demo UI của Series Navigator - tính năng liên kết giữa các phần phim</p>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h2>🎯 Demo 1: Navigator Đầy Đủ (Trang Chi Tiết)</h2>
+            <p style="margin-bottom: 15px;">Đây là cách navigator hiển thị trên trang chi tiết phim:</p>
+            
+            <!-- Series Navigator Demo -->
+            <div class="series-navigator">
+                <div class="series-navigator__header">
+                    <h3 class="series-navigator__title">🎬 Các phần trong series</h3>
+                    <button class="series-navigator__refresh-btn" title="Kiểm tra phần mới">🔄</button>
+                </div>
+                
+                <div class="series-navigator__series-name">Huyền Thoại La Tiêu Hoắc</div>
+                
+                <div class="series-navigator__list">
+                    <!-- Phần 1 -->
+                    <div class="series-navigator__item">
+                        <a href="#/phim/huyen-thoai-la-tieu-hoac" class="series-navigator__link">
+                            <div class="series-navigator__season">Phần 1</div>
+                            <div class="series-navigator__episode">Full</div>
+                            <div class="series-navigator__year">2019</div>
+                        </a>
+                    </div>
+                    
+                    <!-- Phần 2 - Đang xem -->
+                    <div class="series-navigator__item series-navigator__item--current">
+                        <a href="#/phim/huyen-thoai-la-tieu-hoac-2" class="series-navigator__link">
+                            <div class="series-navigator__season">Phần 2</div>
+                            <div class="series-navigator__episode">Tập 15/15</div>
+                            <div class="series-navigator__year">2025</div>
+                            <div class="series-navigator__current-indicator">● Đang xem</div>
+                        </a>
+                    </div>
+                    
+                    <!-- Phần 3 - Coming soon (ví dụ) -->
+                    <div class="series-navigator__item" style="opacity: 0.5;">
+                        <a href="#" class="series-navigator__link" style="pointer-events: none;">
+                            <div class="series-navigator__season">Phần 3</div>
+                            <div class="series-navigator__episode">Sắp ra</div>
+                            <div class="series-navigator__year">2026?</div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h2>🎯 Demo 2: Navigator Nhỏ Gọn (Trang Xem Phim)</h2>
+            <p style="margin-bottom: 15px;">Đây là cách navigator hiển thị khi đang xem phim:</p>
+            
+            <!-- Watch Series Navigator Demo -->
+            <div class="watch-series-navigator">
+                <div class="watch-series-navigator__title">Các phần khác:</div>
+                <div class="watch-series-navigator__list">
+                    <a href="#/phim/huyen-thoai-la-tieu-hoac" class="watch-series-navigator__item" title="Huyền Thoại La Tiêu Hoắc - Full">
+                        Phần 1
+                    </a>
+                    <a href="#/phim/huyen-thoai-la-tieu-hoac-3" class="watch-series-navigator__item" title="Huyền Thoại La Tiêu Hoắc (Phần 3) - Sắp ra">
+                        Phần 3
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h2>💡 Hướng Dẫn Sử Dụng</h2>
+            <div class="info-box">
+                <p><strong>Đối với người dùng:</strong></p>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li>Truy cập trang chi tiết bất kỳ phim nào có nhiều phần</li>
+                    <li>Cuộn xuống dưới thông tin phim, sẽ thấy khung "Các phần trong series"</li>
+                    <li>Click vào phần muốn xem để chuyển trang</li>
+                    <li>Click nút 🔄 để kiểm tra phần mới</li>
+                </ol>
+            </div>
+            
+            <div class="info-box">
+                <p><strong>Đối với quản trị:</strong></p>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li>Đặt tên phim theo format: <code>Tên Series (Phần X)</code> hoặc <code>Tên Series (Season X)</code></li>
+                    <li>Hệ thống sẽ tự động nhận diện và liên kết các phần</li>
+                    <li>Không cần config gì thêm!</li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h2>🔧 Technical Details</h2>
+            <div class="info-box">
+                <p><strong>Files liên quan:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><code>modules/series-navigator.js</code> - Logic xử lý</li>
+                    <li><code>assets/series-navigator.css</code> - Styles UI</li>
+                    <li><code>assets/app.js</code> - Integration (dòng 2289-2347)</li>
+                </ul>
+            </div>
+            
+            <div class="info-box">
+                <p><strong>Caching:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Cache duration: 5 phút</li>
+                    <li>Auto-refresh khi click nút 🔄</li>
+                    <li>Smart invalidation khi có update</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="demo-section" style="text-align: center;">
+            <h2>✅ Kết Luận</h2>
+            <p style="margin-bottom: 20px;">
+                Tính năng Series Navigator đã được tích hợp sẵn vào website.<br>
+                File CSS đã được thêm vào <code>index.html</code>.<br>
+                Tất cả đã sẵn sàng để sử dụng!
+            </p>
+            <button class="btn" onclick="window.location.href='/'">🏠 Về Trang Chủ</button>
+            <button class="btn" onclick="window.location.href='/HUONG-DAN-LIEN-KET-PHIM.md'" style="background: var(--secondary); margin-left: 10px;">📖 Xem Tài Liệu</button>
+        </div>
+    </div>
+    
+    <script>
+        // Demo interactive features
+        document.querySelector('.series-navigator__refresh-btn').addEventListener('click', function() {
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = '⏳';
+            
+            // Simulate refresh
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.textContent = '🔄';
+                alert('✅ Đã kiểm tra! Không có phần mới.');
+            }, 1500);
+        });
+        
+        // Prevent navigation on demo
+        document.querySelectorAll('.series-navigator__link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const season = link.querySelector('.series-navigator__season').textContent;
+                alert(`🎬 Bạn đã click vào ${season}!\n\nTrên website thực tế, link này sẽ chuyển đến trang chi tiết phim.`);
+            });
+        });
+        
+        document.querySelectorAll('.watch-series-navigator__item').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const season = link.textContent;
+                alert(`🎬 Bạn đã click vào ${season}!\n\nTrên website thực tế, link này sẽ chuyển đến trang xem phim.`);
+            });
+        });
+        
+        console.log('🎬 Series Navigator Demo loaded!');
+        console.log('✅ CSS imported from: /assets/series-navigator.css');
+        console.log('📖 Documentation: /HUONG-DAN-LIEN-KET-PHIM.md');
+    </script>
+</body>
+</html>

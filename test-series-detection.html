@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Series Detection</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #0f0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-case {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #0f0;
+        }
+        .pass { border-color: #0f0; }
+        .fail { border-color: #f00; color: #f00; }
+        h1 { color: #0ff; }
+        h2 { color: #ff0; margin-top: 30px; }
+        code { background: #000; padding: 2px 6px; }
+    </style>
+</head>
+<body>
+    <h1>🔬 Test Series Detection Logic</h1>
+    <p>Kiểm tra logic nhận diện phim có nhiều phần</p>
+
+    <h2>📋 Test Cases</h2>
+    <div id="results"></div>
+
+    <h2>🎯 Kết Luận</h2>
+    <div id="conclusion"></div>
+
+    <script type="module">
+        // Import function from series-navigator module
+        // Copy logic here for testing
+
+        /**
+         * MANUAL/HARDCODED Season Number Extractor
+         * Directly extracts season numbers using simple string operations
+         */
+        function getSeriesBaseInfo(movie) {
+          if (!movie || !movie.name) {
+            console.log('❌ MANUAL: Invalid movie or name:', movie);
+            return null;
+          }
+
+          const movieName = movie.name.trim();
+          console.log('🔧 MANUAL: Processing movie name:', movieName);
+
+          // HARDCODED REGEX PATTERNS
+          const patterns = [
+            // Pattern 1: "Tên Phim (Phần X)"
+            /^(.+?)\s*\(\s*Phần\s*(\d+)\s*\)$/i,
+            // Pattern 2: "Tên Phim (Season X)"
+            /^(.+?)\s*\(\s*Season\s*(\d+)\s*\)$/i,
+            // Pattern 3: "Tên Phim - Phần X"
+            /^(.+?)\s*-\s*Phần\s*(\d+)$/i,
+            // Pattern 4: "Tên Phim - Season X"
+            /^(.+?)\s*-\s*Season\s*(\d+)$/i
+          ];
+
+          // Try each pattern manually
+          for (let i = 0; i < patterns.length; i++) {
+            const pattern = patterns[i];
+            const match = movieName.match(pattern);
+
+            if (match && match.length >= 3) {
+              const baseName = match[1].trim();
+              const seasonNumber = parseInt(match[2]);
+
+              return {
+                seriesId: baseName + '_SERIES',
+                season: seasonNumber,
+                method: 'manual_pattern_' + (i + 1),
+                baseName: baseName
+              };
+            }
+          }
+
+          // FALLBACK: Check origin_name
+          if (movie.origin_name) {
+            const originPatterns = [
+              /^(.+?)\s*\(\s*Season\s*(\d+)\s*\)$/i,
+              /^(.+?)\s*Season\s*(\d+)$/i
+            ];
+
+            for (let i = 0; i < originPatterns.length; i++) {
+              const match = movie.origin_name.match(originPatterns[i]);
+              if (match && match.length >= 3) {
+                return {
+                  seriesId: match[1].trim() + '_ORIGIN_SERIES',
+                  season: parseInt(match[2]),
+                  method: 'manual_origin_' + (i + 1),
+                  baseName: match[1].trim()
+                };
+              }
+            }
+          }
+
+          console.log('❌ MANUAL: No pattern matched for:', movieName);
+          return null;
+        }
+
+        // Test cases
+        const testCases = [
+            // Test case từ screenshot
+            {
+                name: "Huyền Thoại La Tiêu Hoắc",
+                origin_name: "The Legend Of Hei",
+                expected: null, // Không có chỉ số phần
+                reason: "Phần 1 không có chỉ số trong tên"
+            },
+            // Test case giả định cho phần 2
+            {
+                name: "Huyền Thoại La Tiêu Hoắc (Phần 2)",
+                origin_name: "The Legend Of Hei (Season 2)",
+                expected: { season: 2, baseName: "Huyền Thoại La Tiêu Hoắc" },
+                reason: "Format chuẩn với (Phần 2)"
+            },
+            {
+                name: "Huyền Thoại La Tiêu Hoắc 2 (La Tiêu Hắc...)",
+                origin_name: "The Legend Of Hei (Season 2)",
+                expected: { season: 2, baseName: "The Legend Of Hei" },
+                reason: "Nhận diện qua origin_name"
+            },
+            // Các test case khác
+            {
+                name: "One Piece",
+                origin_name: "One Piece",
+                expected: null,
+                reason: "Phim không có nhiều phần"
+            },
+            {
+                name: "Attack on Titan (Season 2)",
+                origin_name: "Shingeki no Kyojin Season 2",
+                expected: { season: 2, baseName: "Attack on Titan" },
+                reason: "Format Season X"
+            },
+            {
+                name: "Naruto - Phần 2",
+                origin_name: "Naruto Part 2",
+                expected: { season: 2, baseName: "Naruto" },
+                reason: "Format với dấu gạch ngang"
+            }
+        ];
+
+        // Run tests
+        const results = document.getElementById('results');
+        let passCount = 0;
+        let failCount = 0;
+
+        testCases.forEach((testCase, index) => {
+            const movie = {
+                name: testCase.name,
+                origin_name: testCase.origin_name
+            };
+
+            const result = getSeriesBaseInfo(movie);
+            
+            // Check if result matches expected
+            let passed = false;
+            if (testCase.expected === null && result === null) {
+                passed = true;
+            } else if (testCase.expected !== null && result !== null) {
+                passed = result.season === testCase.expected.season;
+            }
+
+            const testDiv = document.createElement('div');
+            testDiv.className = `test-case ${passed ? 'pass' : 'fail'}`;
+            testDiv.innerHTML = `
+                <strong>${passed ? '✅' : '❌'} Test ${index + 1}:</strong> ${testCase.reason}<br>
+                <strong>Input:</strong> <code>${testCase.name}</code><br>
+                <strong>Origin:</strong> <code>${testCase.origin_name}</code><br>
+                <strong>Expected:</strong> <code>${JSON.stringify(testCase.expected)}</code><br>
+                <strong>Result:</strong> <code>${JSON.stringify(result)}</code>
+            `;
+            results.appendChild(testDiv);
+
+            if (passed) passCount++;
+            else failCount++;
+        });
+
+        // Conclusion
+        const conclusion = document.getElementById('conclusion');
+        conclusion.innerHTML = `
+            <div class="test-case ${failCount === 0 ? 'pass' : 'fail'}">
+                <h3>📊 Tổng Kết</h3>
+                <p>✅ Passed: ${passCount}/${testCases.length}</p>
+                <p>❌ Failed: ${failCount}/${testCases.length}</p>
+                <hr>
+                <h3>🎯 Phát Hiện</h3>
+                <p><strong>Phim "Huyền Thoại La Tiêu Hoắc"</strong> hiện tại không có chỉ số phần trong tên.</p>
+                <p><strong>Giải pháp:</strong></p>
+                <ol>
+                    <li>Nếu đây là Phần 1: Đặt tên thành <code>"Huyền Thoại La Tiêu Hoắc (Phần 1)"</code></li>
+                    <li>Nếu có Phần 2: Đảm bảo tên có <code>"(Phần 2)"</code> hoặc <code>"(Season 2)"</code></li>
+                    <li>Hoặc cập nhật <code>origin_name</code> với format <code>"The Legend Of Hei (Season 1)"</code></li>
+                </ol>
+                <hr>
+                <h3>⚠️ Lưu Ý Quan Trọng</h3>
+                <p>Series Navigator <strong>chỉ hiển thị</strong> khi:</p>
+                <ul>
+                    <li>✅ Có <strong>ít nhất 2 phần</strong> của cùng một series</li>
+                    <li>✅ Tên phim có format đúng: <code>(Phần X)</code> hoặc <code>(Season X)</code></li>
+                    <li>✅ Cả 2 phần đều có tên series giống nhau</li>
+                </ul>
+                <p><strong>Hiện tại:</strong> Phim chỉ có 1 phần và không có chỉ số → Navigator không hiển thị (đúng như thiết kế)</p>
+            </div>
+        `;
+
+        // Log to console
+        console.log(`
+╔════════════════════════════════════════════════════════╗
+║           SERIES DETECTION TEST RESULTS                ║
+╠════════════════════════════════════════════════════════╣
+║ Total Tests:  ${testCases.length}                                        ║
+║ Passed:       ${passCount}                                        ║
+║ Failed:       ${failCount}                                        ║
+╠════════════════════════════════════════════════════════╣
+║ CONCLUSION:                                            ║
+║ Phim "Huyền Thoại La Tiêu Hoắc" không được nhận diện   ║
+║ là series vì thiếu chỉ số phần trong tên.             ║
+║                                                        ║
+║ Để Series Navigator hoạt động, cần:                   ║
+║ 1. Đặt tên Phần 1: "... (Phần 1)"                    ║
+║ 2. Đặt tên Phần 2: "... (Phần 2)"                    ║
+║ 3. Có ít nhất 2 phần trong database                   ║
+╚════════════════════════════════════════════════════════╝
+        `);
+    </script>
+</body>
+</html>
