@@ -15,11 +15,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Banner3D from '../components/Banner3D';
-import MovieCard3D from '../components/MovieCard3D';
+import MovieCard from '../components/MovieCard';
 import { useFirebase } from '../contexts/FirebaseContext';
 import { movieApi } from '../services/movieApi';
 import type { Movie } from '../services/movieApi';
 import './HomePage.css';
+import './AnimeListPage.css';
 
 // Movie type imported from movieApi service
 
@@ -120,11 +121,6 @@ const HomePage = () => {
     }
   };
 
-  // Handle watch movie
-  const handleWatchMovie = (slug: string) => {
-    window.location.href = `/watch/${slug}`;
-  };
-
   // Loading state
   if (loading) {
     return (
@@ -204,30 +200,13 @@ const HomePage = () => {
           </div>
 
           {/* Movie grid với staggered animation */}
-          <div className="movie-grid">
-            {movies.slice(0, 18).map((movie, index) => (
-              <motion.div
-                key={`${movie.slug}-${index}`}
-                initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                animate={{ 
-                  opacity: 1, 
-                  y: 0, 
-                  scale: 1,
-                }}
-                transition={{
-                  type: 'spring',
-                  stiffness: 100,
-                  damping: 15,
-                  delay: index * 0.05,
-                }}
-                layout
-              >
-                <MovieCard3D
-                  movie={movie}
-                  onSave={() => handleSaveMovie(movie)}
-                  onWatch={() => handleWatchMovie(movie.slug)}
-                />
-              </motion.div>
+          <div className="anime-movies-grid">
+            {movies.slice(0, 18).map((movie) => (
+              <MovieCard
+                key={movie._id || movie.slug}
+                movie={movie}
+                onSave={() => handleSaveMovie(movie)}
+              />
             ))}
           </div>
         </motion.section>
@@ -261,30 +240,13 @@ const HomePage = () => {
               </motion.a>
             </div>
 
-            <div className="movie-grid">
-              {movies.slice(18, 36).map((movie, index) => (
-                <motion.div
-                  key={`hot-${movie.slug}-${index}`}
-                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                  whileInView={{ 
-                    opacity: 1, 
-                    y: 0, 
-                    scale: 1,
-                  }}
-                  viewport={{ once: true }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 100,
-                    damping: 15,
-                    delay: index * 0.03,
-                  }}
-                >
-                  <MovieCard3D
-                    movie={movie}
-                    onSave={() => handleSaveMovie(movie)}
-                    onWatch={() => handleWatchMovie(movie.slug)}
-                  />
-                </motion.div>
+            <div className="anime-movies-grid">
+              {movies.slice(18, 36).map((movie) => (
+                <MovieCard
+                  key={movie._id || movie.slug}
+                  movie={movie}
+                  onSave={() => handleSaveMovie(movie)}
+                />
               ))}
             </div>
           </motion.section>
@@ -319,30 +281,13 @@ const HomePage = () => {
               </motion.a>
             </div>
 
-            <div className="movie-grid">
-              {movies.filter(m => m.type === 'series').slice(0, 12).map((movie, index) => (
-                <motion.div
-                  key={`series-${movie.slug}-${index}`}
-                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                  whileInView={{ 
-                    opacity: 1, 
-                    y: 0, 
-                    scale: 1,
-                  }}
-                  viewport={{ once: true }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 100,
-                    damping: 15,
-                    delay: index * 0.03,
-                  }}
-                >
-                  <MovieCard3D
-                    movie={movie}
-                    onSave={() => handleSaveMovie(movie)}
-                    onWatch={() => handleWatchMovie(movie.slug)}
-                  />
-                </motion.div>
+            <div className="anime-movies-grid">
+              {movies.filter(m => m.type === 'series').slice(0, 12).map((movie) => (
+                <MovieCard
+                  key={movie._id || movie.slug}
+                  movie={movie}
+                  onSave={() => handleSaveMovie(movie)}
+                />
               ))}
             </div>
           </motion.section>
@@ -377,30 +322,13 @@ const HomePage = () => {
               </motion.a>
             </div>
 
-            <div className="movie-grid">
-              {movies.filter(m => m.type === 'single').slice(0, 12).map((movie, index) => (
-                <motion.div
-                  key={`single-${movie.slug}-${index}`}
-                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                  whileInView={{ 
-                    opacity: 1, 
-                    y: 0, 
-                    scale: 1,
-                  }}
-                  viewport={{ once: true }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 100,
-                    damping: 15,
-                    delay: index * 0.03,
-                  }}
-                >
-                  <MovieCard3D
-                    movie={movie}
-                    onSave={() => handleSaveMovie(movie)}
-                    onWatch={() => handleWatchMovie(movie.slug)}
-                  />
-                </motion.div>
+            <div className="anime-movies-grid">
+              {movies.filter(m => m.type === 'single').slice(0, 12).map((movie) => (
+                <MovieCard
+                  key={movie._id || movie.slug}
+                  movie={movie}
+                  onSave={() => handleSaveMovie(movie)}
+                />
               ))}
             </div>
           </motion.section>
@@ -435,30 +363,13 @@ const HomePage = () => {
               </motion.a>
             </div>
 
-            <div className="movie-grid">
-              {movies.filter(m => m.chieurap).slice(0, 12).map((movie, index) => (
-                <motion.div
-                  key={`cinema-${movie.slug}-${index}`}
-                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                  whileInView={{ 
-                    opacity: 1, 
-                    y: 0, 
-                    scale: 1,
-                  }}
-                  viewport={{ once: true }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 100,
-                    damping: 15,
-                    delay: index * 0.03,
-                  }}
-                >
-                  <MovieCard3D
-                    movie={movie}
-                    onSave={() => handleSaveMovie(movie)}
-                    onWatch={() => handleWatchMovie(movie.slug)}
-                  />
-                </motion.div>
+            <div className="anime-movies-grid">
+              {movies.filter(m => m.chieurap).slice(0, 12).map((movie) => (
+                <MovieCard
+                  key={movie._id || movie.slug}
+                  movie={movie}
+                  onSave={() => handleSaveMovie(movie)}
+                />
               ))}
             </div>
           </motion.section>
@@ -485,30 +396,13 @@ const HomePage = () => {
               </div>
             </div>
 
-            <div className="movie-grid">
-              {movies.slice(36, 54).map((movie, index) => (
-                <motion.div
-                  key={`anime-${movie.slug}-${index}`}
-                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                  whileInView={{ 
-                    opacity: 1, 
-                    y: 0, 
-                    scale: 1,
-                  }}
-                  viewport={{ once: true }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 100,
-                    damping: 15,
-                    delay: index * 0.03,
-                  }}
-                >
-                  <MovieCard3D
-                    movie={movie}
-                    onSave={() => handleSaveMovie(movie)}
-                    onWatch={() => handleWatchMovie(movie.slug)}
-                  />
-                </motion.div>
+            <div className="anime-movies-grid">
+              {movies.slice(36, 54).map((movie) => (
+                <MovieCard
+                  key={movie._id || movie.slug}
+                  movie={movie}
+                  onSave={() => handleSaveMovie(movie)}
+                />
               ))}
             </div>
           </motion.section>
