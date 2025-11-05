@@ -8,49 +8,190 @@
 .banner-3d {
   position: relative;
   width: 100%;
-  height: 80vh;
-  min-height: 500px;
-  max-height: 800px;
+  height: 90vh;
+  min-height: 650px;
+  max-height: 950px;
   overflow: hidden;
-  background: linear-gradient(to bottom, #0f0f12, #15161a);
+  background: var(--gradient-dark);
+  display: flex;
+  flex-direction: column;
+  
+  /* Enhanced neon border */
+  border-bottom: 2px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+  perspective: 2000px;
+  transform-style: preserve-3d;
 }
 
-/* 3D Canvas background */
+.banner-3d::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gradient-primary);
+  filter: blur(4px);
+  animation: neonBorder 3s ease-in-out infinite;
+}
+
+@keyframes neonBorder {
+  0%, 100% { opacity: 0.5; transform: scaleX(0.98); }
+  50% { opacity: 1; transform: scaleX(1); }
+}
+
+/* 3D Canvas background với particle effects */
 .banner-3d-canvas {
   position: absolute;
   inset: 0;
-  opacity: 0.4;
+  opacity: 0.6;
   pointer-events: none;
   z-index: 1;
+  mix-blend-mode: screen;
+  filter: contrast(1.2) brightness(1.1);
 }
 
-/* Content overlay */
+/* Enhanced content overlay với nested structure */
 .banner-content {
   position: relative;
   width: 100%;
   height: 100%;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Banner slide */
-.banner-slide {
+/* Thumbnail strip (như Rophim) */
+.banner-thumbnails {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  padding: 15px;
+  background: linear-gradient(
+    135deg,
+    rgba(10, 10, 15, 0.9),
+    rgba(10, 10, 15, 0.7)
+  );
+  backdrop-filter: blur(20px) saturate(1.5);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.5),
+    inset 0 0 20px rgba(255, 255, 255, 0.05);
+  z-index: 10;
+  max-width: 90%;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+}
+
+.banner-thumbnails::-webkit-scrollbar {
+  height: 4px;
+}
+
+.banner-thumbnails::-webkit-scrollbar-thumb {
+  background: var(--gradient-primary);
+  border-radius: 2px;
+}
+
+.thumbnail-item {
+  flex-shrink: 0;
+  width: 120px;
+  height: 70px;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
   position: relative;
+  border: 2px solid transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.thumbnail-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.7);
+  transition: filter 0.3s ease;
+}
+
+.thumbnail-item.active {
+  border-color: var(--primary);
+  box-shadow: 
+    0 0 20px rgba(255, 0, 128, 0.4),
+    0 0 40px rgba(121, 40, 202, 0.3);
+}
+
+.thumbnail-item.active img {
+  filter: brightness(1);
+}
+
+.thumbnail-item:hover:not(.active) img {
+  filter: brightness(0.9);
+}
+
+.thumbnail-overlay {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  background: var(--gradient-primary);
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+/* Enhanced banner slide với 3D perspective */
+.banner-slide {
+  position: absolute;
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   padding: 0 5%;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
 }
 
-/* Background với gradient overlay - blur removed for clarity */
+/* Background với cinematic gradient overlay */
 .banner-bg {
   position: absolute;
   inset: 0;
   background-size: cover;
   background-position: center;
-  filter: brightness(0.85);
+  filter: brightness(1.1) contrast(1.1) saturate(1.2);
   transform-origin: center;
   z-index: -1;
+  animation: slowZoom 30s ease-in-out infinite alternate;
+}
+
+@keyframes slowZoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}
+
+.banner-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 30% 50%, rgba(255, 0, 128, 0.2) 0%, transparent 40%),
+    radial-gradient(circle at 70% 50%, rgba(0, 212, 255, 0.2) 0%, transparent 40%);
+  mix-blend-mode: color-dodge;
+  animation: glowPulse 4s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
 }
 
 .banner-bg::after {
@@ -58,11 +199,12 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    to right,
-    rgba(15, 15, 18, 0.5),
-    rgba(15, 15, 18, 0.3) 50%,
-    transparent
+    135deg,
+    rgba(10, 10, 15, 0.2) 0%,
+    rgba(10, 10, 15, 0.5) 40%,
+    rgba(10, 10, 15, 0.8) 100%
   );
+  pointer-events: none;
 }
 
 /* Banner info */
@@ -72,28 +214,52 @@
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
 }
 
-/* Title với 3D effect */
+/* Title với white color cho dễ nhìn */
 .banner-title {
-  font-size: clamp(2.5rem, 5vw, 4rem);
-  font-weight: 800;
-  color: #fff;
-  margin: 0 0 20px 0;
-  line-height: 1.2;
+  font-size: clamp(3rem, 6vw, 5rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 0 0 25px 0;
+  line-height: 1.1;
+  position: relative;
   
-  /* 3D text effect */
+  /* White text */
+  color: #ffffff;
+  
+  /* Subtle text shadow for better contrast */
   text-shadow: 
-    0 1px 0 #ccc,
-    0 2px 0 #bbb,
-    0 3px 0 #aaa,
-    0 4px 0 #999,
-    0 5px 10px rgba(0, 0, 0, 0.5),
-    0 10px 20px rgba(0, 0, 0, 0.3);
-    
-  /* Gradient text */
-  background: linear-gradient(135deg, #fff, #a29bfe);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+    0 2px 4px rgba(0, 0, 0, 0.8),
+    0 4px 8px rgba(0, 0, 0, 0.6),
+    0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Glitch effect on hover */
+.banner-title:hover {
+  animation: glitchText 0.3s ease-in-out;
+}
+
+@keyframes glitchText {
+  0%, 100% { 
+    text-shadow: 
+      2px 2px 0 rgba(255, 0, 128, 0.8),
+      -2px -2px 0 rgba(0, 212, 255, 0.8);
+  }
+  25% { 
+    text-shadow: 
+      -2px 2px 0 rgba(255, 0, 128, 0.8),
+      2px -2px 0 rgba(0, 212, 255, 0.8);
+  }
+  50% { 
+    text-shadow: 
+      2px -2px 0 rgba(255, 0, 128, 0.8),
+      -2px 2px 0 rgba(0, 212, 255, 0.8);
+  }
 }
 
 /* Meta info */
@@ -108,14 +274,37 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  background: rgba(108, 92, 231, 0.2);
-  border: 1px solid rgba(108, 92, 231, 0.4);
-  border-radius: 20px;
-  color: #a29bfe;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, rgba(255, 0, 128, 0.1), rgba(121, 40, 202, 0.1));
+  border: 2px solid transparent;
+  border-radius: 30px;
+  color: #fff;
   font-size: 14px;
-  font-weight: 600;
-  backdrop-filter: blur(10px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.meta-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  background: var(--gradient-primary);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  border-radius: 30px;
+  opacity: 0.8;
+}
+
+.meta-item:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 10px 30px rgba(255, 0, 128, 0.3);
 }
 
 .meta-item .icon {
@@ -160,23 +349,82 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #6c5ce7, #5f4fd8);
+  background: var(--gradient-primary);
   color: white;
-  box-shadow: 0 8px 24px rgba(108, 92, 231, 0.4);
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  box-shadow: 
+    0 8px 24px rgba(255, 0, 128, 0.3),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 
+    0 12px 32px rgba(255, 0, 128, 0.4),
+    0 0 60px rgba(255, 0, 128, 0.2),
+    inset 0 0 30px rgba(255, 255, 255, 0.2);
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
   color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  position: relative;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: var(--gradient-accent);
+  border-radius: 12px;
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.btn-secondary:hover::after {
+  opacity: 0.3;
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
 }
 
 .banner-actions .btn .icon {
   font-size: 18px;
 }
 
-/* Navigation buttons */
+/* Enhanced navigation buttons với neon effect */
 .banner-nav {
   position: absolute;
   top: 50%;
@@ -185,58 +433,124 @@
   transform: translateY(-50%);
   display: flex;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 30px;
   pointer-events: none;
-  z-index: 4;
+  z-index: 5;
 }
 
 .nav-btn {
-  width: 50px;
-  height: 50px;
-  background: rgba(255, 255, 255, 0.1);
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.05)
+  );
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   color: white;
-  font-size: 24px;
+  font-size: 28px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(20px) saturate(1.5);
   pointer-events: all;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-btn::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.nav-btn:hover::before {
+  opacity: 0.5;
 }
 
 .nav-btn:hover {
-  background: rgba(108, 92, 231, 0.4);
-  border-color: #6c5ce7;
+  transform: scale(1.15);
+  border-color: var(--primary);
+  box-shadow: 
+    0 0 30px rgba(255, 0, 128, 0.4),
+    0 0 50px rgba(121, 40, 202, 0.3);
 }
 
-/* Dot indicators */
+.nav-btn:active {
+  transform: scale(1.05);
+}
+
+/* Enhanced dot indicators với progress ring */
 .banner-dots {
   position: absolute;
   bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 10px;
-  z-index: 4;
+  gap: 15px;
+  padding: 10px 20px;
+  background: rgba(10, 10, 15, 0.8);
+  backdrop-filter: blur(20px);
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 6;
 }
 
 .dot {
-  width: 10px;
-  height: 10px;
-  background: rgba(255, 255, 255, 0.3);
-  border: 2px solid transparent;
+  width: 12px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.dot::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid transparent;
   transition: all 0.3s ease;
 }
 
 .dot.active {
-  background: #6c5ce7;
-  border-color: rgba(108, 92, 231, 0.4);
-  box-shadow: 0 0 15px rgba(108, 92, 231, 0.6);
+  background: var(--gradient-primary);
+  border-color: transparent;
+  box-shadow: 
+    0 0 20px rgba(255, 0, 128, 0.6),
+    0 0 40px rgba(121, 40, 202, 0.4);
+}
+
+.dot.active::after {
+  border-color: rgba(255, 0, 128, 0.5);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+}
+
+.dot:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(1.2);
 }
 
 /* Auto-play toggle */

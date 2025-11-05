@@ -7,28 +7,40 @@
 
 /* CSS Variables */
 :root {
-  /* Colors */
-  --bg: #0f0f12;
-  --bg-elev: #15161a;
-  --text: #e8e8ea;
-  --text-muted: #a0a0a8;
-  --primary: #6c5ce7;
-  --primary-hover: #5f4fd8;
-  --card: #1a1b21;
-  --border: #2a2c35;
-  --success: #00b894;
-  --warning: #fdcb6e;
-  --error: #ff6b6b;
+  /* Colors - Vibrant Neon Palette */
+  --bg: #0a0a0f;
+  --bg-elev: #12121a;
+  --text: #f5f5f7;
+  --text-muted: #a8a8b8;
+  --primary: #7928ca;
+  --primary-hover: #6a21b8;
+  --secondary: #ff0080;
+  --secondary-hover: #e60074;
+  --accent: #00d4ff;
+  --accent-hover: #00b8e6;
+  --card: #161622;
+  --card-hover: #1a1a2e;
+  --border: #2a2a3e;
+  --success: #50fa7b;
+  --warning: #ffb86c;
+  --error: #ff5555;
   
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #6c5ce7, #5f4fd8);
-  --gradient-card: linear-gradient(135deg, rgba(26, 27, 33, 0.8), rgba(21, 22, 26, 0.9));
+  /* Neon Gradients */
+  --gradient-primary: linear-gradient(135deg, #7928ca 0%, #ff0080 100%);
+  --gradient-secondary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-accent: linear-gradient(135deg, #00d4ff 0%, #7928ca 100%);
+  --gradient-card: linear-gradient(135deg, rgba(22, 22, 34, 0.95), rgba(26, 26, 46, 0.85));
+  --gradient-neon: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --gradient-vibrant: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  --gradient-dark: linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 100%);
   
-  /* Shadows */
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.15);
-  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.2);
+  /* Enhanced Shadows với glow effects */
+  --shadow-sm: 0 2px 8px rgba(121, 40, 202, 0.1);
+  --shadow-md: 0 4px 16px rgba(121, 40, 202, 0.15);
+  --shadow-lg: 0 10px 32px rgba(121, 40, 202, 0.2);
+  --shadow-xl: 0 20px 48px rgba(121, 40, 202, 0.25);
+  --shadow-neon: 0 0 40px rgba(255, 0, 128, 0.4);
+  --shadow-glow: 0 0 80px rgba(121, 40, 202, 0.5);
   
   /* Spacing */
   --spacing-xs: 4px;

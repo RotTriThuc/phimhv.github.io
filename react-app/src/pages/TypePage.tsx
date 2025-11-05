@@ -1,13 +1,8 @@
 /**
- * CountryPage Component
+ * TypePage Component
  * 
- * Browse movies by country
- * Dynamic route: /country/:slug
- * 
- * Features:
- * - Pagination support
- * - Grid layout
- * - Optimized images
+ * Browse movies by type (phim-bo, phim-le, hoat-hinh, tv-shows)
+ * Dynamic route: /danh-sach/:type
  */
 
 import { motion } from 'framer-motion';
@@ -18,28 +13,52 @@ import { movieApi } from '../services/movieApi';
 import type { Movie } from '../services/movieApi';
 import './AnimeListPage.css';
 
-const CountryPage = () => {
-  const { slug } = useParams<{ slug: string }>();
+const TypePage = () => {
+  const { type } = useParams<{ type: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parseInt(searchParams.get('page') || '1');
   
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
-  const [countryName, setCountryName] = useState('');
   const [totalPages, setTotalPages] = useState(1);
+
+  // Map type slug to display name
+  const getTypeName = () => {
+    switch (type) {
+      case 'phim-bo': return 'Phim Bộ';
+      case 'phim-le': return 'Phim Lẻ';
+      case 'hoat-hinh': return 'Phim Hoạt Hình';
+      case 'tv-shows': return 'TV Shows';
+      case 'phim-vietsub': return 'Phim Vietsub';
+      case 'phim-thuyet-minh': return 'Phim Thuyết Minh';
+      case 'phim-long-tieng': return 'Phim Lồng Tiếng';
+      default: return type;
+    }
+  };
 
   useEffect(() => {
     const fetchMovies = async () => {
-      if (!slug) return;
+      if (!type) return;
+      
+      // Validate type
+      const validTypes = ['phim-bo', 'phim-le', 'tv-shows', 'hoat-hinh', 'phim-vietsub', 'phim-thuyet-minh', 'phim-long-tieng'];
+      if (!validTypes.includes(type)) {
+        console.error('Invalid type:', type);
+        setLoading(false);
+        return;
+      }
       
       try {
         setLoading(true);
-        const response = await movieApi.getMoviesByCountry(slug, {
-          page,
-          limit: 24,
-          sort_field: 'modified.time',
-          sort_type: 'desc',
-        });
+        const response = await movieApi.getMoviesByType(
+          type as any,
+          {
+            page,
+            limit: 24,
+            sort_field: 'modified.time',
+            sort_type: 'desc',
+          }
+        );
         
         if (response.status && response.data?.items) {
           const optimizedMovies = response.data.items.map(movie => ({
@@ -49,14 +68,6 @@ const CountryPage = () => {
           }));
           setMovies(optimizedMovies);
           
-          // Extract country name
-          if (response.data.breadCrumb && response.data.breadCrumb.length > 0) {
-            const currentCrumb = response.data.breadCrumb.find(b => b.isCurrent);
-            if (currentCrumb) {
-              setCountryName(currentCrumb.name);
-            }
-          }
-          
           // Set pagination
           if (response.data.params?.pagination) {
             setTotalPages(response.data.params.pagination.totalPages || 1);
@@ -65,7 +76,7 @@ const CountryPage = () => {
           setMovies([]);
         }
       } catch (error) {
-        console.error('Failed to fetch country movies:', error);
+        console.error('Failed to fetch movies:', error);
         setMovies([]);
       } finally {
         setLoading(false);
@@ -73,7 +84,7 @@ const CountryPage = () => {
     };
     
     fetchMovies();
-  }, [slug, page]);
+  }, [type, page]);
 
   const handlePageChange = (newPage: number) => {
     setSearchParams({ page: newPage.toString() });
@@ -108,8 +119,8 @@ const CountryPage = () => {
       >
         <div className="container">
           <h1 className="anime-title">
-            <span className="anime-icon">🌍</span>
-            {countryName || slug}
+            <span className="anime-icon">🎬</span>
+            {getTypeName()}
           </h1>
           <p className="category-count" style={{ marginTop: '20px', fontSize: '16px', color: 'var(--text-muted)' }}>
             Trang {page} / {totalPages}
@@ -183,9 +194,9 @@ const CountryPage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          <span className="no-results-icon">🌏</span>
+          <span className="no-results-icon">🎭</span>
           <h3>Không có phim nào</h3>
-          <p>Quốc gia này chưa có phim</p>
+          <p>Loại phim này chưa có dữ liệu</p>
         </motion.div>
       )}
       </div>
@@ -193,5 +204,4 @@ const CountryPage = () => {
   );
 };
 
-export default CountryPage;
-
+export default TypePage;

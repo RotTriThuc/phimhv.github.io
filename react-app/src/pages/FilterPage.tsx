@@ -16,10 +16,11 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import MovieCard3D from '../components/MovieCard3D';
+import MovieCard from '../components/MovieCard';
 import { movieApi } from '../services/movieApi';
 import type { Movie } from '../services/movieApi';
 import './FilterPage.css';
+import './AnimeListPage.css';
 
 // Categories data (sync with Header)
 const CATEGORIES = [
@@ -27,7 +28,6 @@ const CATEGORIES = [
   { name: 'Hài hước', slug: 'hai-huoc' },
   { name: 'Tình cảm', slug: 'tinh-cam' },
   { name: 'Phiêu lưu', slug: 'phieu-luu' },
-  { name: 'Hoạt hình', slug: 'hoat-hinh' },
   { name: 'Kinh dị', slug: 'kinh-di' },
   { name: 'Khoa học viễn tưởng', slug: 'khoa-hoc-vien-tuong' },
   { name: 'Hình sự', slug: 'hinh-su' },
@@ -668,16 +668,12 @@ const FilterPage = () => {
             {/* Movies Grid */}
             {movies.length > 0 ? (
               <>
-                <div className="movies-grid">
-                  {movies.map((movie, index) => (
-                    <motion.div
-                      key={movie.slug}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.03 }}
-                    >
-                      <MovieCard3D movie={movie} />
-                    </motion.div>
+                <div className="anime-movies-grid">
+                  {movies.map((movie) => (
+                    <MovieCard
+                      key={movie._id || movie.slug}
+                      movie={movie}
+                    />
                   ))}
                 </div>
 

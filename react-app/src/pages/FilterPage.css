@@ -154,6 +154,15 @@
   text-align: center;
 }
 
+/* Movies Grid - giống AnimeListPage */
+.movies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) 0;
+  margin-bottom: var(--spacing-xl);
+}
+
 /* Pagination */
 .pagination {
   display: flex;

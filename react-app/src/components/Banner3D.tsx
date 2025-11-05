@@ -81,34 +81,55 @@ const Banner3D: React.FC<Banner3DProps> = ({
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlay, setIsAutoPlay] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
+  const [direction, setDirection] = useState(0);
   const currentMovie = movies[currentIndex] || null;
+  const progressRef = useRef<number | null>(null);
 
-  // Auto-play functionality
+  // Enhanced auto-play với pause on hover
   useEffect(() => {
-    if (!isAutoPlay || movies.length <= 1) return;
+    if (!isAutoPlay || isPaused || movies.length <= 1) return;
 
-    const interval = setInterval(() => {
+    progressRef.current = setInterval(() => {
+      setDirection(1);
       setCurrentIndex((prev) => (prev + 1) % movies.length);
     }, autoPlayInterval);
 
-    return () => clearInterval(interval);
-  }, [isAutoPlay, movies.length, autoPlayInterval]);
+    return () => {
+      if (progressRef.current) {
+        clearInterval(progressRef.current);
+      }
+    };
+  }, [isAutoPlay, isPaused, movies.length, autoPlayInterval, currentIndex]);
 
-  // Navigation handlers
+  // Enhanced navigation handlers với direction tracking
   const handlePrev = () => {
+    setDirection(-1);
     setCurrentIndex((prev) => (prev - 1 + movies.length) % movies.length);
     setIsAutoPlay(false);
   };
 
   const handleNext = () => {
+    setDirection(1);
     setCurrentIndex((prev) => (prev + 1) % movies.length);
     setIsAutoPlay(false);
   };
 
   const handleDotClick = (index: number) => {
+    setDirection(index > currentIndex ? 1 : -1);
     setCurrentIndex(index);
     setIsAutoPlay(false);
   };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') handlePrev();
+      if (e.key === 'ArrowRight') handleNext();
+    };
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
 
   if (!currentMovie || movies.length === 0) {
     return (
@@ -118,9 +139,37 @@ const Banner3D: React.FC<Banner3DProps> = ({
     );
   }
 
+  // Slide animation variants
+  const slideVariants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 1000 : -1000,
+      opacity: 0,
+      scale: 0.8,
+      rotateY: direction > 0 ? 45 : -45,
+    }),
+    center: {
+      zIndex: 1,
+      x: 0,
+      opacity: 1,
+      scale: 1,
+      rotateY: 0,
+    },
+    exit: (direction: number) => ({
+      zIndex: 0,
+      x: direction < 0 ? 1000 : -1000,
+      opacity: 0,
+      scale: 0.8,
+      rotateY: direction < 0 ? 45 : -45,
+    }),
+  };
+
   return (
-    <div className="banner-3d">
-      {/* 3D Particle Background */}
+    <div 
+      className="banner-3d"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      {/* 3D Particle Background với reduced particles for performance */}
       <div className="banner-3d-canvas">
         <Canvas 
           camera={{ position: [0, 0, 30], fov: 75 }}
@@ -142,19 +191,47 @@ const Banner3D: React.FC<Banner3DProps> = ({
         </Canvas>
       </div>
 
-      {/* Content overlay */}
+      {/* Enhanced carousel content với thumbnail preview */}
       <div className="banner-content">
-        <AnimatePresence mode="wait">
+        {/* Thumbnail strip cho preview */}
+        <div className="banner-thumbnails">
+          {movies.map((movie, index) => (
+            <motion.div
+              key={index}
+              className={`thumbnail-item ${index === currentIndex ? 'active' : ''}`}
+              onClick={() => handleDotClick(index)}
+              whileHover={{ scale: 1.05 }}
+              animate={{ 
+                opacity: index === currentIndex ? 1 : 0.5,
+                scale: index === currentIndex ? 1.1 : 1
+              }}
+            >
+              <img 
+                src={movie.poster_url} 
+                alt={movie.name}
+                loading="lazy"
+              />
+              <div className="thumbnail-overlay">
+                <span>{index + 1}</span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={currentIndex}
             className="banner-slide"
-            initial={{ opacity: 0, x: 100, scale: 0.9 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: -100, scale: 0.9 }}
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
             transition={{
-              type: 'spring',
-              stiffness: 100,
-              damping: 20,
+              x: { type: "spring", stiffness: 300, damping: 30 },
+              opacity: { duration: 0.3 },
+              scale: { duration: 0.3 },
+              rotateY: { duration: 0.4 },
             }}
           >
             {/* Background poster với blur effect - images already optimized */}

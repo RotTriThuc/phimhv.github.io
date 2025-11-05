@@ -19,16 +19,16 @@ import './Header.css';
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [showCountryMenu, setShowCountryMenu] = useState(false);
-  const { scrollY } = useScroll();
   const navigate = useNavigate();
+  const { scrollY } = useScroll();
 
   // Handle scroll to add/remove header shadow
   useMotionValueEvent(scrollY, "change", (latest) => {
-    setIsScrolled(latest > 50);
+    setIsScrolled((latest as number) > 50);
   });
 
   // Handle search submit
@@ -66,28 +66,24 @@ const Header = () => {
           <span className="brand-text">PhimHV</span>
         </Link>
 
-        {/* Search Bar */}
-        <form className="search-form" onSubmit={handleSearch}>
-          <motion.div
-            className="search-wrapper"
-            whileFocus={{ scale: 1.02 }}
-          >
-            <input
-              type="search"
-              className="search-input"
-              placeholder="Tìm kiếm phim, anime... (Nhấn Enter)"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              autoComplete="off"
-            />
-          </motion.div>
-        </form>
-
         {/* Navigation */}
         <nav className={`nav ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
-          <Link to="/" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
+          <Link to="/danh-sach/phim-le" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
             <motion.span whileHover={{ scale: 1.05 }}>
-              🏠 Trang chủ
+              Phim Lẻ
+            </motion.span>
+          </Link>
+          
+          <Link to="/danh-sach/phim-bo" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
+            <motion.span whileHover={{ scale: 1.05 }}>
+              Phim Bộ
+            </motion.span>
+          </Link>
+
+          {/* Link Hoạt Hình/Anime */}
+          <Link to="/danh-sach/hoat-hinh" className="nav-link anime-link" onClick={() => setIsMobileMenuOpen(false)}>
+            <motion.span whileHover={{ scale: 1.05 }}>
+              🎌 Hoạt Hình
             </motion.span>
           </Link>
           
@@ -98,7 +94,7 @@ const Header = () => {
             onMouseLeave={() => setShowCategoryMenu(false)}
           >
             <motion.span className="nav-link" whileHover={{ scale: 1.05 }}>
-              🎭 Thể loại
+              Thể loại
             </motion.span>
             {showCategoryMenu && (
               <motion.div
@@ -108,21 +104,22 @@ const Header = () => {
                 exit={{ opacity: 0, y: -10 }}
               >
                 {[
-                  { name: 'Hành động', slug: 'hanh-dong' },
-                  { name: 'Hài hước', slug: 'hai-huoc' },
-                  { name: 'Tình cảm', slug: 'tinh-cam' },
-                  { name: 'Phiêu lưu', slug: 'phieu-luu' },
-                  { name: 'Hoạt hình', slug: 'hoat-hinh' },
-                  { name: 'Kinh dị', slug: 'kinh-di' },
-                  { name: 'Khoa học viễn tưởng', slug: 'khoa-hoc-vien-tuong' },
-                  { name: 'Hình sự', slug: 'hinh-su' },
-                  { name: 'Võ thuật', slug: 'vo-thuat' },
-                  { name: 'Tâm lý', slug: 'tam-ly' },
-                  { name: 'Chiến tranh', slug: 'chien-tranh' },
-                  { name: 'Học đường', slug: 'hoc-duong' },
-                  { name: 'Gia đình', slug: 'gia-dinh' },
-                  { name: 'Âm nhạc', slug: 'am-nhac' },
-                  { name: 'Thần thoại', slug: 'than-thoai' },
+                  { name: '🗡️ Hành động', slug: 'hanh-dong' },
+                  { name: '😂 Hài hước', slug: 'hai-huoc' },
+                  { name: '💕 Tình cảm', slug: 'tinh-cam' },
+                  { name: '🗺️ Phiêu lưu', slug: 'phieu-luu' },
+                  { name: '👻 Kinh dị', slug: 'kinh-di' },
+                  { name: '🚀 Khoa học viễn tưởng', slug: 'khoa-hoc-vien-tuong' },
+                  { name: '🔍 Hình sự', slug: 'hinh-su' },
+                  { name: '🥋 Võ thuật', slug: 'vo-thuat' },
+                  { name: '🧠 Tâm lý', slug: 'tam-ly' },
+                  { name: '⚔️ Chiến tranh', slug: 'chien-tranh' },
+                  { name: '🎒 Học đường', slug: 'hoc-duong' },
+                  { name: '👨‍👩‍👦 Gia đình', slug: 'gia-dinh' },
+                  { name: '🎵 Âm nhạc', slug: 'am-nhac' },
+                  { name: '🐉 Thần thoại', slug: 'than-thoai' },
+                  { name: '🏆 Thể thao', slug: 'the-thao' },
+                  { name: '🎭 Drama', slug: 'drama' },
                 ].map(category => (
                   <Link
                     key={category.slug}
@@ -147,7 +144,7 @@ const Header = () => {
             onMouseLeave={() => setShowCountryMenu(false)}
           >
             <motion.span className="nav-link" whileHover={{ scale: 1.05 }}>
-              🌍 Quốc gia
+              Quốc gia
             </motion.span>
             {showCountryMenu && (
               <motion.div
@@ -188,31 +185,36 @@ const Header = () => {
               </motion.div>
             )}
           </div>
-          
-          <Link to="/filter" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
-            <motion.span whileHover={{ scale: 1.05 }}>
-              🔍 Bộ lọc
-            </motion.span>
-          </Link>
-          
-          <Link to="/saved" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
-            <motion.span whileHover={{ scale: 1.05 }}>
-              ❤️ Đã lưu
-            </motion.span>
-          </Link>
 
         </nav>
 
-        {/* User actions */}
-        <div className="header-actions">
-          {/* Theme toggle */}
+        {/* Search Bar + Actions */}
+        <div className="header-right">
+          <form className="search-form" onSubmit={handleSearch}>
+            <div className="search-wrapper">
+              <span className="search-icon">🔍</span>
+              <input
+                type="search"
+                className="search-input"
+                placeholder="Tìm kiếm..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+          </form>
+
+          <Link to="/saved" className="icon-btn" title="Đã lưu">
+            <motion.span whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+              ❤️
+            </motion.span>
+          </Link>
+
           <motion.button
-            className="theme-toggle"
-            whileHover={{ scale: 1.1, rotate: 15 }}
+            className="icon-btn"
+            whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            onClick={() => {
-              document.body.classList.toggle('light-theme');
-            }}
+            onClick={() => document.body.classList.toggle('light-theme')}
             title="Đổi giao diện"
           >
             🌙

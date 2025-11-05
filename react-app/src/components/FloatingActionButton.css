@@ -1,0 +1,236 @@
+/**
+ * FloatingActionButton Styles
+ * 
+ * Cyberpunk neon theme với animations đẹp mắt
+ */
+
+.fab-container {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  z-index: 1000;
+}
+
+/* Main FAB button */
+.fab-main {
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: visible;
+  box-shadow: 
+    0 8px 24px rgba(255, 0, 128, 0.4),
+    0 0 40px rgba(121, 40, 202, 0.3),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fab-main::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  opacity: 0.3;
+  filter: blur(10px);
+  animation: fabGlow 3s ease-in-out infinite;
+}
+
+@keyframes fabGlow {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% { 
+    transform: scale(1.1);
+    opacity: 0.5;
+  }
+}
+
+.fab-main-icon {
+  font-size: 28px;
+  color: white;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+  transition: transform 0.3s ease;
+}
+
+.fab-main-active {
+  background: var(--gradient-accent);
+  box-shadow: 
+    0 10px 30px rgba(0, 212, 255, 0.4),
+    0 0 50px rgba(0, 212, 255, 0.3);
+}
+
+/* Pulsing rings */
+.fab-pulse-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 0, 128, 0.5);
+  animation: pulseRing 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+  pointer-events: none;
+}
+
+.fab-pulse-ring:nth-child(2) {
+  animation-delay: 0.5s;
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Action buttons */
+.fab-action {
+  position: absolute;
+  bottom: 0;
+  right: 10px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.3),
+    inset 0 0 15px rgba(255, 255, 255, 0.1);
+  z-index: 999;
+  overflow: visible;
+  backdrop-filter: blur(10px);
+}
+
+.fab-action::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  padding: 2px;
+  background: var(--gradient-primary);
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.8;
+}
+
+.fab-action-icon {
+  font-size: 22px;
+  color: white;
+  filter: drop-shadow(0 0 8px currentColor);
+  z-index: 1;
+}
+
+.fab-action-label {
+  position: absolute;
+  right: 60px;
+  background: linear-gradient(135deg, rgba(22, 22, 34, 0.98), rgba(26, 26, 46, 0.95));
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateX(10px);
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(121, 40, 202, 0.2);
+  transition: all 0.3s ease;
+}
+
+.fab-action:hover .fab-action-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Backdrop */
+.fab-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 15, 0.5);
+  backdrop-filter: blur(5px);
+  z-index: 998;
+  cursor: pointer;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .fab-container {
+    bottom: 20px;
+    right: 20px;
+  }
+
+  .fab-main {
+    width: 55px;
+    height: 55px;
+  }
+
+  .fab-main-icon {
+    font-size: 24px;
+  }
+
+  .fab-action {
+    width: 45px;
+    height: 45px;
+  }
+
+  .fab-action-icon {
+    font-size: 20px;
+  }
+
+  .fab-action-label {
+    display: none;
+  }
+}
+
+/* Hover effects */
+.fab-main:hover {
+  transform: scale(1.1) rotate(15deg);
+  box-shadow: 
+    0 12px 32px rgba(255, 0, 128, 0.5),
+    0 0 60px rgba(121, 40, 202, 0.4);
+}
+
+.fab-action:hover {
+  transform: scale(1.15);
+  box-shadow: 
+    0 8px 24px rgba(255, 0, 128, 0.4),
+    0 0 40px rgba(0, 212, 255, 0.3);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .fab-pulse-ring,
+  .fab-main::before {
+    animation: none;
+  }
+  
+  .fab-main,
+  .fab-action {
+    transition: none;
+  }
+}

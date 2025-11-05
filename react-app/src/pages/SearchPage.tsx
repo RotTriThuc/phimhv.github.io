@@ -1,9 +1,10 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import MovieCard3D from '../components/MovieCard3D';
+import MovieCard from '../components/MovieCard';
 import { movieApi } from '../services/movieApi';
 import type { Movie } from '../services/movieApi';
+import './AnimeListPage.css';
 
 const SearchPage = () => {
   const [searchParams] = useSearchParams();
@@ -51,36 +52,48 @@ const SearchPage = () => {
 
   return (
     <motion.div
-      className="container"
-      style={{ padding: '40px 20px' }}
+      className="anime-list-page"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <h1>Kết quả tìm kiếm: "{query}"</h1>
-      <div className="movie-grid" style={{ marginTop: '30px' }}>
+      <motion.div
+        className="anime-header"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="container">
+          <h1 className="anime-title">
+            <span className="anime-icon">🔍</span>
+            Kết quả tìm kiếm: "{query}"
+          </h1>
+        </div>
+      </motion.div>
+
+      <div className="container">
         {loading ? (
           <div className="loading-spinner" />
         ) : movies.length > 0 ? (
-          movies.map((movie) => (
-            <MovieCard3D 
-              key={movie.slug} 
-              movie={{
-                slug: movie.slug,
-                name: movie.name,
-                poster_url: movie.poster_url,
-                thumb_url: movie.thumb_url,
-                year: movie.year,
-                quality: movie.quality,
-                episode_current: movie.episode_current,
-                lang: movie.lang,
-              }} 
-            />
-          ))
+          <div className="anime-movies-grid">
+            {movies.map((movie) => (
+              <MovieCard
+                key={movie._id || movie.slug}
+                movie={movie}
+              />
+            ))}
+          </div>
         ) : query ? (
-          <p>Không tìm thấy kết quả cho "{query}"</p>
+          <div className="no-results">
+            <span className="no-results-icon">🔍</span>
+            <h3>Không tìm thấy kết quả</h3>
+            <p>Không tìm thấy kết quả cho "{query}"</p>
+          </div>
         ) : (
-          <p>Nhập từ khóa để tìm kiếm phim</p>
+          <div className="no-results">
+            <span className="no-results-icon">🎬</span>
+            <h3>Tìm kiếm phim</h3>
+            <p>Nhập từ khóa để tìm kiếm phim</p>
+          </div>
         )}
       </div>
     </motion.div>

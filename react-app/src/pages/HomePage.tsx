@@ -27,70 +27,68 @@ const HomePage = () => {
   const [bannerMovies, setBannerMovies] = useState<Movie[]>([]);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const { saveMovie, isMovieSaved } = useFirebase();
 
-  // Fetch movies from API using new service
+  // Fetch movies from API using new service - Load nhiều pages ngay từ đầu
   useEffect(() => {
     const fetchMovies = async () => {
       try {
         setLoading(true);
         console.log('🎬 Fetching movies from API...');
         
-        // Fetch phim mới cập nhật (theo API docs: https://kkphim.com/tai-lieu-api)
-        // Endpoint: GET https://phimapi.com/danh-sach/phim-moi-cap-nhat?page=1
-        // Returns DirectApiResponse: { status, items: [...], pagination: {...} }
-        const response = await movieApi.getNewMovies(1);
-        console.log('📦 API Response:', response);
-        console.log('🔍 Response structure:', {
-          hasStatus: 'status' in response,
-          status: response.status,
-          hasItems: 'items' in response && response.items ? 'YES' : 'NO',
-          itemsLength: response.items?.length || 0,
-          hasPagination: 'pagination' in response,
-        });
-
-        // DirectApiResponse structure: items at root level
-        let movieList: Movie[] = [];
+        // Load 5 pages để có đủ phim hiển thị (khoảng 60-80 phim)
+        const pagesToLoad = 5;
+        let allMovies: Movie[] = [];
         
-        if (response.status && response.items) {
-          // DirectApiResponse structure
-          movieList = response.items;
-          console.log(`✅ Found ${movieList.length} movies in response.items`);
-          
-          // Check pagination (at root level)
-          if (response.pagination) {
-            const { currentPage, totalPages } = response.pagination;
-            setHasMore(currentPage < totalPages);
-            console.log(`📄 Pagination: page ${currentPage}/${totalPages}`);
+        for (let page = 1; page <= pagesToLoad; page++) {
+          try {
+            console.log(`📄 Loading page ${page}/${pagesToLoad}...`);
+            const response = await movieApi.getNewMovies(page);
+            
+            if (response.status && response.items) {
+              const pageMovies = response.items;
+              console.log(`✅ Page ${page}: ${pageMovies.length} movies`);
+              
+              // Optimize images
+              const optimizedMovies = pageMovies.map(movie => ({
+                ...movie,
+                poster_url: movieApi.optimizeImage(movie.poster_url),
+                thumb_url: movieApi.optimizeImage(movie.thumb_url),
+              }));
+              
+              allMovies = [...allMovies, ...optimizedMovies];
+              
+              // Check if there are more pages
+              if (response.pagination) {
+                const { currentPage: apiPage, totalPages } = response.pagination;
+                
+                // Stop early if no more pages
+                if (apiPage >= totalPages) {
+                  console.log(`🛑 Reached last page at ${apiPage}`);
+                  break;
+                }
+              }
+            } else {
+              console.warn(`⚠️ Page ${page} returned no items`);
+              break;
+            }
+          } catch (pageErr) {
+            console.error(`❌ Error loading page ${page}:`, pageErr);
+            // Continue with what we have
+            break;
           }
-        } else {
-          console.warn('⚠️ API returned no items or invalid response:', response);
-          console.log('Response keys:', Object.keys(response as any));
-          setError('Không có dữ liệu phim. API có thể đang bảo trì.');
-          setLoading(false);
-          return;
         }
-
-        if (movieList.length > 0) {
-          // Optimize images to WebP
-          const optimizedMovies = movieList.map(movie => ({
-            ...movie,
-            poster_url: movieApi.optimizeImage(movie.poster_url),
-            thumb_url: movieApi.optimizeImage(movie.thumb_url),
-          }));
-          
-          setMovies(optimizedMovies);
+        
+        if (allMovies.length > 0) {
+          setMovies(allMovies);
           
           // Set top 5 movies for banner
-          setBannerMovies(optimizedMovies.slice(0, 5));
-          console.log(`🎯 Banner: ${optimizedMovies.slice(0, 5).length} movies`);
-          console.log(`🎬 Total movies loaded: ${optimizedMovies.length}`);
+          setBannerMovies(allMovies.slice(0, 5));
+          console.log(`🎯 Banner: ${allMovies.slice(0, 5).length} movies`);
+          console.log(`🎬 Total movies loaded: ${allMovies.length}`);
         } else {
-          console.warn('⚠️ Movie list is empty');
+          console.warn('⚠️ No movies loaded');
           setError('Không tìm thấy phim nào.');
         }
 
@@ -104,76 +102,6 @@ const HomePage = () => {
 
     fetchMovies();
   }, []);
-
-  // Load more movies
-  const loadMoreMovies = async () => {
-    if (loadingMore || !hasMore) {
-      console.log('⚠️ Load more blocked:', { loadingMore, hasMore });
-      return;
-    }
-    
-    try {
-      setLoadingMore(true);
-      const nextPage = currentPage + 1;
-      console.log(`📄 Loading page ${nextPage}...`);
-      console.log(`📊 Current movies count: ${movies.length}`);
-      
-      const response = await movieApi.getNewMovies(nextPage);
-      console.log(`📦 Page ${nextPage} response:`, response);
-      
-      let movieList: Movie[] = [];
-      if (response.status && response.items) {
-        movieList = response.items;
-        console.log(`📥 Received ${movieList.length} movies for page ${nextPage}`);
-        
-        // Check pagination (at root level for DirectApiResponse)
-        if (response.pagination) {
-          const { currentPage: apiPage, totalPages } = response.pagination;
-          setHasMore(apiPage < totalPages);
-          console.log(`📄 Load More Pagination: page ${apiPage}/${totalPages}`);
-        }
-      } else {
-        console.error('❌ Invalid response structure:', response);
-        alert('Không thể tải thêm phim. Vui lòng thử lại!');
-        setLoadingMore(false);
-        return;
-      }
-
-      if (movieList.length > 0) {
-        // Optimize images
-        const optimizedMovies = movieList.map(movie => ({
-          ...movie,
-          poster_url: movieApi.optimizeImage(movie.poster_url),
-          thumb_url: movieApi.optimizeImage(movie.thumb_url),
-        }));
-        
-        // Append to existing movies
-        setMovies(prev => {
-          console.log(`🔄 Updating movies: ${prev.length} + ${optimizedMovies.length} = ${prev.length + optimizedMovies.length}`);
-          return [...prev, ...optimizedMovies];
-        });
-        setCurrentPage(nextPage);
-        console.log(`✅ Loaded ${optimizedMovies.length} more movies. Total: ${movies.length + optimizedMovies.length}`);
-        
-        // Scroll to first new movie
-        setTimeout(() => {
-          const firstNewMovie = document.querySelectorAll('.movie-grid > div')[movies.length];
-          if (firstNewMovie) {
-            firstNewMovie.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }, 100);
-      } else {
-        console.warn('⚠️ No movies received from API');
-        setHasMore(false);
-        alert('Không còn phim để tải!');
-      }
-    } catch (err) {
-      console.error('❌ Failed to load more movies:', err);
-      alert(`Lỗi khi tải thêm phim: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
 
   // Handle save movie
   const handleSaveMovie = async (movie: Movie) => {
@@ -247,88 +175,346 @@ const HomePage = () => {
 
       {/* Main content */}
       <div className="container">
-        {/* Section header */}
-        <motion.div
-          className="section-header"
+        {/* PHIM MỚI CẬP NHẬT - Luôn ở trên cùng */}
+        <motion.section
+          className="movie-section"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <h2 className="section-title">
-            <span className="title-icon">🔥</span>
-            Anime Hot Nhất
-          </h2>
-          <p className="section-subtitle">
-            Khám phá những bộ anime đỉnh cao được yêu thích nhất
-          </p>
-        </motion.div>
-
-        {/* Movie grid với staggered animation */}
-        <div className="movie-grid">
-          {movies.map((movie, index) => (
-            <motion.div
-              key={`${movie.slug}-${index}`}
-              initial={{ opacity: 0, y: 20, scale: 0.9 }}
-              animate={{ 
-                opacity: 1, 
-                y: 0, 
-                scale: 1,
-              }}
-              transition={{
-                type: 'spring',
-                stiffness: 100,
-                damping: 15,
-                delay: index < 10 ? index * 0.05 : 0, // Only stagger first page
-              }}
-              layout
+          {/* Section header với nút "Xem thêm" */}
+          <div className="section-header-flex">
+            <div className="section-title-group">
+              <h2 className="section-title-large">
+                <span className="title-icon">🔥</span>
+                PHIM MỚI CẬP NHẬT
+              </h2>
+              <p className="section-description">
+                Cập nhật liên tục những bộ phim mới nhất mỗi ngày
+              </p>
+            </div>
+            <motion.a
+              href="/category/phim-moi"
+              className="btn-see-more"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <MovieCard3D
-                movie={movie}
-                onSave={() => handleSaveMovie(movie)}
-                onWatch={() => handleWatchMovie(movie.slug)}
-              />
-            </motion.div>
-          ))}
-        </div>
+              Xem tất cả <span className="arrow">→</span>
+            </motion.a>
+          </div>
 
+          {/* Movie grid với staggered animation */}
+          <div className="movie-grid">
+            {movies.slice(0, 18).map((movie, index) => (
+              <motion.div
+                key={`${movie.slug}-${index}`}
+                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                animate={{ 
+                  opacity: 1, 
+                  y: 0, 
+                  scale: 1,
+                }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 100,
+                  damping: 15,
+                  delay: index * 0.05,
+                }}
+                layout
+              >
+                <MovieCard3D
+                  movie={movie}
+                  onSave={() => handleSaveMovie(movie)}
+                  onWatch={() => handleWatchMovie(movie.slug)}
+                />
+              </motion.div>
+            ))}
+          </div>
+        </motion.section>
 
-        {/* Load more section */}
-        {hasMore && (
-          <motion.div
-            className="load-more-section"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
+        {/* PHIM ĐỀ CỪU / PHIM HOT */}
+        {movies.length > 18 && (
+          <motion.section
+            className="movie-section"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
           >
-            <motion.button
-              className="btn btn-primary btn-lg"
-              whileHover={!loadingMore ? { scale: 1.05 } : {}}
-              whileTap={!loadingMore ? { scale: 0.95 } : {}}
-              onClick={(e) => {
-                e.preventDefault();
-                console.log('🎯 Load More button clicked!');
-                loadMoreMovies();
-              }}
-              disabled={loadingMore}
-              style={{
-                opacity: loadingMore ? 0.7 : 1,
-                cursor: loadingMore ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {loadingMore ? (
-                <>
-                  <span className="loading-spinner" style={{ marginRight: '10px', width: '20px', height: '20px' }}></span>
-                  Đang tải...
-                </>
-              ) : (
-                <>
-                  <span>🎬</span>
-                  Xem thêm phim (Trang {currentPage + 1})
-                </>
-              )}
-            </motion.button>
-          </motion.div>
+            <div className="section-header-flex">
+              <div className="section-title-group">
+                <h2 className="section-title-large">
+                  <span className="title-icon">⭐</span>
+                  PHIM ĐỀ CỬ
+                </h2>
+                <p className="section-description">
+                  Những bộ phim được đánh giá cao và yêu thích nhất
+                </p>
+              </div>
+              <motion.a
+                href="/category/phim-de-cu"
+                className="btn-see-more"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Xem tất cả <span className="arrow">→</span>
+              </motion.a>
+            </div>
+
+            <div className="movie-grid">
+              {movies.slice(18, 36).map((movie, index) => (
+                <motion.div
+                  key={`hot-${movie.slug}-${index}`}
+                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  whileInView={{ 
+                    opacity: 1, 
+                    y: 0, 
+                    scale: 1,
+                  }}
+                  viewport={{ once: true }}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 100,
+                    damping: 15,
+                    delay: index * 0.03,
+                  }}
+                >
+                  <MovieCard3D
+                    movie={movie}
+                    onSave={() => handleSaveMovie(movie)}
+                    onWatch={() => handleWatchMovie(movie.slug)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </motion.section>
         )}
+
+        {/* PHIM BỘ HOT */}
+        {movies.filter(m => m.type === 'series').length > 0 && (
+          <motion.section
+            className="movie-section"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+          >
+            <div className="section-header-flex">
+              <div className="section-title-group">
+                <h2 className="section-title-large">
+                  <span className="title-icon">📺</span>
+                  PHIM BỘ HOT
+                </h2>
+                <p className="section-description">
+                  Những bộ phim dài tập hấp dẫn nhất
+                </p>
+              </div>
+              <motion.a
+                href="/category/phim-bo"
+                className="btn-see-more"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Xem tất cả <span className="arrow">→</span>
+              </motion.a>
+            </div>
+
+            <div className="movie-grid">
+              {movies.filter(m => m.type === 'series').slice(0, 12).map((movie, index) => (
+                <motion.div
+                  key={`series-${movie.slug}-${index}`}
+                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  whileInView={{ 
+                    opacity: 1, 
+                    y: 0, 
+                    scale: 1,
+                  }}
+                  viewport={{ once: true }}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 100,
+                    damping: 15,
+                    delay: index * 0.03,
+                  }}
+                >
+                  <MovieCard3D
+                    movie={movie}
+                    onSave={() => handleSaveMovie(movie)}
+                    onWatch={() => handleWatchMovie(movie.slug)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </motion.section>
+        )}
+
+        {/* PHIM LẺ HOT */}
+        {movies.filter(m => m.type === 'single').length > 0 && (
+          <motion.section
+            className="movie-section"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+          >
+            <div className="section-header-flex">
+              <div className="section-title-group">
+                <h2 className="section-title-large">
+                  <span className="title-icon">🎬</span>
+                  PHIM LẺ HOT
+                </h2>
+                <p className="section-description">
+                  Những bộ phim điện ảnh chất lượng cao
+                </p>
+              </div>
+              <motion.a
+                href="/category/phim-le"
+                className="btn-see-more"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Xem tất cả <span className="arrow">→</span>
+              </motion.a>
+            </div>
+
+            <div className="movie-grid">
+              {movies.filter(m => m.type === 'single').slice(0, 12).map((movie, index) => (
+                <motion.div
+                  key={`single-${movie.slug}-${index}`}
+                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  whileInView={{ 
+                    opacity: 1, 
+                    y: 0, 
+                    scale: 1,
+                  }}
+                  viewport={{ once: true }}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 100,
+                    damping: 15,
+                    delay: index * 0.03,
+                  }}
+                >
+                  <MovieCard3D
+                    movie={movie}
+                    onSave={() => handleSaveMovie(movie)}
+                    onWatch={() => handleWatchMovie(movie.slug)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </motion.section>
+        )}
+
+        {/* PHIM CHIẾU RẠP */}
+        {movies.filter(m => m.chieurap).length > 0 && (
+          <motion.section
+            className="movie-section"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+          >
+            <div className="section-header-flex">
+              <div className="section-title-group">
+                <h2 className="section-title-large">
+                  <span className="title-icon">🎬</span>
+                  PHIM CHIẾU RẠP
+                </h2>
+                <p className="section-description">
+                  Những bộ phim đang hot tại rạp chiếu
+                </p>
+              </div>
+              <motion.a
+                href="/category/phim-chieu-rap"
+                className="btn-see-more"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Xem tất cả <span className="arrow">→</span>
+              </motion.a>
+            </div>
+
+            <div className="movie-grid">
+              {movies.filter(m => m.chieurap).slice(0, 12).map((movie, index) => (
+                <motion.div
+                  key={`cinema-${movie.slug}-${index}`}
+                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  whileInView={{ 
+                    opacity: 1, 
+                    y: 0, 
+                    scale: 1,
+                  }}
+                  viewport={{ once: true }}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 100,
+                    damping: 15,
+                    delay: index * 0.03,
+                  }}
+                >
+                  <MovieCard3D
+                    movie={movie}
+                    onSave={() => handleSaveMovie(movie)}
+                    onWatch={() => handleWatchMovie(movie.slug)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </motion.section>
+        )}
+
+        {/* PHIM HOT - Hiển thị phim đa dạng */}
+        {movies.length > 36 && (
+          <motion.section
+            className="movie-section"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+          >
+            <div className="section-header-flex">
+              <div className="section-title-group">
+                <h2 className="section-title-large">
+                  <span className="title-icon">🎬</span>
+                  PHIM HOT
+                </h2>
+                <p className="section-description">
+                  Những bộ phim đang thịnh hành và được yêu thích
+                </p>
+              </div>
+            </div>
+
+            <div className="movie-grid">
+              {movies.slice(36, 54).map((movie, index) => (
+                <motion.div
+                  key={`anime-${movie.slug}-${index}`}
+                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  whileInView={{ 
+                    opacity: 1, 
+                    y: 0, 
+                    scale: 1,
+                  }}
+                  viewport={{ once: true }}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 100,
+                    damping: 15,
+                    delay: index * 0.03,
+                  }}
+                >
+                  <MovieCard3D
+                    movie={movie}
+                    onSave={() => handleSaveMovie(movie)}
+                    onWatch={() => handleWatchMovie(movie.slug)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </motion.section>
+        )}
+
+
 
         {/* Categories preview */}
         <motion.div

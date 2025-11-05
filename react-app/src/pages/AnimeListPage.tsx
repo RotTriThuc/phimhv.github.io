@@ -1,26 +1,25 @@
 /**
- * CategoryPage Component
+ * AnimeListPage Component
  * 
- * Browse movies by category/genre with pagination and filters
- * Dynamic route: /category/:slug
+ * Trang hiển thị danh sách phim hoạt hình/anime với pagination
  * 
  * Features:
  * - Pagination (page 1, 2, 3...)
- * - Year and Country filters (dropdown like Anime page)
+ * - Year and Country filters
  * - Fast loading
  */
 
-import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
-import MovieCard from '../components/MovieCard';
+import { useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import LoadingSpinner from '../components/LoadingSpinner';
+import MovieCard from '../components/MovieCard';
 import { movieApi } from '../services/movieApi';
 import type { Movie } from '../services/movieApi';
+import { useFirebase } from '../contexts/FirebaseContext';
 import './AnimeListPage.css';
 
-// Same filters as AnimeListPage
-const CATEGORY_FILTERS = {
+const ANIME_FILTERS = {
   year: [
     { name: '2025', value: '2025' },
     { name: '2024', value: '2024' },
@@ -32,30 +31,29 @@ const CATEGORY_FILTERS = {
     { name: 'Cũ hơn', value: 'classic' },
   ],
   country: [
-    { name: '🇯🇵 Nhật Bản', value: 'nhat-ban' },
-    { name: '🇨🇳 Trung Quốc', value: 'trung-quoc' },
-    { name: '🇰🇷 Hàn Quốc', value: 'han-quoc' },
-    { name: '🇺🇸 Âu Mỹ', value: 'au-my' },
-    { name: '🇭🇰 Hồng Kông', value: 'hong-kong' },
-    { name: '🇹🇭 Thái Lan', value: 'thai-lan' },
-    { name: '🇫🇷 Pháp', value: 'phap' },
-    { name: '🇬🇧 Anh', value: 'anh' },
-    { name: '🇨🇦 Canada', value: 'canada' },
-    { name: '🇦🇺 Úc', value: 'uc' },
-    { name: '🇮🇳 Ấn Độ', value: 'an-do' },
-    { name: '🇲🇾 Malaysia', value: 'malaysia' },
-    { name: '🇲🇽 Mexico', value: 'mexico' },
-    { name: '🇵🇱 Ba Lan', value: 'ba-lan' },
-    { name: '🇮🇪 Ireland', value: 'ireland' },
-    { name: '🇫🇮 Phần Lan', value: 'phan-lan' },
-    { name: '🇨🇿 Séc', value: 'sec' },
-    { name: '🇸🇰 Slovakia', value: 'slovakia' },
-    { name: '🇮🇷 Iran', value: 'iran' },
+    { name: '🇯🇵 Nhật Bản', value: 'nhat-ban', slug: 'nhat-ban' },
+    { name: '🇨🇳 Trung Quốc', value: 'trung-quoc', slug: 'trung-quoc' },
+    { name: '🇰🇷 Hàn Quốc', value: 'han-quoc', slug: 'han-quoc' },
+    { name: '🇺🇸 Âu Mỹ', value: 'au-my', slug: 'au-my' },
+    { name: '🇭🇰 Hồng Kông', value: 'hong-kong', slug: 'hong-kong' },
+    { name: '🇹🇭 Thái Lan', value: 'thai-lan', slug: 'thai-lan' },
+    { name: '🇫🇷 Pháp', value: 'phap', slug: 'phap' },
+    { name: '🇬🇧 Anh', value: 'anh', slug: 'anh' },
+    { name: '🇨🇦 Canada', value: 'canada', slug: 'canada' },
+    { name: '🇦🇺 Úc', value: 'uc', slug: 'uc' },
+    { name: '🇮🇳 Ấn Độ', value: 'an-do', slug: 'an-do' },
+    { name: '🇲🇾 Malaysia', value: 'malaysia', slug: 'malaysia' },
+    { name: '🇲🇽 Mexico', value: 'mexico', slug: 'mexico' },
+    { name: '🇵🇱 Ba Lan', value: 'ba-lan', slug: 'ba-lan' },
+    { name: '🇮🇪 Ireland', value: 'ireland', slug: 'ireland' },
+    { name: '🇫🇮 Phần Lan', value: 'phan-lan', slug: 'phan-lan' },
+    { name: '🇨🇿 Séc', value: 'sec', slug: 'sec' },
+    { name: '🇸🇰 Slovakia', value: 'slovakia', slug: 'slovakia' },
+    { name: '🇮🇷 Iran', value: 'iran', slug: 'iran' },
   ],
 };
 
-const CategoryPage = () => {
-  const { slug } = useParams<{ slug: string }>();
+const AnimeListPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentPage = parseInt(searchParams.get('page') || '1');
   const yearFilter = searchParams.get('year') || '';
@@ -63,20 +61,18 @@ const CategoryPage = () => {
   
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
-  const [categoryName, setCategoryName] = useState('');
-  const [totalPages, setTotalPages] = useState(1);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [totalPages, setTotalPages] = useState(1);
+  const { saveMovie, isMovieSaved } = useFirebase();
 
-  // Load movies for current page
+  // Load anime movies với pagination
   useEffect(() => {
-    const fetchMovies = async () => {
-      if (!slug) return;
-      
+    const loadAnimeMovies = async () => {
       try {
         setLoading(true);
-        console.log(`📂 Loading category: ${slug}, page: ${currentPage}, year: ${yearFilter}, country: ${countryFilter}`);
+        console.log(`🎌 Loading anime page ${currentPage}, year: ${yearFilter}, country: ${countryFilter}`);
         
-        const response = await movieApi.getMoviesByCategory(slug, {
+        const response = await movieApi.getMoviesByType('hoat-hinh', {
           page: currentPage,
           limit: 24,
           year: yearFilter ? parseInt(yearFilter) : undefined,
@@ -85,7 +81,7 @@ const CategoryPage = () => {
           sort_type: 'desc',
         });
         
-        if (response.status && response.data?.items) {
+        if (response && response.status && response.data?.items) {
           const optimizedMovies = response.data.items.map(movie => ({
             ...movie,
             poster_url: movieApi.optimizeImage(movie.poster_url),
@@ -94,13 +90,7 @@ const CategoryPage = () => {
           
           setMovies(optimizedMovies);
           
-          // Extract category name
-          if (response.data.breadCrumb) {
-            const currentCrumb = response.data.breadCrumb.find(b => b.isCurrent);
-            if (currentCrumb) setCategoryName(currentCrumb.name);
-          }
-          
-          // Set pagination
+          // Set pagination from API
           if (response.data.params?.pagination) {
             setTotalPages(response.data.params.pagination.totalPages || 1);
           }
@@ -108,15 +98,15 @@ const CategoryPage = () => {
           setMovies([]);
         }
       } catch (error) {
-        console.error('Failed to fetch category movies:', error);
+        console.error('❌ Failed to load anime:', error);
         setMovies([]);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchMovies();
-  }, [slug, currentPage, yearFilter, countryFilter]);
+    loadAnimeMovies();
+  }, [currentPage, yearFilter, countryFilter]);
 
   const handleFilterChange = (filterType: 'year' | 'country', value: string) => {
     const params: any = { page: '1' }; // Reset to page 1 when filter changes
@@ -145,17 +135,29 @@ const CategoryPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleSaveMovie = (movie: Movie) => {
+    (async () => {
+      try {
+        const saved = await isMovieSaved(movie.slug);
+        if (saved) {
+          alert('Phim đã có trong danh sách!');
+          return;
+        }
+        await saveMovie(movie);
+        alert(`Đã lưu "${movie.name}" vào danh sách yêu thích!`);
+      } catch (error) {
+        console.error('Failed to save movie:', error);
+        alert('Không thể lưu phim. Vui lòng thử lại.');
+      }
+    })();
+  };
+
   if (loading) {
-    return <LoadingSpinner size="large" text="Đang tải phim..." />;
+    return <LoadingSpinner size="large" text="Đang tải phim hoạt hình..." />;
   }
 
   return (
-    <motion.div
-      className="anime-list-page"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
+    <div className="anime-list-page">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -163,11 +165,11 @@ const CategoryPage = () => {
       >
         <div className="container">
           <h1 className="anime-title">
-            <span className="anime-icon">🎬</span>
-            {categoryName || slug}
+            <span className="anime-icon">🎌</span>
+            Phim Hoạt Hình & Anime
           </h1>
 
-          {/* Filters Dropdown */}
+          {/* Filters */}
           <div className="anime-filters">
             <div className="filter-dropdown">
               <button
@@ -190,7 +192,7 @@ const CategoryPage = () => {
                     <div className="filter-section">
                       <h4>📅 Năm phát hành</h4>
                       <div className="filter-options">
-                        {CATEGORY_FILTERS.year.map(year => (
+                        {ANIME_FILTERS.year.map(year => (
                           <button
                             key={year.value}
                             className={`filter-option ${yearFilter === year.value ? 'active' : ''}`}
@@ -206,7 +208,7 @@ const CategoryPage = () => {
                     <div className="filter-section">
                       <h4>🌏 Quốc gia</h4>
                       <div className="filter-options">
-                        {CATEGORY_FILTERS.country.map(country => (
+                        {ANIME_FILTERS.country.map(country => (
                           <button
                             key={country.value}
                             className={`filter-option ${countryFilter === country.value ? 'active' : ''}`}
@@ -247,7 +249,7 @@ const CategoryPage = () => {
             )}
             {countryFilter && (
               <span className="active-filter-tag">
-                Quốc gia: {CATEGORY_FILTERS.country.find(c => c.value === countryFilter)?.name || countryFilter}
+                Quốc gia: {ANIME_FILTERS.country.find(c => c.value === countryFilter)?.name || countryFilter}
                 <button onClick={() => handleFilterChange('country', '')}>×</button>
               </span>
             )}
@@ -268,6 +270,7 @@ const CategoryPage = () => {
                 <MovieCard
                   key={movie._id || movie.slug}
                   movie={movie}
+                  onSave={handleSaveMovie}
                 />
               ))}
             </div>
@@ -338,24 +341,20 @@ const CategoryPage = () => {
             )}
           </>
         ) : (
-          <motion.div
-            className="no-results"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <span className="no-results-icon">🎭</span>
-            <h3>Không có phim nào</h3>
+          <div className="no-results">
+            <span className="no-results-icon">🎌</span>
+            <h3>Không tìm thấy phim hoạt hình/anime</h3>
             <p>Thử thay đổi bộ lọc hoặc trang khác</p>
             {(yearFilter || countryFilter) && (
               <button onClick={clearAllFilters} className="reset-btn">
                 🔄 Xóa bộ lọc và thử lại
               </button>
             )}
-          </motion.div>
+          </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 };
 
-export default CategoryPage;
+export default AnimeListPage;

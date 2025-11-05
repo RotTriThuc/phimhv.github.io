@@ -9,32 +9,68 @@
 .movie-card-3d {
   position: relative;
   width: 100%;
-  max-width: 280px;
   aspect-ratio: 2/3;
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
   cursor: pointer;
-  perspective: 1000px;
+  perspective: 1500px;
   user-select: none;
+  transform-style: preserve-3d;
   
-  /* Glass morphism effect */
-  background: rgba(26, 27, 33, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* Holographic Glass effect */
+  background: 
+    linear-gradient(135deg, rgba(22, 22, 34, 0.9), rgba(26, 26, 46, 0.8)),
+    radial-gradient(circle at 30% 50%, rgba(255, 0, 128, 0.1), transparent 50%),
+    radial-gradient(circle at 70% 50%, rgba(0, 212, 255, 0.1), transparent 50%);
+  backdrop-filter: blur(20px) saturate(1.5);
+  border: 2px solid transparent;
+  position: relative;
   
-  /* Shadow cho depth */
+  /* Multi-layered shadow */
   box-shadow: 
-    0 4px 6px rgba(0, 0, 0, 0.1),
-    0 10px 20px rgba(0, 0, 0, 0.15);
+    0 4px 12px rgba(121, 40, 202, 0.1),
+    0 10px 30px rgba(0, 0, 0, 0.2),
+    inset 0 0 20px rgba(255, 255, 255, 0.05);
     
   /* Smooth transitions */
-  transition: box-shadow 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+/* Neon border gradient */
+.movie-card-3d::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 20px;
+  padding: 2px;
+  background: var(--gradient-primary);
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.movie-card-3d:hover::before {
+  opacity: 1;
+  animation: borderRotate 3s linear infinite;
+}
+
+@keyframes borderRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .movie-card-3d:hover {
+  transform: translateY(-15px) rotateX(-5deg) scale(1.05);
   box-shadow: 
-    0 8px 12px rgba(108, 92, 231, 0.2),
-    0 20px 40px rgba(108, 92, 231, 0.25);
+    0 20px 40px rgba(255, 0, 128, 0.3),
+    0 30px 60px rgba(121, 40, 202, 0.2),
+    0 0 80px rgba(0, 212, 255, 0.15),
+    inset 0 0 30px rgba(255, 255, 255, 0.1);
 }
 
 /* Card inner content */
@@ -62,62 +98,150 @@
   object-fit: cover;
   display: block;
   
-  /* Image enhancement */
-  filter: brightness(0.95) contrast(1.05);
-  transition: filter 0.3s ease, transform 0.5s ease;
+  /* Enhanced image effects */
+  filter: brightness(1) contrast(1.1) saturate(1.2);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Holographic overlay effect */
+.card-poster::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    linear-gradient(
+      135deg,
+      transparent 30%,
+      rgba(255, 0, 128, 0.1) 40%,
+      rgba(121, 40, 202, 0.1) 50%,
+      rgba(0, 212, 255, 0.1) 60%,
+      transparent 70%
+    );
+  background-size: 200% 200%;
+  mix-blend-mode: color-dodge;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  animation: holographicShine 3s linear infinite paused;
+}
+
+@keyframes holographicShine {
+  0% { background-position: 200% 200%; }
+  100% { background-position: 0% 0%; }
+}
+
+.movie-card-3d:hover .card-poster::after {
+  opacity: 0.8;
+  animation-play-state: running;
 }
 
 .movie-card-3d:hover .card-poster img {
-  filter: brightness(1.05) contrast(1.1);
-  transform: scale(1.05);
+  filter: brightness(1.1) contrast(1.2) saturate(1.3);
+  transform: scale(1.1) translateZ(50px);
 }
 
-/* Quality badge */
+/* Quality badge với Neon glow */
 .quality-badge {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  padding: 4px 10px;
-  background: linear-gradient(135deg, #6c5ce7, #5f4fd8);
+  top: 16px;
+  right: 16px;
+  padding: 6px 14px;
+  background: var(--gradient-primary);
   color: white;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 20px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  box-shadow: 0 2px 8px rgba(108, 92, 231, 0.4);
+  letter-spacing: 1px;
+  box-shadow: 
+    0 4px 12px rgba(255, 0, 128, 0.4),
+    0 0 20px rgba(255, 0, 128, 0.3);
+  animation: badgePulse 2s ease-in-out infinite;
+  z-index: 10;
 }
 
-/* Episode badge */
+@keyframes badgePulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 
+      0 4px 12px rgba(255, 0, 128, 0.4),
+      0 0 20px rgba(255, 0, 128, 0.3);
+  }
+  50% { 
+    transform: scale(1.05);
+    box-shadow: 
+      0 6px 16px rgba(255, 0, 128, 0.5),
+      0 0 30px rgba(255, 0, 128, 0.4);
+  }
+}
+
+/* Episode badge với Cyan glow */
 .episode-badge {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  padding: 4px 10px;
-  background: linear-gradient(135deg, #00b894, #00cec9);
+  top: 16px;
+  left: 16px;
+  padding: 6px 14px;
+  background: var(--gradient-accent);
   color: white;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 184, 148, 0.4);
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 
+    0 4px 12px rgba(0, 212, 255, 0.4),
+    0 0 20px rgba(0, 212, 255, 0.3);
+  animation: badgeFloat 3s ease-in-out infinite;
+  z-index: 10;
 }
 
-/* Movie info section */
+@keyframes badgeFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* Movie info section với glassmorphism */
 .card-info {
-  padding: 16px;
-  background: linear-gradient(
-    to top,
-    rgba(15, 15, 18, 0.95),
-    rgba(15, 15, 18, 0.8)
-  );
+  padding: 18px;
+  background: 
+    linear-gradient(
+      to top,
+      rgba(10, 10, 15, 0.98),
+      rgba(10, 10, 15, 0.85)
+    );
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 5;
+}
+
+/* Animated gradient line */
+.card-info::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--gradient-primary);
+  animation: lineGlow 3s linear infinite;
+}
+
+@keyframes lineGlow {
+  0%, 100% { opacity: 0.5; transform: scaleX(0.5); }
+  50% { opacity: 1; transform: scaleX(1); }
 }
 
 .movie-title {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #e8e8ea;
-  line-height: 1.4;
+  margin: 0 0 10px 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+  
+  /* Gradient text */
+  background: linear-gradient(135deg, #fff, #a8a8b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   
   /* Text truncation */
   display: -webkit-box;
@@ -127,8 +251,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   
-  /* Text shadow cho depth */
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  /* Glow effect */
+  filter: drop-shadow(0 2px 8px rgba(255, 255, 255, 0.2));
+  transition: filter 0.3s ease;
+}
+
+.movie-card-3d:hover .movie-title {
+  filter: drop-shadow(0 2px 12px rgba(255, 0, 128, 0.4));
 }
 
 .movie-meta {
@@ -138,13 +267,24 @@
 }
 
 .movie-meta span {
-  padding: 2px 8px;
-  background: rgba(108, 92, 231, 0.2);
-  color: #a29bfe;
-  font-size: 11px;
-  font-weight: 500;
-  border-radius: 4px;
-  border: 1px solid rgba(108, 92, 231, 0.3);
+  padding: 4px 10px;
+  background: 
+    linear-gradient(135deg, rgba(121, 40, 202, 0.2), rgba(255, 0, 128, 0.2));
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.movie-meta span:hover {
+  transform: scale(1.1);
+  background: var(--gradient-primary);
+  box-shadow: 0 4px 12px rgba(255, 0, 128, 0.3);
 }
 
 /* Action buttons */
@@ -184,13 +324,69 @@
 }
 
 .btn-watch {
-  background: linear-gradient(135deg, #6c5ce7, #5f4fd8);
-  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+  background: var(--gradient-primary);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 4px 12px rgba(255, 0, 128, 0.3),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.btn-watch::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn-watch:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-watch:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 
+    0 8px 20px rgba(255, 0, 128, 0.4),
+    0 0 40px rgba(255, 0, 128, 0.2);
 }
 
 .btn-save {
-  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+  background: var(--gradient-accent);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 4px 12px rgba(0, 212, 255, 0.3),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.btn-save::before {
+  content: '♥';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 30px;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0);
+  transition: all 0.3s ease;
+}
+
+.btn-save:hover::before {
+  opacity: 0.3;
+  transform: translate(-50%, -50%) scale(2);
+}
+
+.btn-save:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 
+    0 8px 20px rgba(0, 212, 255, 0.4),
+    0 0 40px rgba(0, 212, 255, 0.2);
 }
 
 .card-actions .btn:active {

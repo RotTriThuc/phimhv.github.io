@@ -1,0 +1,140 @@
+/**
+ * LoadingSpinner Styles
+ * 
+ * Animated spinner với multiple rings
+ */
+
+.loading-spinner-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  width: 100%;
+}
+
+.spinner-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.spinner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Spinner Rings */
+.spinner-ring {
+  position: absolute;
+  border-radius: 50%;
+  border-style: solid;
+  border-top-color: transparent;
+  border-right-color: var(--primary);
+  border-bottom-color: transparent;
+  border-left-color: var(--primary);
+}
+
+.spinner-ring-2 {
+  border-right-color: var(--secondary);
+  border-left-color: var(--secondary);
+}
+
+.spinner-ring-3 {
+  border-right-color: var(--accent);
+  border-left-color: var(--accent);
+}
+
+/* Size Variations */
+.spinner-small .spinner-ring {
+  width: 30px;
+  height: 30px;
+  border-width: 2px;
+}
+
+.spinner-small .spinner-ring-2 {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+.spinner-small .spinner-ring-3 {
+  width: 10px;
+  height: 10px;
+  border-width: 1px;
+}
+
+.spinner-medium .spinner-ring {
+  width: 50px;
+  height: 50px;
+  border-width: 3px;
+}
+
+.spinner-medium .spinner-ring-2 {
+  width: 35px;
+  height: 35px;
+  border-width: 3px;
+}
+
+.spinner-medium .spinner-ring-3 {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+.spinner-large .spinner-ring {
+  width: 70px;
+  height: 70px;
+  border-width: 4px;
+}
+
+.spinner-large .spinner-ring-2 {
+  width: 50px;
+  height: 50px;
+  border-width: 3px;
+}
+
+.spinner-large .spinner-ring-3 {
+  width: 30px;
+  height: 30px;
+  border-width: 2px;
+}
+
+/* Spinner Text */
+.spinner-text {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Special Loading for Anime Page */
+.anime-list-page .loading-spinner-container {
+  min-height: 400px;
+}
+
+.anime-list-page .spinner-ring {
+  border-right-color: #ff6b6b;
+  border-left-color: #ff6b6b;
+}
+
+.anime-list-page .spinner-ring-2 {
+  border-right-color: #ffd93d;
+  border-left-color: #ffd93d;
+}
+
+.anime-list-page .spinner-ring-3 {
+  border-right-color: #ff9f43;
+  border-left-color: #ff9f43;
+}

@@ -25,6 +25,8 @@ import WatchPage from './pages/WatchPage';
 import CategoryPage from './pages/CategoryPage';
 import CountryPage from './pages/CountryPage';
 import FilterPage from './pages/FilterPage';
+import TypePage from './pages/TypePage';
+import AnimeListPage from './pages/AnimeListPage';
 import './App.css';
 
 // Animated routes wrapper
@@ -42,6 +44,8 @@ function AnimatedRoutes() {
         <Route path="/watch/:slug" element={<WatchPage />} />
         <Route path="/category/:slug" element={<CategoryPage />} />
         <Route path="/country/:slug" element={<CountryPage />} />
+        <Route path="/danh-sach/hoat-hinh" element={<AnimeListPage />} />
+        <Route path="/danh-sach/:type" element={<TypePage />} />
         <Route path="*" element={<HomePage />} />
       </Routes>
     </AnimatePresence>
