@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { movieApi } from '../services/movieApi';
 import { useFirebase } from '../contexts/FirebaseContext';
+import { useWatchProgress } from '../hooks/useWatchProgress';
 import Comments from '../components/Comments';
 import SeriesNavigator from '../components/SeriesNavigator';
 import type { MovieDetail } from '../services/movieApi';
@@ -11,6 +12,9 @@ const MovieDetailPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { saveMovie, isMovieSaved, isInitialized } = useFirebase();
+  
+  // Watch progress hook
+  const { progress, hasProgress } = useWatchProgress(slug);
   
   const [movie, setMovie] = useState<MovieDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -101,7 +105,7 @@ const MovieDetailPage = () => {
     }
   };
 
-  const handleWatch = () => {
+  const handleWatch = (fromBeginning = false) => {
     console.log('🎮 Handle Watch - Movie:', movie);
     console.log('📺 Episodes:', movie?.episodes);
     console.log('🔑 Movie keys:', movie ? Object.keys(movie) : 'null');
@@ -135,6 +139,15 @@ const MovieDetailPage = () => {
     }
     
     console.log('✅ Found episodes:', movie.episodes.length);
+    
+    // Kiểm tra watch progress - tự động tiếp tục từ tập đã xem
+    if (!fromBeginning && hasProgress && progress?.episodeSlug) {
+      console.log('🔄 Resuming from progress:', progress.episodeName);
+      navigate(`/watch/${slug}?ep=${progress.episodeSlug}`);
+      return;
+    }
+    
+    // Không có progress hoặc user chọn xem từ đầu
     const firstEpisode = movie.episodes[0].server_data[0];
     console.log('🎬 Navigating to first episode:', firstEpisode);
     navigate(`/watch/${slug}?ep=${firstEpisode.slug}`);
@@ -228,23 +241,57 @@ const MovieDetailPage = () => {
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '30px' }}>
+          {/* Watch Progress Info */}
+          {hasProgress && progress && (
+            <div style={{
+              background: 'rgba(108, 92, 231, 0.1)',
+              border: '1px solid rgba(108, 92, 231, 0.3)',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <span style={{ fontSize: '20px' }}>🎬</span>
+              <div>
+                <div style={{ fontSize: '14px', color: '#a0a0a8' }}>Bạn đang xem</div>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#6c5ce7' }}>
+                  {progress.episodeName}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', flexWrap: 'wrap' }}>
             <motion.button
               className="btn btn-primary"
-              onClick={handleWatch}
+              onClick={() => handleWatch(false)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              style={{ padding: '14px 28px', fontSize: '16px' }}
+              style={{ padding: '14px 28px', fontSize: '16px', height: '50px', minHeight: '50px' }}
             >
-              ▶️ Xem phim
+              {hasProgress ? '▶️ Tiếp tục xem' : '▶️ Xem phim'}
             </motion.button>
+            
+            {hasProgress && (
+              <motion.button
+                className="btn btn-ghost"
+                onClick={() => handleWatch(true)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                style={{ padding: '14px 28px', fontSize: '16px', height: '50px', minHeight: '50px' }}
+              >
+                🔄 Xem từ đầu
+              </motion.button>
+            )}
             
             <motion.button
               className="btn btn-secondary"
               onClick={handleSave}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              style={{ padding: '14px 28px', fontSize: '16px' }}
+              style={{ padding: '14px 28px', fontSize: '16px', height: '50px', minHeight: '50px' }}
               disabled={isSaved}
             >
               {isSaved ? '✅ Đã lưu' : '❤️ Lưu phim'}

@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ❤️ SAVED MOVIES COLLECTION  
+    // Chỉ cho phép user đọc/ghi phim của chính mình
+    match /savedMovies/{document} {
+      // Cho phép đọc nếu là phim của user hiện tại
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      
+      // Cho phép tạo mới nếu userId trong data khớp với auth uid
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+      
+      // Cho phép update/delete nếu là phim của chính mình
+      allow update, delete: if request.auth != null 
+                            && resource.data.userId == request.auth.uid;
+    }
+    
+    // 📺 WATCH PROGRESS COLLECTION
+    match /watchProgress/{document} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null 
+                            && resource.data.userId == request.auth.uid;
+    }
+    
+    // 👤 USERS COLLECTION
+    match /users/{userId} {
+      allow read: if true; // Public profiles
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // 🔐 SYNC CODES COLLECTION
+    match /syncCodes/{document} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // 💬 MOVIE COMMENTS COLLECTION
+    match /movieComments/{document} {
+      allow read: if true; // Comments là public
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null 
+                            && request.auth.uid == resource.data.authorId;
+    }
+    
+    // 💬 COMMENTS COLLECTION (legacy)
+    match /comments/{document} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null 
+                            && request.auth.uid == resource.data.userId;
+    }
+    
+    // 📊 ANALYTICS COLLECTION
+    match /analytics/{document} {
+      allow read: if true;
+      allow write: if false; // Chỉ server được ghi
+    }
+    
+    // 🔔 NOTIFICATIONS COLLECTION
+    match /notifications/{document} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null 
+                            && request.auth.uid == resource.data.userId;
+    }
+  }
+}

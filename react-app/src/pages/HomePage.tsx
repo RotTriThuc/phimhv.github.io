@@ -16,6 +16,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Banner3D from '../components/Banner3D';
 import MovieCard from '../components/MovieCard';
+import ContinueWatchingSection from '../components/ContinueWatchingSection';
 import { useFirebase } from '../contexts/FirebaseContext';
 import { movieApi } from '../services/movieApi';
 import type { Movie } from '../services/movieApi';
@@ -168,6 +169,9 @@ const HomePage = () => {
           autoPlayInterval={5000}
         />
       )}
+
+      {/* Continue Watching Section - Hiển thị phim đang xem */}
+      <ContinueWatchingSection />
 
       {/* Main content */}
       <div className="container">

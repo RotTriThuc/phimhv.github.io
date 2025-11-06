@@ -67,8 +67,13 @@ const WatchPage = () => {
           if (ep) {
             setCurrentEpisode(ep);
             
-            // Save watch progress
+            // Save watch progress with movie metadata
             await setWatchProgress(slug, {
+              movieName: movieData.name,
+              posterUrl: movieData.poster_url,
+              thumbUrl: movieData.thumb_url,
+              year: movieData.year,
+              quality: movieData.quality,
               episodeName: ep.name,
               episodeSlug: ep.slug,
               serverIndex: currentServer,

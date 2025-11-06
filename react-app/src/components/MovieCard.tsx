@@ -46,6 +46,11 @@ interface MovieCardProps {
   lazyLoad?: boolean;
   onSave?: (movie: any) => void;
   onWatch?: (slug: string) => void;
+  // Watch progress props
+  watchProgress?: {
+    episodeName: string;
+    episodeSlug: string;
+  };
 }
 
 const MovieCard: React.FC<MovieCardProps> = ({
@@ -55,7 +60,8 @@ const MovieCard: React.FC<MovieCardProps> = ({
   layout = 'vertical',
   lazyLoad = true,
   onSave,
-  onWatch
+  onWatch,
+  watchProgress
 }) => {
   const navigate = useNavigate();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -160,6 +166,18 @@ const MovieCard: React.FC<MovieCardProps> = ({
     return (
       <div className={rankClass}>
         <span className="rank-number">{rank}</span>
+      </div>
+    );
+  };
+
+  // Watch Progress Badge component
+  const WatchProgressBadge = () => {
+    if (!watchProgress) return null;
+    
+    return (
+      <div className="watch-progress-badge">
+        <span className="progress-icon">🎬</span>
+        <span className="progress-text">{watchProgress.episodeName}</span>
       </div>
     );
   };
@@ -282,6 +300,11 @@ const MovieCard: React.FC<MovieCardProps> = ({
     );
   }
 
+  // Debug: Log movie data
+  if (!movie.name) {
+    console.warn('MovieCard: Missing movie name:', movie);
+  }
+
   // Default vertical layout
   return (
     <motion.div 
@@ -333,6 +356,7 @@ const MovieCard: React.FC<MovieCardProps> = ({
         <QualityBadge />
         <EpisodeInfo />
         <RankBadge />
+        <WatchProgressBadge />
         <HoverOverlay />
       </div>
 

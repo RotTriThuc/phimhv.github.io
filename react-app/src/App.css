@@ -279,6 +279,12 @@ body {
   transition: all var(--transition-base);
   text-decoration: none;
   white-space: nowrap;
+  /* Đảm bảo các button có cùng chiều cao và không bị kéo dài */
+  flex: 0 0 auto;
+  width: auto;
+  min-width: fit-content;
+  min-height: 46px;
+  box-sizing: border-box;
 }
 
 .btn-primary {

@@ -346,22 +346,6 @@ const Banner3D: React.FC<Banner3DProps> = ({
               </motion.button>
             </div>
 
-            {/* Dot indicators */}
-            <div className="banner-dots">
-              {movies.map((_, index) => (
-                <motion.button
-                  key={index}
-                  className={`dot ${index === currentIndex ? 'active' : ''}`}
-                  onClick={() => handleDotClick(index)}
-                  whileHover={{ scale: 1.3 }}
-                  whileTap={{ scale: 0.9 }}
-                  animate={{
-                    scale: index === currentIndex ? 1.2 : 1,
-                  }}
-                />
-              ))}
-            </div>
-
             {/* Auto-play toggle */}
             <motion.button
               className="autoplay-toggle"

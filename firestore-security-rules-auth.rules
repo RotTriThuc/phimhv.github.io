@@ -1,0 +1,131 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 🔐 SAVED MOVIES COLLECTION - User Auth Required
+    match /savedMovies/{document=**} {
+      // Cho phép đọc nếu:
+      // 1. User đã đăng nhập VÀ document thuộc về user đó
+      // 2. Hoặc là guest user (fallback cho compatibility)
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid
+                  || resource.data.userId.matches('user_primary_.*');
+      
+      // Cho phép tạo/cập nhật nếu:
+      // 1. User đã đăng nhập VÀ userId trong document khớp với auth UID
+      allow create, update: if request.auth != null 
+                            && request.resource.data.userId == request.auth.uid;
+      
+      // Cho phép xóa nếu:
+      // 1. User đã đăng nhập VÀ document thuộc về user đó
+      allow delete: if request.auth != null 
+                    && resource.data.userId == request.auth.uid;
+    }
+    
+    // 📺 WATCH PROGRESS COLLECTION - User Auth Required
+    match /watchProgress/{document=**} {
+      // Same rules as savedMovies
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid
+                  || resource.data.userId.matches('user_primary_.*');
+      
+      allow create, update: if request.auth != null 
+                            && request.resource.data.userId == request.auth.uid;
+      
+      allow delete: if request.auth != null 
+                    && resource.data.userId == request.auth.uid;
+    }
+    
+    // 🔄 SYNC CODES COLLECTION - For cross-device sync
+    match /syncCodes/{syncCode} {
+      // Ai cũng có thể đọc sync code (để verify)
+      allow read: if true;
+      
+      // Chỉ authenticated user có thể tạo sync code
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+      
+      // Chỉ owner hoặc người dùng code mới có thể update (mark as used)
+      allow update: if request.auth != null;
+      
+      // Chỉ owner có thể xóa
+      allow delete: if request.auth != null 
+                    && resource.data.userId == request.auth.uid;
+    }
+    
+    // 💬 COMMENTS COLLECTION - Public read, Auth write
+    match /comments/{document=**} {
+      // Ai cũng có thể đọc comments
+      allow read: if true;
+      
+      // Chỉ authenticated user có thể tạo comment
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+      
+      // Chỉ owner hoặc admin có thể cập nhật
+      allow update: if request.auth != null 
+                    && (resource.data.userId == request.auth.uid 
+                        || request.auth.token.admin == true);
+      
+      // Chỉ owner hoặc admin có thể xóa
+      allow delete: if request.auth != null 
+                    && (resource.data.userId == request.auth.uid 
+                        || request.auth.token.admin == true);
+    }
+    
+    // 👍 LIKES COLLECTION - User specific
+    match /likes/{document=**} {
+      allow read: if true;
+      
+      allow create, update, delete: if request.auth != null 
+                                    && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // 🚨 REPORTS COLLECTION - Auth required to create
+    match /reports/{document=**} {
+      // Chỉ admin có thể đọc reports
+      allow read: if request.auth != null && request.auth.token.admin == true;
+      
+      // Authenticated user có thể tạo report
+      allow create: if request.auth != null;
+      
+      // Chỉ admin có thể update/delete
+      allow update, delete: if request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // 📊 USER PROFILES COLLECTION (Optional)
+    match /userProfiles/{userId} {
+      // User có thể đọc profile của chính mình
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // User có thể tạo/cập nhật profile của chính mình
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+      
+      // Không cho phép xóa profile
+      allow delete: if false;
+    }
+    
+    // 🔔 NOTIFICATIONS COLLECTION
+    match /notifications/{userId}/items/{notificationId} {
+      // User chỉ có thể đọc notification của mình
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // System có thể tạo notification (admin only)
+      allow create: if request.auth != null && request.auth.token.admin == true;
+      
+      // User có thể update status (read/unread)
+      allow update: if request.auth != null && request.auth.uid == userId;
+      
+      // User có thể xóa notification của mình
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // ⚙️ SYSTEM COLLECTIONS - Admin only
+    match /system/{document=**} {
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // 🚫 Block all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -33,6 +33,8 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import type { Firestore } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import type { Auth, User } from 'firebase/auth';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -77,6 +79,8 @@ interface Comment {
 interface FirebaseContextType {
   db: Firestore | null;
   app: FirebaseApp | null;
+  auth: Auth | null;
+  currentUser: User | null;
   userId: string | null;
   userName: string;
   isInitialized: boolean;
@@ -109,6 +113,8 @@ const FirebaseContext = createContext<FirebaseContextType | null>(null);
 export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
   const [app, setApp] = useState<FirebaseApp | null>(null);
   const [db, setDb] = useState<Firestore | null>(null);
+  const [auth, setAuth] = useState<Auth | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserNameState] = useState<string>('Khách');
   const [isInitialized, setIsInitialized] = useState(false);
@@ -127,16 +133,57 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
         const firestore = getFirestore(firebaseApp);
         setDb(firestore);
         
-        // Get or create user ID
-        const id = await getUserIdFromStorage();
-        setUserId(id);
+        // Initialize Firebase Auth
+        const firebaseAuth = getAuth(firebaseApp);
+        setAuth(firebaseAuth);
         
-        // Get user name
-        const name = localStorage.getItem('movie_commenter_name') || 'Khách';
-        setUserNameState(name);
+        // Setup auth state listener
+        const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
+          console.log('🔄 Auth state changed:', user ? user.email || user.uid : 'No user');
+          
+          // Store previous user info for migration
+          const previousUser = firebaseAuth.currentUser;
+          
+          setCurrentUser(user);
+          
+          if (user) {
+            // Check if this is anonymous → email/google upgrade
+            const isUpgrade = previousUser?.isAnonymous && !user.isAnonymous;
+            
+            if (isUpgrade && previousUser) {
+              // Save anonymous UID before migration
+              sessionStorage.setItem('anonymous_uid_before_signin', previousUser.uid);
+              console.log('🔑 Detected account upgrade: Anonymous → Email/Google');
+            }
+            
+            // User is signed in - use Firebase Auth UID
+            setUserId(user.uid);
+            
+            // Get display name
+            const displayName = user.displayName || user.email || 'Người dùng';
+            setUserNameState(displayName);
+            
+            console.log('✅ User authenticated:', user.uid, user.isAnonymous ? '(Anonymous)' : '(Email/Google)');
+            
+            // Migrate old localStorage data or anonymous data if exists
+            await migrateOldUserData(user.uid, firestore);
+          } else {
+            // No user signed in - sign in anonymously để có auth token
+            console.log('📝 No user, signing in anonymously...');
+            try {
+              const result = await signInAnonymously(firebaseAuth);
+              console.log('✅ Anonymous sign in successful:', result.user.uid);
+            } catch (error) {
+              console.error('❌ Anonymous sign in failed:', error);
+            }
+          }
+        });
         
         setIsInitialized(true);
         console.log('✅ Firebase initialized successfully');
+        
+        // Cleanup
+        return () => unsubscribe();
       } catch (error) {
         console.error('❌ Firebase initialization failed:', error);
       }
@@ -145,67 +192,144 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
     initFirebase();
   }, []);
 
-  // Get user ID với cross-browser persistence
-  const getUserIdFromStorage = async (): Promise<string> => {
-    // Try localStorage first
-    let id = localStorage.getItem('movie_commenter_id');
-    if (id) return id;
-
-    // Try sessionStorage
-    id = sessionStorage.getItem('movie_commenter_id');
-    if (id) {
-      localStorage.setItem('movie_commenter_id', id);
-      return id;
+  // Migrate data from localStorage OR anonymous user to authenticated user
+  const migrateOldUserData = async (newUserId: string, firestore: Firestore) => {
+    try {
+      // 1. Check for localStorage migration (legacy support)
+      const oldLocalStorageId = localStorage.getItem('movie_commenter_id');
+      
+      if (oldLocalStorageId && oldLocalStorageId !== newUserId) {
+        console.log('🔄 [Migration] localStorage → Firebase Auth UID');
+        await migrateUserData(oldLocalStorageId, newUserId, firestore, 'localStorage');
+        localStorage.removeItem('movie_commenter_id');
+        sessionStorage.removeItem('movie_commenter_id');
+      }
+      
+      // 2. Check for anonymous → email/google migration
+      const previousAnonymousId = sessionStorage.getItem('anonymous_uid_before_signin');
+      
+      if (previousAnonymousId && previousAnonymousId !== newUserId) {
+        console.log('🔄 [Migration] Anonymous → Email/Google');
+        await migrateUserData(previousAnonymousId, newUserId, firestore, 'anonymous');
+        sessionStorage.removeItem('anonymous_uid_before_signin');
+      }
+      
+    } catch (error) {
+      console.error('❌ Migration failed:', error);
     }
-
-    // Generate new ID với browser fingerprint
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2);
-    const fingerprint = getBrowserFingerprint();
-    const newId = `user_${fingerprint}_${random}_${timestamp}`;
-    
-    // Save to all storage methods
-    localStorage.setItem('movie_commenter_id', newId);
-    sessionStorage.setItem('movie_commenter_id', newId);
-    
-    console.log('🆔 Generated new user ID:', newId);
-    return newId;
   };
-
-  const getBrowserFingerprint = (): string => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.textBaseline = 'top';
-      ctx.font = '14px Arial';
-      ctx.fillText('Browser fingerprint', 2, 2);
+  
+  // Helper: Migrate user data from old UID to new UID
+  const migrateUserData = async (
+    oldUserId: string, 
+    newUserId: string, 
+    firestore: Firestore,
+    migrationType: 'localStorage' | 'anonymous'
+  ) => {
+    console.log(`Old ID: ${oldUserId}`);
+    console.log(`New ID: ${newUserId}`);
+    
+    let totalMigrated = 0;
+    
+    // Migrate saved movies
+    const savedMoviesQuery = query(
+      collection(firestore, 'savedMovies'),
+      where('userId', '==', oldUserId)
+    );
+    
+    const moviesSnapshot = await getDocs(savedMoviesQuery);
+    console.log(`🎬 Found ${moviesSnapshot.size} movies to migrate`);
+    
+    for (const document of moviesSnapshot.docs) {
+      const data = document.data();
+      const newDocId = `${newUserId}_${data.slug}`;
+      
+      // Check if movie already exists for new user (avoid duplicates)
+      const existingDoc = await getDoc(doc(firestore, 'savedMovies', newDocId));
+      
+      if (!existingDoc.exists()) {
+        await setDoc(doc(firestore, 'savedMovies', newDocId), {
+          ...data,
+          userId: newUserId,
+          migratedAt: serverTimestamp(),
+          migrationType: migrationType,
+          oldUserId: oldUserId
+        });
+        totalMigrated++;
+      }
+      
+      // Delete old document
+      await deleteDoc(doc(firestore, 'savedMovies', document.id));
     }
-
-    const fingerprint = [
-      navigator.userAgent,
-      navigator.language,
-      `${screen.width}x${screen.height}`,
-      new Date().getTimezoneOffset(),
-      canvas.toDataURL(),
-    ].join('|');
-
-    // Create hash
-    let hash = 0;
-    for (let i = 0; i < fingerprint.length; i++) {
-      const char = fingerprint.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
+    
+    // Migrate watch progress
+    const watchProgressQuery = query(
+      collection(firestore, 'watchProgress'),
+      where('userId', '==', oldUserId)
+    );
+    
+    const progressSnapshot = await getDocs(watchProgressQuery);
+    console.log(`📺 Found ${progressSnapshot.size} watch progress to migrate`);
+    
+    for (const document of progressSnapshot.docs) {
+      const data = document.data();
+      const newDocId = `${newUserId}_${data.movieSlug}`;
+      
+      // Check if progress already exists
+      const existingDoc = await getDoc(doc(firestore, 'watchProgress', newDocId));
+      
+      if (!existingDoc.exists()) {
+        await setDoc(doc(firestore, 'watchProgress', newDocId), {
+          ...data,
+          userId: newUserId,
+          migratedAt: serverTimestamp(),
+          migrationType: migrationType,
+          oldUserId: oldUserId
+        });
+      } else {
+        // Keep the most recent progress
+        const existingData = existingDoc.data();
+        const oldUpdatedAt = data.updatedAt?.toMillis?.() || 0;
+        const existingUpdatedAt = existingData.updatedAt?.toMillis?.() || 0;
+        
+        if (oldUpdatedAt > existingUpdatedAt) {
+          await setDoc(doc(firestore, 'watchProgress', newDocId), {
+            ...data,
+            userId: newUserId,
+            migratedAt: serverTimestamp(),
+            migrationType: migrationType,
+            oldUserId: oldUserId
+          });
+        }
+      }
+      
+      // Delete old document
+      await deleteDoc(doc(firestore, 'watchProgress', document.id));
     }
-
-    return Math.abs(hash).toString(36).substring(0, 8);
+    
+    if (totalMigrated > 0 || progressSnapshot.size > 0) {
+      console.log(`✅ Migration complete:`);
+      console.log(`   - ${totalMigrated} movies migrated`);
+      console.log(`   - ${progressSnapshot.size} watch progress migrated`);
+    } else {
+      console.log('ℹ️ No data to migrate');
+    }
   };
 
   // User methods
   const getUserId = async (): Promise<string> => {
-    if (userId) return userId;
-    const id = await getUserIdFromStorage();
-    setUserId(id);
-    return id;
+    // Always use Firebase Auth UID
+    if (currentUser) {
+      return currentUser.uid;
+    }
+    
+    // Wait for auth to initialize
+    if (!auth) {
+      throw new Error('Firebase Auth not initialized');
+    }
+    
+    // If no user, this shouldn't happen (auto sign in anonymously)
+    throw new Error('No authenticated user');
   };
 
   const setUserName = (name: string) => {
@@ -501,6 +625,8 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
   const value: FirebaseContextType = {
     db,
     app,
+    auth,
+    currentUser,
     userId,
     userName,
     isInitialized,

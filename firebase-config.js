@@ -1131,6 +1131,9 @@ class MovieCommentSystem {
       lang: movie.lang,
       quality: movie.quality,
       episode_current: movie.episode_current,
+      // Thêm thông tin tập đang xem
+      currentEpisode: movie.currentEpisode || null,
+      currentEpisodeName: movie.currentEpisodeName || null,
       savedAt: firebase.firestore.FieldValue.serverTimestamp(),
       userId: userId,
       userName: userName,
@@ -1145,7 +1148,16 @@ class MovieCommentSystem {
         .get();
 
       if (!existingDoc.empty) {
-        FirebaseLogger.debug('Movie already saved:', movie.name);
+        // Movie đã lưu, update thông tin tập hiện tại nếu có
+        if (movie.currentEpisode) {
+          const docId = existingDoc.docs[0].id;
+          await this.db.collection('savedMovies').doc(docId).update({
+            currentEpisode: movie.currentEpisode,
+            currentEpisodeName: movie.currentEpisodeName,
+            savedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          FirebaseLogger.debug('Updated current episode:', movie.currentEpisodeName);
+        }
         return false; // Already saved
       }
 
@@ -1287,6 +1299,39 @@ class MovieCommentSystem {
     } catch (error) {
       // No localStorage fallback - Firebase only
       FirebaseLogger.error('Check movie saved failed:', error);
+      return false;
+    }
+  }
+
+  // Update tập phim đang xem
+  async updateCurrentEpisode(movieSlug, episodeSlug, episodeName) {
+    if (!this.initialized) await this.init();
+
+    const userId = await this.getUserId();
+
+    try {
+      const snapshot = await this.db.collection('savedMovies')
+        .where('userId', '==', userId)
+        .where('slug', '==', movieSlug)
+        .limit(1)
+        .get();
+
+      if (snapshot.empty) {
+        FirebaseLogger.warn('Movie not in saved list, cannot update episode:', movieSlug);
+        return false;
+      }
+
+      const docId = snapshot.docs[0].id;
+      await this.db.collection('savedMovies').doc(docId).update({
+        currentEpisode: episodeSlug,
+        currentEpisodeName: episodeName,
+        savedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      FirebaseLogger.info('✅ Updated current episode:', episodeName);
+      return true;
+    } catch (error) {
+      FirebaseLogger.error('❌ Update current episode failed:', error);
       return false;
     }
   }

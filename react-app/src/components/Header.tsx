@@ -12,10 +12,17 @@
  * - Smooth animations
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import './Header.css';
+
+// Declare global window interface for Firebase Auth
+declare global {
+  interface Window {
+    firebaseAuth?: any;
+  }
+}
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -23,6 +30,7 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [showCountryMenu, setShowCountryMenu] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const navigate = useNavigate();
   const { scrollY } = useScroll();
 
@@ -30,6 +38,42 @@ const Header = () => {
   useMotionValueEvent(scrollY, "change", (latest) => {
     setIsScrolled((latest as number) > 50);
   });
+
+  // Listen to Firebase Auth state changes
+  useEffect(() => {
+    // Wait for Firebase Auth to be ready
+    const checkAuth = () => {
+      if (window.firebaseAuth) {
+        // Set initial user
+        setCurrentUser(window.firebaseAuth.getCurrentUser());
+
+        // Listen to auth state changes
+        const handleAuthChange = (e: any) => {
+          setCurrentUser(e.detail.user);
+        };
+
+        window.addEventListener('authStateChanged', handleAuthChange);
+
+        return () => {
+          window.removeEventListener('authStateChanged', handleAuthChange);
+        };
+      }
+    };
+
+    // Try to check auth immediately
+    const cleanup = checkAuth();
+
+    // If not ready, try again after a delay
+    if (!window.firebaseAuth) {
+      const timeout = setTimeout(checkAuth, 1000);
+      return () => {
+        clearTimeout(timeout);
+        cleanup?.();
+      };
+    }
+
+    return cleanup;
+  }, []);
 
   // Handle search submit
   const handleSearch = (e: React.FormEvent) => {
@@ -219,6 +263,65 @@ const Header = () => {
           >
             🌙
           </motion.button>
+
+          {/* User Auth Section */}
+          <div className="user-info-react">
+            {currentUser ? (
+              <div className="user-profile">
+                <motion.div 
+                  className="user-avatar"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  {currentUser.photoURL ? (
+                    <img 
+                      src={currentUser.photoURL} 
+                      alt="Avatar"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        const parent = (e.target as HTMLImageElement).parentElement;
+                        if (parent) {
+                          parent.innerHTML = '<div style="width:100%;height:100%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:16px;font-weight:bold;">' + (currentUser.displayName?.[0] || currentUser.email?.[0] || 'U').toUpperCase() + '</div>';
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '100%',
+                      height: '100%',
+                      background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '16px',
+                      fontWeight: 'bold'
+                    }}>
+                      {(currentUser.displayName?.[0] || currentUser.email?.[0] || 'U').toUpperCase()}
+                    </div>
+                  )}
+                </motion.div>
+                <span className="user-name">{currentUser.displayName || currentUser.email}</span>
+                <motion.button 
+                  className="btn-logout"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => window.firebaseAuth?.logout()}
+                >
+                  Đăng xuất
+                </motion.button>
+              </div>
+            ) : (
+              <motion.button 
+                className="btn-login"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => window.firebaseAuth?.showAuthModal()}
+              >
+                Đăng nhập
+              </motion.button>
+            )}
+          </div>
         </div>
 
         {/* Mobile menu toggle */}

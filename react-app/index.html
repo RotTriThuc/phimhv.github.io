@@ -31,9 +31,24 @@
       }(window.location))
     </script>
     <!-- End Single Page Apps for GitHub Pages -->
+    
+    <!-- Firebase Auth CSS -->
+    <link rel="stylesheet" href="/firebase-auth.css">
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Firebase SDK v8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    
+    <!-- Firebase Init Bridge - MUST load after SDK but before auth -->
+    <script src="/firebase-init-bridge.js"></script>
+    
+    <!-- Firebase Auth System -->
+    <script src="/firebase-auth.js"></script>
+    <script src="/firebase-primary-storage.js"></script>
   </body>
 </html>

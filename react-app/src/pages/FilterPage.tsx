@@ -204,7 +204,7 @@ const FilterPage = () => {
                       }
                     });
                     console.log(`  ✅ Batch ${batchIndex + 1} complete: ${items.length} total movies`);
-                  } catch (error) {
+                  } catch {
                     console.error(`  ⚠️ Batch ${batchIndex + 1} had errors, continuing...`);
                   }
                   
@@ -278,7 +278,7 @@ const FilterPage = () => {
                       }
                     });
                     console.log(`  ✅ Batch ${batchIndex + 1} complete: ${items.length} total movies`);
-                  } catch (error) {
+                  } catch {
                     console.error(`  ⚠️ Batch ${batchIndex + 1} had errors, continuing...`);
                   }
                   
@@ -412,8 +412,7 @@ const FilterPage = () => {
         // Apply year filter (if category/country was primary)
         if (selectedYear && !hasCombinedFilters) {
           // Single year filter - already fetched from year endpoint
-        } else if (selectedYear && selectedCategory && !hasCombinedFilters) {
-          // This case is now handled by year-first fetching
+          // No additional filtering needed
         }
 
         // Optimize images

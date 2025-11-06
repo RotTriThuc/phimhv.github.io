@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ArtPlayer Firebase Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #6c5ce7;
+    }
+
+    .video-section {
+      background: #1a1a1a;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+
+    #video-player {
+      width: 100%;
+      max-width: 900px;
+      aspect-ratio: 16/9;
+      margin: 0 auto;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: #6c5ce7;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    button:hover {
+      background: #5b4bc7;
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.secondary {
+      background: #666;
+    }
+
+    button.secondary:hover {
+      background: #777;
+    }
+
+    .info-section {
+      background: #1a1a1a;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .info-section h2 {
+      color: #6c5ce7;
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+
+    .episode-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .episode-btn {
+      padding: 10px;
+      background: #2a2a2a;
+      border: 2px solid #333;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .episode-btn:hover {
+      border-color: #6c5ce7;
+      background: #333;
+    }
+
+    .episode-btn.active {
+      background: #6c5ce7;
+      border-color: #6c5ce7;
+    }
+
+    .progress-info {
+      background: #2a2a2a;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+
+    .progress-info p {
+      margin: 8px 0;
+      color: #aaa;
+    }
+
+    .progress-info strong {
+      color: #fff;
+    }
+
+    .continue-watching-section {
+      background: #1a1a1a;
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .continue-watching-section h2 {
+      color: #6c5ce7;
+      margin-bottom: 15px;
+    }
+
+    .continue-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .continue-item {
+      background: #2a2a2a;
+      border-radius: 8px;
+      padding: 15px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+    }
+
+    .continue-item:hover {
+      border-color: #6c5ce7;
+      transform: translateY(-5px);
+    }
+
+    .continue-item h4 {
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background: #444;
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #6c5ce7, #8b7ce7);
+      transition: width 0.3s;
+    }
+
+    .continue-item p {
+      color: #aaa;
+      font-size: 14px;
+      margin: 5px 0;
+    }
+
+    code {
+      background: #2a2a2a;
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: #6c5ce7;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎬 ArtPlayer Firebase Demo</h1>
+
+    <!-- Video Player Section -->
+    <div class="video-section">
+      <h2>Video Player</h2>
+      <div id="video-player"></div>
+      
+      <div class="controls">
+        <button onclick="testInit()">🎬 Khởi tạo Player</button>
+        <button onclick="testPlay()">▶️ Play</button>
+        <button onclick="testPause()">⏸️ Pause</button>
+        <button class="secondary" onclick="testGetProgress()">📊 Xem Progress</button>
+        <button class="secondary" onclick="testSaveProgress()">💾 Lưu Progress</button>
+        <button class="secondary" onclick="testDestroy()">🗑️ Destroy</button>
+      </div>
+
+      <div class="progress-info" id="progress-info" style="display: none;">
+        <h3 style="color: #6c5ce7; margin-bottom: 10px;">Current Progress</h3>
+        <p><strong>Movie:</strong> <span id="info-movie">-</span></p>
+        <p><strong>Episode:</strong> <span id="info-episode">-</span></p>
+        <p><strong>Time:</strong> <span id="info-time">-</span></p>
+        <p><strong>Progress:</strong> <span id="info-progress">-</span></p>
+        <p><strong>Playing:</strong> <span id="info-playing">-</span></p>
+      </div>
+    </div>
+
+    <!-- Episodes Section -->
+    <div class="info-section">
+      <h2>Episodes</h2>
+      <p>Click để chuyển tập (demo):</p>
+      <div class="episode-list" id="episode-list">
+        <!-- Will be generated by JS -->
+      </div>
+    </div>
+
+    <!-- Continue Watching Section -->
+    <div class="continue-watching-section">
+      <h2>📺 Đang xem dở</h2>
+      <button onclick="refreshContinueWatching()" style="margin-bottom: 15px;">
+        🔄 Refresh
+      </button>
+      <div class="continue-list" id="continue-list">
+        <p style="color: #666;">Đang tải...</p>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="info-section">
+      <h2>📖 Hướng dẫn</h2>
+      <ol style="color: #aaa; line-height: 1.8; padding-left: 20px;">
+        <li>Click <code>Khởi tạo Player</code> để load video</li>
+        <li>Xem video một lúc, tiến độ sẽ tự động lưu mỗi 5 giây</li>
+        <li>Click <code>Xem Progress</code> để xem thông tin chi tiết</li>
+        <li>Reload trang và khởi tạo lại → Sẽ hiện dialog "Tiếp tục xem"</li>
+        <li>Click vào episodes để đổi tập (demo)</li>
+        <li>Xem section "Đang xem dở" bên dưới</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Load modules -->
+  <script type="module">
+    import { createArtPlayerFirebase, getAllWatchProgress } from './modules/artplayer-firebase.js';
+
+    // Global variables
+    window.artPlayerInstance = null;
+    window.currentEpisode = 1;
+
+    // Demo data
+    const DEMO_MOVIE = {
+      slug: 'demo-movie-2024',
+      name: 'Demo Movie 2024',
+      poster_url: 'https://via.placeholder.com/400x600?text=Demo+Movie'
+    };
+
+    const DEMO_EPISODES = [
+      { 
+        slug: 'tap-1', 
+        name: 'Tập 1',
+        // Sample video (Sintel - Open source movie)
+        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'
+      },
+      { 
+        slug: 'tap-2', 
+        name: 'Tập 2',
+        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+      },
+      { 
+        slug: 'tap-3', 
+        name: 'Tập 3',
+        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+      }
+    ];
+
+    // Generate episode buttons
+    function generateEpisodeButtons() {
+      const container = document.getElementById('episode-list');
+      container.innerHTML = DEMO_EPISODES.map((ep, index) => `
+        <button 
+          class="episode-btn ${index === 0 ? 'active' : ''}" 
+          onclick="loadEpisode(${index})"
+        >
+          ${ep.name}
+        </button>
+      `).join('');
+    }
+
+    // Initialize player
+    window.testInit = async function() {
+      try {
+        if (window.artPlayerInstance) {
+          window.artPlayerInstance.destroy();
+        }
+
+        const episode = DEMO_EPISODES[window.currentEpisode - 1];
+        
+        window.artPlayerInstance = createArtPlayerFirebase();
+        
+        await window.artPlayerInstance.init(
+          document.querySelector('#video-player'),
+          episode.url,
+          {
+            ...DEMO_MOVIE,
+            episodeSlug: episode.slug,
+            episodeName: episode.name
+          }
+        );
+
+        // Setup navigation callbacks
+        window.artPlayerInstance.setNavigationCallbacks(
+          () => {
+            if (window.currentEpisode < DEMO_EPISODES.length) {
+              loadEpisode(window.currentEpisode);
+            }
+          },
+          () => {
+            if (window.currentEpisode > 1) {
+              loadEpisode(window.currentEpisode - 2);
+            }
+          }
+        );
+
+        console.log('✅ Player initialized');
+        alert('✅ Player đã khởi tạo thành công!');
+        
+      } catch (error) {
+        console.error('❌ Init failed:', error);
+        alert('❌ Lỗi khởi tạo: ' + error.message);
+      }
+    };
+
+    // Load episode
+    window.loadEpisode = function(index) {
+      if (!window.artPlayerInstance) {
+        alert('⚠️ Vui lòng khởi tạo player trước!');
+        return;
+      }
+
+      window.currentEpisode = index + 1;
+      const episode = DEMO_EPISODES[index];
+
+      window.artPlayerInstance.updateEpisode(
+        episode.slug,
+        episode.name,
+        episode.url
+      );
+
+      // Update active button
+      document.querySelectorAll('.episode-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === index);
+      });
+
+      console.log('📺 Loaded:', episode.name);
+    };
+
+    // Play
+    window.testPlay = function() {
+      if (!window.artPlayerInstance?.player) {
+        alert('⚠️ Player chưa được khởi tạo!');
+        return;
+      }
+      window.artPlayerInstance.player.play();
+    };
+
+    // Pause
+    window.testPause = function() {
+      if (!window.artPlayerInstance?.player) {
+        alert('⚠️ Player chưa được khởi tạo!');
+        return;
+      }
+      window.artPlayerInstance.player.pause();
+    };
+
+    // Get progress
+    window.testGetProgress = function() {
+      if (!window.artPlayerInstance) {
+        alert('⚠️ Player chưa được khởi tạo!');
+        return;
+      }
+
+      const stats = window.artPlayerInstance.getWatchStats();
+      
+      document.getElementById('progress-info').style.display = 'block';
+      document.getElementById('info-movie').textContent = stats.movieSlug;
+      document.getElementById('info-episode').textContent = stats.episodeName;
+      document.getElementById('info-time').textContent = 
+        formatTime(stats.currentTime) + ' / ' + formatTime(stats.duration);
+      document.getElementById('info-progress').textContent = 
+        (stats.progress * 100).toFixed(1) + '%';
+      document.getElementById('info-playing').textContent = 
+        stats.isPlaying ? '▶️ Playing' : '⏸️ Paused';
+
+      console.log('📊 Stats:', stats);
+    };
+
+    // Save progress manually
+    window.testSaveProgress = async function() {
+      if (!window.artPlayerInstance) {
+        alert('⚠️ Player chưa được khởi tạo!');
+        return;
+      }
+
+      await window.artPlayerInstance.saveProgress();
+      alert('💾 Progress đã được lưu!');
+      refreshContinueWatching();
+    };
+
+    // Destroy
+    window.testDestroy = function() {
+      if (!window.artPlayerInstance) {
+        alert('⚠️ Player chưa được khởi tạo!');
+        return;
+      }
+
+      window.artPlayerInstance.destroy();
+      window.artPlayerInstance = null;
+      document.getElementById('progress-info').style.display = 'none';
+      alert('🗑️ Player đã bị destroy!');
+    };
+
+    // Refresh continue watching
+    window.refreshContinueWatching = async function() {
+      const container = document.getElementById('continue-list');
+      container.innerHTML = '<p style="color: #666;">Đang tải...</p>';
+
+      try {
+        const watchList = await getAllWatchProgress();
+
+        if (watchList.length === 0) {
+          container.innerHTML = '<p style="color: #666;">Chưa có phim đang xem dở</p>';
+          return;
+        }
+
+        container.innerHTML = watchList.map(item => `
+          <div class="continue-item" onclick="continueWatch('${item.movieSlug}', '${item.episodeSlug}')">
+            <h4>${item.episodeName}</h4>
+            <div class="progress-bar-container">
+              <div class="progress-bar" style="width: ${(item.progress * 100).toFixed(0)}%"></div>
+            </div>
+            <p>Đã xem ${(item.progress * 100).toFixed(0)}% • ${formatTime(item.currentTime)}</p>
+            <p style="font-size: 12px; color: #666;">
+              ${formatTimeAgo(item.lastWatched)}
+            </p>
+          </div>
+        `).join('');
+
+        console.log('📺 Found', watchList.length, 'watching items');
+
+      } catch (error) {
+        console.error('❌ Failed to load continue watching:', error);
+        container.innerHTML = '<p style="color: #f66;">Lỗi: ' + error.message + '</p>';
+      }
+    };
+
+    // Continue watch
+    window.continueWatch = function(movieSlug, episodeSlug) {
+      alert(`📺 Tiếp tục xem:\nMovie: ${movieSlug}\nEpisode: ${episodeSlug}`);
+      // In real app: navigate to watch page
+    };
+
+    // Helper: Format time
+    function formatTime(seconds) {
+      if (!seconds || isNaN(seconds)) return '00:00';
+      
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = Math.floor(seconds % 60);
+      
+      if (h > 0) {
+        return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      }
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    // Helper: Format time ago
+    function formatTimeAgo(timestamp) {
+      const now = Date.now();
+      const diff = now - timestamp;
+      
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      
+      if (minutes < 1) return 'Vừa xong';
+      if (minutes < 60) return minutes + ' phút trước';
+      if (hours < 24) return hours + ' giờ trước';
+      return days + ' ngày trước';
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', () => {
+      generateEpisodeButtons();
+      
+      // Auto refresh continue watching every 10 seconds
+      refreshContinueWatching();
+      setInterval(refreshContinueWatching, 10000);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "firestore": {
+    "rules": "firestore-rules-secure.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}
