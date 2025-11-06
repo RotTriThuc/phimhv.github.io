@@ -31,14 +31,29 @@
       }(window.location))
     </script>
     <!-- End Single Page Apps for GitHub Pages -->
-    <script type="module" crossorigin src="/assets/index-D3EvwM7Q.js"></script>
+    
+    <!-- Firebase Auth CSS -->
+    <link rel="stylesheet" href="/firebase-auth.css">
+    <script type="module" crossorigin src="/assets/index-DKCQaohK.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/react-vendor-z_TOjomz.js">
     <link rel="modulepreload" crossorigin href="/assets/animation-vendor-D-EIxb2j.js">
-    <link rel="modulepreload" crossorigin href="/assets/three-vendor-gBFmzWHj.js">
-    <link rel="modulepreload" crossorigin href="/assets/firebase-vendor-oSiQofbI.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-DDrjF53N.css">
+    <link rel="modulepreload" crossorigin href="/assets/three-vendor-CPCtv-EL.js">
+    <link rel="modulepreload" crossorigin href="/assets/firebase-vendor-DM0Up6-S.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-C34DsQJ3.css">
   </head>
   <body>
     <div id="root"></div>
+    
+    <!-- Firebase SDK v8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    
+    <!-- Firebase Init Bridge - MUST load after SDK but before auth -->
+    <script src="/firebase-init-bridge.js"></script>
+    
+    <!-- Firebase Auth System -->
+    <script src="/firebase-auth.js"></script>
+    <script src="/firebase-primary-storage.js"></script>
   </body>
 </html>
